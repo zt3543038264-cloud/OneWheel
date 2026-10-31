@@ -10,8 +10,17 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--pos',type=float)
 p.add_argument('--neg',type=float)
 p.add_argument('--seconds',type=float,default=12)
+p.add_argument('--module-ip',default='192.168.0.119')
+p.add_argument('--wait-ready',type=float,default=0)
+p.add_argument('--set',action='append',default=[])
 a=p.parse_args()
 updates={}
+for item in a.set:
+    key,value=item.split('=',1);value=float(value)
+    limits={'rate_kp':(0,100),'ground_angle_kp':(0,100),'wheel_pos_kp':(0,5),
+            'wheel_speed_kp':(0,.1),'wheel_speed_ki':(0,.1)}
+    if key not in limits or not limits[key][0]<=value<=limits[key][1]:raise SystemExit('Invalid parameter')
+    updates[key]=value
 for key,value in [('ground_deadzone_pos_pwm',a.pos),('ground_deadzone_neg_pwm',a.neg)]:
     if value is not None:
         if not 0<=value<=4000:raise SystemExit('Trial compensation outside 0..4000')
@@ -21,9 +30,12 @@ names=('telemetry_ms,control_mode,rate_state,fault_reason,imu_status,startup_sca
        'wheel_speed_cps,wheel_position_count,wheel_encoder_seq,wheel_encoder_valid,'
        'wheel_position_valid,wheel_feedback_age_ms,wheel_hold_state,dual_pitch_actual_deg,'
        'dual_pitch_target_deg,dual_pitch_rate_dps,ground_angle_kp,ground_rate_kp,'
-       'ground_pwm_limit,wheel_tilt_offset,wheel_target_cps').split(',')
+       'ground_pwm_limit,wheel_tilt_offset,wheel_target_cps,'
+       'wheel_pos_kp,wheel_speed_kp,wheel_speed_ki,wheel_speed_limit,wheel_pos_error,'
+       'dual_roll_actual_deg,dual_roll_target_deg,dual_roll_rate_dps,dual_roll_pwm,'
+       'fly_rate_kp,fly_rate_ki,fly_angle_kp,fly_angle_kd,fly_vel_kp,fly_vel_kd').split(',')
 s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('0.0.0.0',8081));s.settimeout(.1)
-peer=('192.168.0.119',5001)
+peer=(a.module_ip,5001)
 old=None;confirmed=False;latest=None;last_frame=0
 rows=[];events=[];phase='baseline';original=None;changed=False;error=''
 
@@ -78,6 +90,20 @@ try:
     while (latest is None or time.monotonic()-last_frame>.5) and time.monotonic()<end:receive()
     if latest is None or not confirmed or time.monotonic()-last_frame>.5:raise RuntimeError('No fresh diagnostic frames')
     original=dict(latest)
+    if a.wait_ready:
+        end=time.monotonic()+a.wait_ready;stable_since=None
+        while time.monotonic()<end:
+            receive()
+            ready=(time.monotonic()-last_frame<.3 and latest['control_mode']==10 and
+                   latest['rate_state']==2 and latest['fault_reason']==0 and
+                   abs(latest['dual_pitch_actual_deg']-latest['dual_pitch_target_deg'])<3 and
+                   abs(latest['dual_pitch_rate_dps'])<10 and abs(latest['wheel_speed_cps'])<100)
+            if ready:
+                if stable_since is None:stable_since=time.monotonic()
+                if time.monotonic()-stable_since>.3:break
+            else:stable_since=None
+        else:raise RuntimeError('No upright ground baseline; no changes made')
+        original=dict(latest)
     if updates:
         if latest['control_mode']!=10 or latest['rate_state']!=2 or latest['fault_reason']!=0:
             raise RuntimeError('Mode10 not running; no changes made')
@@ -87,13 +113,13 @@ try:
     phase='trial' if updates else 'observe'
     sample(a.seconds,guard=bool(updates))
     for key,value in updates.items():
-        if abs(latest[key]-value)>1e-4:raise RuntimeError('Parameter changed externally: '+key)
+        if abs(latest['ground_rate_kp' if key=='rate_kp' else key]-value)>1e-4:raise RuntimeError('Parameter changed externally: '+key)
 except Exception as exc:
     error=str(exc);print('ERROR',error,flush=True)
     if changed:
         phase='restore'
         for key in updates:
-            try:write(key,original[key])
+            try:write(key,original['ground_rate_kp' if key=='rate_kp' else key])
             except Exception as restore_error:print('RESTORE ERROR',key,str(restore_error),flush=True)
 finally:
     output=Path(__file__).resolve().parents[1]/'validation'/('ground-deadzone-'+time.strftime('%Y%m%d-%H%M%S')+'.json')

@@ -62,7 +62,7 @@
 #define QCAR_WIFI_PASSWORD "zyz520520"
 #endif
 #ifndef QCAR_WIFI_TARGET_IP
-#define QCAR_WIFI_TARGET_IP "192.168.0.108"
+#define QCAR_WIFI_TARGET_IP "192.168.0.113"
 #endif
 #ifndef QCAR_WIFI_TARGET_PORT
 #define QCAR_WIFI_TARGET_PORT "8081"
@@ -208,17 +208,17 @@
 #define FLY_RATE_KP                 14.4f
 #define FLY_RATE_KI                  0.2f
 #define FLY_RATE_KD                  0.0f
-#define FLY_ANGLE_KP                60.0f
+#define FLY_ANGLE_KP                75.0f
 #define FLY_ANGLE_KI                 0.0f
-#define FLY_ANGLE_KD                 0.0f
-#define FLY_VEL_KP                   0.2f
-#define FLY_VEL_KD                   0.0f
+#define FLY_ANGLE_KD                 0.3f
+#define FLY_VEL_KP                   0.05f
+#define FLY_VEL_KD                   0.002f
 #define FLY_VEL_D_LPF_TAU_S          0.030f
 #define FLY_VEL_ANGLE_LIMIT_DEG     15.0f
 #define FLY_RATE_LIMIT_DPS         160.0f
 #define FLY_PWM_LIMIT             8000.0f
-#define FLY_OUTPUT_SIGN              1.0f
-#define GROUND_RATE_KP              5.3f
+#define FLY_OUTPUT_SIGN              -1.0f
+#define GROUND_RATE_KP              2.0f
 #define GROUND_RATE_KI               0.0f
 #define GROUND_RATE_KD               0.0f
 #define GROUND_ANGLE_KP             10.0f
@@ -256,10 +256,10 @@
 /* Independent nonnegative PWM offsets, selected after output direction mapping.
  * 0 disables that direction's compensation. WiFi edits RAM, not these defaults. */
 #ifndef GROUND_DEADZONE_POS_PWM
-#define GROUND_DEADZONE_POS_PWM    1800.0f
+#define GROUND_DEADZONE_POS_PWM    2000.0f
 #endif
 #ifndef GROUND_DEADZONE_NEG_PWM
-#define GROUND_DEADZONE_NEG_PWM    3200.0f
+#define GROUND_DEADZONE_NEG_PWM    3500.0f
 #endif
 /* Negative or zero is treated as "no feed-forward" by the shaping helper;
  * the TASKING preprocessor cannot compare float literals in #if. */
