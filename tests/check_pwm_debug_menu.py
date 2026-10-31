@@ -67,6 +67,7 @@ static void small_driver_uart_init(void){}
 static void imu_prepare_start(void){++prepares;}
 static int wifispi_is_ready(void){return ready;}
 static void wifispi_telemetry_dual_profile(void){profile=2;}
+static void wifispi_telemetry_roll_profile(void){profile=5;}
 static void wifispi_telemetry_startup_profile(void){profile=1;}
 static void wifispi_telemetry_speed_profile(void){profile=3;}
 static void wifispi_telemetry_hold_profile(void){profile=4;}
@@ -107,7 +108,8 @@ int main(void){
     Menu_Handle_Control_Uint8(&mode,-6);assert(run_mode==2);
     assert(!running && !shacheflag && !ground && !fly_l && !fly_r && !timers[0]);
     start_car();tick();assert(!running && !ground && !fly_l && !fly_r && imu_attempts==1);imu_attempts=0;
-    Menu_Handle_Control_Uint8(&mode,100);assert(run_mode==8);
+    Menu_Handle_Control_Uint8(&mode,100);assert(run_mode==10);
+    Menu_Handle_Control_Uint8(&mode,-1);assert(run_mode==8);
     start_car();tick();assert(!ground && !fly_l && !fly_r && !pwm_debug_fly_left && !pwm_debug_fly_right && !pwm_debug_ground);
     pwm_debug_fly_left=400;pwm_debug_fly_right=800;pwm_debug_ground=600;tick();assert(ground==600);
     stop_car(); /* Immediate hardware zero, no further ISR required. */
@@ -122,6 +124,10 @@ int main(void){
     assert(running && shacheflag && wheel_hold_enabled && dual_balance_enabled && balance_control_mode==2);
     assert(profile==4 && timers[0] && timers[1] && prepares==1 && !ground && !fly_l);
     stop_car();assert(!wheel_hold_enabled && !balance_control_mode);
+    Menu_Handle_Control_Uint8(&mode,8);assert(run_mode==10);
+    start_car();tick();
+    assert(running && shacheflag && dual_balance_enabled && wheel_hold_enabled && balance_control_mode==10 && profile==5);
+    stop_car();
     puts("PASS: Mode2 IMU gate, dual+speed arm, telemetry profile, mode-change zero; Mode8 independent PWM retained");
 }
 '''

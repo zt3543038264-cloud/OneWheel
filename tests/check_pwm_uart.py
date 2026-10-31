@@ -65,6 +65,7 @@ int main(void){
     for(int mode=3;mode<=6;mode++) {
         if(mode==4)continue;
         balance_control_defaults();shacheflag=1;control_startup_ramp_ms=0;
+        roll_rate_test_kp=36;ground_rate_test_kp=30;ground_deadzone_enable=0;
         imu_attitude_status=1;imu_roll_deg=BALANCE_ZERO_X_DEG;imu_pitch_deg=BALANCE_ZERO_Y_DEG;
         attitude_state.gyro.y=10;attitude_state.gyro.x=4;
         if(mode==5)dual_balance_arm();else if(mode==6)roll_rate_only_arm();else roll_rate_test_arm();

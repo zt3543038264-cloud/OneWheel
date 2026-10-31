@@ -143,7 +143,6 @@ typedef struct
     
     float                              motor_speed;                // 电机当前转速            转速单位：RPM   
     float                              motor_speed_filter;         // 电机当前转速(滤波)      转速单位：RPM   
-    float                              target_speed;               // 角加速度积分目标转速    转速单位：RPM   
     
     uint32                              overload_count;             // 过载保护计次
     float                              overload_conefficient;       // 过载系数

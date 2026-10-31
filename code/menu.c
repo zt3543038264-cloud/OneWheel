@@ -92,8 +92,10 @@ static void start_car(void)
     if (run_mode == 6) roll_rate_only_arm();
     if (run_mode == 7) ground_rate_only_arm();
     if (run_mode == 8) pwm_debug_arm();
+    if (run_mode == 10) mode10_balance_arm();
     if (wifispi_is_ready()) {
         if (run_mode==2) wifispi_telemetry_hold_profile();
+        else if (run_mode==10) wifispi_telemetry_roll_profile();
         else if (run_mode==5 || run_mode==8) wifispi_telemetry_dual_profile();
         else wifispi_telemetry_startup_profile();
     }
@@ -165,9 +167,13 @@ void Menu_Create(void)
 #endif
     Menu_Item *fly=Create_Menu_Folder_dynamic(pid,"Gyro test");
     Create_Menu_File_dynamic(fly,"KP",&roll_rate_test_kp,float_Box);
+    Create_Menu_File_dynamic(fly,"KI",&roll_rate_test_ki,float_Box);
     Create_Menu_File_dynamic(fly,"PWM limit",&roll_rate_test_limit,float_Box);
     Create_Menu_File_dynamic(fly,"Sign +/-1",&roll_rate_test_sign,float_Box);
     Create_Menu_File_dynamic(fly,"Angle KP",&pitch_balance_kp,float_Box);
+    Create_Menu_File_dynamic(fly,"Angle KD",&pitch_balance_kd,float_Box);
+    Create_Menu_File_dynamic(fly,"Vel KP",&flywheel_vel_kp,float_Box);
+    Create_Menu_File_dynamic(fly,"Vel KD",&flywheel_vel_kd,float_Box);
     Create_Menu_File_dynamic(fly,"Rate limit",&pitch_balance_rate_limit,float_Box);
     Create_Menu_File_dynamic(fly,"Balance Y",&mono_params.balance_angle_y,float_Box);
     Menu_Item *ground=Create_Menu_Folder_dynamic(pid,"Pitch balance");
@@ -278,6 +284,7 @@ static void menu_wifi_connect(void)
             imu_wifi_status==-6?"WiFi connection cancelled":"WiFi failed; retry Connect";
     if (wifispi_is_ready() && !wifi_deferred_item) {
         if (run_mode==2) wifispi_telemetry_hold_profile();
+        else if (run_mode==10) wifispi_telemetry_roll_profile();
         else if (run_mode==5 || run_mode==8) wifispi_telemetry_dual_profile();
         else wifispi_telemetry_startup_profile();
         menu_wifi_announce();
@@ -367,7 +374,8 @@ static bool Menu_Handle_Control_Uint8(Menu_Item *item, int16 delta)
         int value = run_mode + delta;
         if (wifi_connecting) {message="Wait for WiFi then change Mode";return true;}
         if (running || preview || value <= 2) stop_car();
-        run_mode = (uint8)(value < 2 ? 2 : value > 8 ? 8 : value);
+        if (value == 9) value = delta >= 0 ? 10 : 8;
+        run_mode = (uint8)(value < 2 ? 2 : value > 10 ? 10 : value);
         return true;
     }
     return false;
@@ -384,7 +392,11 @@ static const char *control_error_text(int32 state,int32 imu_status)
     if (state==-2) return "ERR -2: Tilt >30; Stop/Start";
     if (state==-3) return "ERR -3: invalid parameter/PWM";
     if (state==-1) {
-        if(control_fault_reason==4)return "ERR -1: IMU stale >25ms";
+        if(control_fault_reason==4) {
+            static char stale_text[40];
+            snprintf(stale_text,sizeof(stale_text),"ERR -1: IMU stale >=%lums",(unsigned long)BALANCE_IMU_STALE_MS);
+            return stale_text;
+        }
         if(control_fault_reason==2)return "ERR -1: IMU no sample";
         if(control_fault_reason==3)return "ERR -1: IMU invalid data";
         if(control_fault_imu_status<0)imu_status=control_fault_imu_status;
@@ -536,6 +548,7 @@ static const char *test_mode_name(void)
     case 3:return "Roll angle: flywheel";case 4:return "Pitch angle: wheel";
     case 5:return "DUAL angle: both";case 6:return "Roll RATE ONLY: flywheel";
     case 7:return "Pitch RATE ONLY: wheel";case 8:return "PWM DEBUG: fly + wheel";
+    case 10:return "Mode10: Roll inc + Pitch hold";
     default:return "Invalid mode";
     }
 }

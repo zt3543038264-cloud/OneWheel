@@ -154,9 +154,8 @@ void motor_left_update_isr(void)
         }
         
         float left_bus_voltage = (battery_value.battery_voltage > 5.0f) ? battery_value.battery_voltage : 12.0f;
-        float left_max_rpm     = FOC_MOTOR_KV_NUM * left_bus_voltage;
         float left_foc_speed   = motor_left.motor_speed * (motor_left.rotation_direction == -1 ? -1.0f : 1.0f);
-        float speed_offset     = func_limit_ab((func_abs(motor_left.motor_speed_filter) / left_max_rpm), 0.0f, 1.0f);
+        float speed_offset     = func_limit_ab((func_abs(motor_left.motor_speed_filter) / (FOC_MOTOR_KV_NUM * left_bus_voltage)), 0.0f, 1.0f);
         
         motor_left.forward_preact_angle  = (uint8)(speed_offset * FOC_FORWARD_PREACT_ANGLE);
         
@@ -169,51 +168,16 @@ void motor_left_update_isr(void)
         trace_generation=driver_trace_generation();trace_duty=motor_left.motor_duty;
         __set_PRIMASK(trace_irq);
 
-#if FOC_ACCEL_LOOP_ENABLE == DRIVER_ENABLE
-        if(left_speed_count == 0)                                                   // 1kHz (每1ms) 同步更新角加速度积分目标转速
-        {
-            if(func_abs(trace_duty) <= 0.0001f ||
-               motor_left.motor_protect_state == PROTECT_MODE ||
-               motor_left.encoder_state == ENCODER_ERROR)
-            {
-                motor_left.target_speed = left_foc_speed;                           // 0指令或保护态时实时同步当前转速，消除切换跳变
-            }
-            else
-            {
-                if((trace_duty * (motor_left.target_speed - left_foc_speed)) < 0.0f)
-                {
-                    motor_left.target_speed = left_foc_speed;                       // 加速度指令反向时立即复位积分滞后，实现零延迟力矩换向
-                }
-                motor_left.target_speed += trace_duty * ((float)FOC_ACCEL_FULLSCALE_RPM_S * 0.001f);
-                motor_left.target_speed  = func_limit_ab(motor_left.target_speed,
-                                                         left_foc_speed - (float)FOC_SPEED_ERR_MAX_RPM,
-                                                         left_foc_speed + (float)FOC_SPEED_ERR_MAX_RPM);
-                motor_left.target_speed  = func_limit_ab(motor_left.target_speed, -left_max_rpm, left_max_rpm);
-            }
-        }
-#endif
-
         float left_output_duty = trace_duty;
-        if(func_abs(trace_duty) > 0.0001f)
-        {
-#if FOC_ACCEL_LOOP_ENABLE == DRIVER_ENABLE
-            float left_speed_err  = motor_left.target_speed - left_foc_speed;
-            float left_speed_duty = func_limit_ab(left_speed_err * (float)FOC_SPEED_LOOP_KP,
-                                                  -(float)FOC_SPEED_LOOP_LIMIT,
-                                                  (float)FOC_SPEED_LOOP_LIMIT);
-            left_output_duty += left_speed_duty;
-#endif
 #if FOC_BEMF_FF_ENABLE == DRIVER_ENABLE
-            if((trace_duty * left_foc_speed) >= 0.0f)
-            {
-                float left_bemf_duty = func_limit_ab((left_foc_speed / left_max_rpm) * (float)FOC_BEMF_FF_GAIN,
-                                                     -(float)FOC_BEMF_FF_LIMIT,
-                                                     (float)FOC_BEMF_FF_LIMIT);
-                left_output_duty += left_bemf_duty;
-            }
-#endif
-            left_output_duty = func_limit_ab(left_output_duty, -1.0f, 1.0f);
+        if(func_abs(trace_duty) > 0.0001f && (trace_duty * left_foc_speed) >= 0.0f)
+        {
+            float left_bemf_duty = func_limit_ab((left_foc_speed / (FOC_MOTOR_KV_NUM * left_bus_voltage)) * (float)FOC_BEMF_FF_GAIN,
+                                                 -(float)FOC_BEMF_FF_LIMIT,
+                                                 (float)FOC_BEMF_FF_LIMIT);
+            left_output_duty = func_limit_ab(trace_duty + left_bemf_duty, -1.0f, 1.0f);
         }
+#endif
         int32 left_traction_angle = (left_output_duty >= 0.0f) ? (int32)motor_left.forward_traction_angle : -(int32)motor_left.reversal_traction_angle;
         int32 left_preact_angle   = (left_foc_speed >= 0.0f) ? (int32)motor_left.forward_preact_angle : -(int32)motor_left.reversal_preact_angle;
 
@@ -377,60 +341,24 @@ void motor_right_update_isr(void)
         }
           
         float right_bus_voltage = (battery_value.battery_voltage > 5.0f) ? battery_value.battery_voltage : 12.0f;
-        float right_max_rpm     = FOC_MOTOR_KV_NUM * right_bus_voltage;
         float right_foc_speed   = motor_right.motor_speed * (motor_right.rotation_direction == -1 ? -1.0f : 1.0f);
-        float speed_offset      = func_limit_ab((func_abs(motor_right.motor_speed_filter) / right_max_rpm), 0.0f, 1.0f);
+        float speed_offset      = func_limit_ab((func_abs(motor_right.motor_speed_filter) / (FOC_MOTOR_KV_NUM * right_bus_voltage)), 0.0f, 1.0f);
         
         motor_right.forward_preact_angle  = (uint8)(speed_offset * (float)FOC_FORWARD_PREACT_ANGLE);
         
         motor_right.reversal_preact_angle = (uint8)(speed_offset * (float)FOC_REVERSAL_PREACT_ANGLE);
         
         float right_cmd_duty    = motor_right.motor_duty;
-#if FOC_ACCEL_LOOP_ENABLE == DRIVER_ENABLE
-        if(right_speed_count == 0)                                                  // 1kHz (每1ms) 同步更新角加速度积分目标转速
-        {
-            if(func_abs(right_cmd_duty) <= 0.0001f ||
-               motor_right.motor_protect_state == PROTECT_MODE ||
-               motor_right.encoder_state == ENCODER_ERROR)
-            {
-                motor_right.target_speed = right_foc_speed;                         // 0指令或保护态时实时同步当前转速，消除切换跳变
-            }
-            else
-            {
-                if((right_cmd_duty * (motor_right.target_speed - right_foc_speed)) < 0.0f)
-                {
-                    motor_right.target_speed = right_foc_speed;                     // 加速度指令反向时立即复位积分滞后，实现零延迟力矩换向
-                }
-                motor_right.target_speed += right_cmd_duty * ((float)FOC_ACCEL_FULLSCALE_RPM_S * 0.001f);
-                motor_right.target_speed  = func_limit_ab(motor_right.target_speed,
-                                                          right_foc_speed - (float)FOC_SPEED_ERR_MAX_RPM,
-                                                          right_foc_speed + (float)FOC_SPEED_ERR_MAX_RPM);
-                motor_right.target_speed  = func_limit_ab(motor_right.target_speed, -right_max_rpm, right_max_rpm);
-            }
-        }
-#endif
-
         float right_output_duty = right_cmd_duty;
-        if(func_abs(right_cmd_duty) > 0.0001f)
-        {
-#if FOC_ACCEL_LOOP_ENABLE == DRIVER_ENABLE
-            float right_speed_err  = motor_right.target_speed - right_foc_speed;
-            float right_speed_duty = func_limit_ab(right_speed_err * (float)FOC_SPEED_LOOP_KP,
-                                                   -(float)FOC_SPEED_LOOP_LIMIT,
-                                                   (float)FOC_SPEED_LOOP_LIMIT);
-            right_output_duty += right_speed_duty;
-#endif
 #if FOC_BEMF_FF_ENABLE == DRIVER_ENABLE
-            if((right_cmd_duty * right_foc_speed) >= 0.0f)
-            {
-                float right_bemf_duty = func_limit_ab((right_foc_speed / right_max_rpm) * (float)FOC_BEMF_FF_GAIN,
-                                                      -(float)FOC_BEMF_FF_LIMIT,
-                                                      (float)FOC_BEMF_FF_LIMIT);
-                right_output_duty += right_bemf_duty;
-            }
-#endif
-            right_output_duty = func_limit_ab(right_output_duty, -1.0f, 1.0f);
+        if(func_abs(right_cmd_duty) > 0.0001f && (right_cmd_duty * right_foc_speed) >= 0.0f)
+        {
+            float right_bemf_duty = func_limit_ab((right_foc_speed / (FOC_MOTOR_KV_NUM * right_bus_voltage)) * (float)FOC_BEMF_FF_GAIN,
+                                                  -(float)FOC_BEMF_FF_LIMIT,
+                                                  (float)FOC_BEMF_FF_LIMIT);
+            right_output_duty = func_limit_ab(right_cmd_duty + right_bemf_duty, -1.0f, 1.0f);
         }
+#endif
         int32 right_traction_angle = (right_output_duty >= 0.0f) ? (int32)motor_right.forward_traction_angle : -(int32)motor_right.reversal_traction_angle;
         int32 right_preact_angle   = (right_foc_speed >= 0.0f) ? (int32)motor_right.forward_preact_angle : -(int32)motor_right.reversal_preact_angle;
 

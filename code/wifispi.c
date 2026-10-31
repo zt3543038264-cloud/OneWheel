@@ -108,6 +108,9 @@ static float g_telemetry_ms;
     X(dual_pitch_pwm, dual_pwm[1]) \
     X(fly_angle_kp, pitch_balance_kp) \
     X(fly_rate_kp, roll_rate_test_kp) \
+    X(fly_rate_ki, roll_rate_test_ki) \
+    X(fly_vel_kp, flywheel_vel_kp) \
+    X(fly_vel_out, flywheel_vel_angle_out) \
     X(fly_sign, roll_rate_test_sign) \
     X(fly_rate_limit_dps, pitch_balance_rate_limit) \
     X(fly_pwm_limit, roll_rate_test_limit) \
@@ -151,7 +154,11 @@ static float g_telemetry_ms;
     X(imu_recovery_pct, imu_recovery_percent) X(imu_recoveries, imu_recovery_count) \
     X(imu_pre_gx_dps, imu_pre_gyro_dps[0]) X(imu_pre_gy_dps, imu_pre_gyro_dps[1]) X(imu_pre_gz_dps, imu_pre_gyro_dps[2]) \
     X(imu_pre_ax_g, imu_pre_accel_g[0]) X(imu_pre_ay_g, imu_pre_accel_g[1]) X(imu_pre_az_g, imu_pre_accel_g[2]) \
-    X(imu_pre_norm_g, imu_pre_norm_g) X(imu_reacquiring, imu_reacquiring)
+    X(imu_pre_norm_g, imu_pre_norm_g) X(imu_reacquiring, imu_reacquiring) \
+    X(ground_deadzone_pos_pwm, ground_deadzone_pos_pwm) \
+    X(ground_deadzone_neg_pwm, ground_deadzone_neg_pwm) \
+    X(fly_angle_kd, pitch_balance_kd) X(fly_vel_kd, flywheel_vel_kd) \
+    X(fly_angle_d_out, fly_angle_d_out) X(fly_vel_d_out, fly_vel_d_out)
 
 #define VARIABLE_ID(name, expr) TV_##name,
 enum { TELEMETRY_VARIABLES(VARIABLE_ID) TV_COUNT };
@@ -180,10 +187,16 @@ static const slider_parameter_t g_slider_parameters[] = {
     {"rate_sign", &ground_rate_test_sign, -1.0f, 1.0f},
     /* 模式 4 外环：角度P 与目标角速度限幅，只在 rate_only=0 时参与。 */
     {"ground_angle_kp", &ground_angle_kp, 0.0f, 100.0f},
+    {"ground_deadzone_pos_pwm", &ground_deadzone_pos_pwm, 0.0f, BALANCE_PWM_LIMIT_MAX},
+    {"ground_deadzone_neg_pwm", &ground_deadzone_neg_pwm, 0.0f, BALANCE_PWM_LIMIT_MAX},
     /* 模式 5 横向（飞轮，代码里是 pitch/imu_pitch_deg，屏幕标 Roll）。 */
-    {"fly_angle_kp", &pitch_balance_kp, 0.0f, 100.0f},
+    {"fly_angle_kp", &pitch_balance_kp, 0.0f, 1000.0f},
+    {"fly_angle_kd", &pitch_balance_kd, 0.0f, 1000.0f},
     {"fly_rate_limit_dps", &pitch_balance_rate_limit, 0.1f, BALANCE_RATE_LIMIT_MAX_DPS},
-    {"fly_rate_kp", &roll_rate_test_kp, 0.0f, 500.0f},
+    {"fly_rate_kp", &roll_rate_test_kp, 0.0f, 1000.0f},
+    {"fly_rate_ki", &roll_rate_test_ki, 0.0f, 1000.0f},
+    {"fly_vel_kp", &flywheel_vel_kp, -1000.0f, 1000.0f},
+    {"fly_vel_kd", &flywheel_vel_kd, 0.0f, 1000.0f},
     {"fly_pwm_limit", &roll_rate_test_limit, 0.0f, BALANCE_PWM_LIMIT_MAX},
     {"fly_sign", &roll_rate_test_sign, -1.0f, 1.0f},
     /* 停车时单独开环驱动左右无刷（排查飞轮通道用，0 = 不驱动）。 */
@@ -196,7 +209,7 @@ static const slider_parameter_t g_slider_parameters[] = {
     {"ground_rate_limit_dps", &ground_angle_rate_limit, 0.1f, BALANCE_RATE_LIMIT_MAX_DPS},
     {"balance_angle_x", &mono_params.balance_angle_x, -20.0f, 20.0f},
     {"balance_angle_y", &mono_params.balance_angle_y, -20.0f, 20.0f},
-    /* Mode2 only; RAM tuning, not part of the existing upright Flash record. */
+    /* Modes 2/10; RAM tuning, not part of the existing upright Flash record. */
     {"wheel_speed_kp", &wheel_speed_kp, 0.0f, WHEEL_SPEED_GAIN_MAX},
     {"wheel_speed_ki", &wheel_speed_ki, 0.0f, WHEEL_SPEED_GAIN_MAX},
     {"wheel_tilt_limit", &wheel_tilt_limit, 0.0f, WHEEL_SPEED_TILT_MAX_DEG},
@@ -632,6 +645,19 @@ void wifispi_telemetry_dual_profile(void)
     static const uint8_t channels[]={TV_telemetry_ms,TV_rate_seq,TV_imu_seq,TV_imu_status,TV_rate_state,TV_dual_enabled,TV_dual_roll_actual_deg,TV_dual_roll_target_deg,TV_dual_roll_error_deg,TV_dual_roll_target_rate_dps,TV_dual_roll_rate_dps,TV_dual_roll_rate_error_dps,TV_dual_roll_pwm,TV_dual_pitch_actual_deg,TV_dual_pitch_target_deg,TV_dual_pitch_error_deg,TV_dual_pitch_target_rate_dps,TV_dual_pitch_rate_dps,TV_dual_pitch_rate_error_dps,TV_dual_pitch_pwm,TV_fly_angle_kp,TV_fly_rate_kp,TV_fly_sign,TV_fly_rate_limit_dps,TV_fly_pwm_limit,TV_ground_angle_kp,TV_ground_rate_kp,TV_ground_sign,TV_ground_rate_limit_dps,TV_ground_pwm_limit,TV_motor_left_pwm,TV_motor_right_pwm,TV_motor_ground_pwm,TV_imu_dt_ms,TV_fault_reason,TV_fault_imu_status,TV_fault_imu_dt_ms,TV_imu_spi_timeouts,TV_imu_not_ready,TV_startup_scale,TV_flywheel_left_speed_raw,TV_flywheel_right_speed_raw,TV_driver_speed_frames,TV_driver_feedback_age_ms,TV_driver_feedback_fresh};
     memcpy(g_channels,channels,sizeof(channels));
     wifi_telemetry_channel_count=sizeof(channels)/sizeof(channels[0]);wifi_telemetry_period_ms=APP_TELEMETRY_PROFILE_MS;
+    wifi_telemetry_stream_enabled=1;g_announce_pending=1;
+#endif
+}
+
+void wifispi_telemetry_roll_profile(void)
+{
+#if QCAR_WIFI_ENABLED
+    static const uint8_t channels[]={TV_dual_roll_actual_deg,TV_dual_roll_target_deg,
+        TV_dual_roll_target_rate_dps,TV_dual_roll_rate_dps,TV_dual_roll_pwm,
+        TV_motor_left_pwm,TV_motor_right_pwm};
+    memcpy(g_channels,channels,sizeof(channels));
+    wifi_telemetry_channel_count=sizeof(channels)/sizeof(channels[0]);
+    wifi_telemetry_period_ms=APP_TELEMETRY_PROFILE_MS;
     wifi_telemetry_stream_enabled=1;g_announce_pending=1;
 #endif
 }

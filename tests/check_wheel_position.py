@@ -36,11 +36,11 @@ int main(void){
     wheel_pos_kp=.5f;wheel_speed_limit=0;next(100100,20);assert(!wheel_target_cps);
     reset(100);for(int i=0;i<5;++i)next(108,20);
     assert(wheel_pos_error==-8 && !wheel_target_cps);
-    for(int i=0;i<5;++i)next(109,20);close_to(wheel_target_cps,-.5f);
+    for(int i=0;i<5;++i){next(109,20);}close_to(wheel_target_cps,-.5f);
     reset(100);for(int i=0;i<4;++i){next(612,21);assert(!wheel_target_cps);}
     next(612,21);close_to(wheel_target_cps,-252); /* 105ms of actual windows. */
     wheel_hold_suspend();assert(wheel_ref_count==100 && !wheel_target_cps && !wheel_tilt_offset);
-    for(int i=0;i<5;++i)next(612,20);assert(wheel_ref_count==100);close_to(wheel_target_cps,-252);
+    for(int i=0;i<5;++i){next(612,20);}assert(wheel_ref_count==100);close_to(wheel_target_cps,-252);
     sample.position_epoch=2;assert(wheel_hold_update(&sample,0)==-10);
     assert(!wheel_tilt_offset && !wheel_target_cps && !wheel_feedback_valid && wheel_ref_count==100);
     sample.position_epoch=1;assert(wheel_hold_update(&sample,0)==-10); /* Do not silently move origin. */

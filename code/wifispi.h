@@ -36,6 +36,7 @@ void wifispi_telemetry_init(void); /* CPU0，停车后显式连接/重试 */
 void wifispi_telemetry_stop(void);
 void wifispi_telemetry_startup_profile(void);
 void wifispi_telemetry_dual_profile(void);
+void wifispi_telemetry_roll_profile(void); /* Mode10 Roll direction diagnostics, 7 channels. */
 void wifispi_telemetry_speed_profile(void); /* Mode2, 43 channels; legacy profiles unchanged. */
 void wifispi_telemetry_hold_profile(void); /* Mode2 position+speed, 48 channels. */
 void wifispi_telemetry_angle_profile(void); /* select 28 angle-loop diagnostic channels */

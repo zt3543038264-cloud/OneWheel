@@ -78,6 +78,7 @@ extern volatile uint8 roll_rate_test_enabled, ground_rate_test_enabled, dual_bal
 extern volatile float dual_angle[2],dual_target[2],dual_angle_error[2],dual_rate[2],dual_target_rate[2],dual_rate_error[2],dual_pwm[2];
 extern float ground_rate_test_kp, ground_rate_test_limit, ground_rate_test_sign;
 extern float ground_angle_kp,ground_angle_rate_limit;
+extern float ground_deadzone_pos_pwm,ground_deadzone_neg_pwm;
 extern volatile uint32 roll_rate_test_sequence;
 extern volatile int32 roll_rate_test_state;
 extern volatile float roll_rate_test_actual, roll_rate_test_error, roll_rate_test_pwm;
@@ -85,6 +86,10 @@ extern volatile float pitch_balance_target_rate, pitch_balance_error;
 extern volatile float pitch_balance_actual_angle, pitch_balance_target_angle;
 extern float pitch_balance_kp, pitch_balance_rate_limit;
 extern float roll_rate_test_kp, roll_rate_test_sign, roll_rate_test_limit;
+extern float roll_rate_test_ki, flywheel_vel_kp;
+extern float pitch_balance_kd, flywheel_vel_kd;
+extern volatile float fly_angle_d_out,fly_vel_d_out;
+extern volatile float flywheel_vel_angle_out;
 extern int16 costrained_flywheel_speed_left, costrained_flywheel_speed_right, costrained_wheel_speed;
 """)
     for enabled in (1, 0):

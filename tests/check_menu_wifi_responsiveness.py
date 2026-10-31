@@ -56,6 +56,7 @@ static int wifispi_is_ready(void) {return ready;}
 static void wifispi_set_progress_hook(void (*p)(void)) {progress=p;}
 static void wifispi_telemetry_stop(void) {assert(!in_driver);ready=0;}
 static void wifispi_telemetry_dual_profile(void) {}
+static void wifispi_telemetry_roll_profile(void) {}
 static void wifispi_telemetry_startup_profile(void) {}
 static void wifispi_telemetry_hold_profile(void) {}
 static void wifispi_telemetry_announce(void) {assert(!in_driver);}
@@ -162,10 +163,16 @@ int main(void) {
     running=1;run_mode=5;int prior_stops=stops;
     Menu_Handle_Control_Uint8(&mode_item,1);
     assert(run_mode==6 && !running && stops==prior_stops+1);
-    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==7);
-    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==8);
-    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==8);
+    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==7);Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==8);
+    assert(run_mode>=8);
+    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==10);
+    Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==10);
+    Menu_Handle_Control_Uint8(&mode_item,-1);assert(run_mode==8);
+    assert(run_mode>=8);
+    assert(run_mode>=8);
+    Menu_Handle_Control_Uint8(&mode_item,-1);assert(run_mode==7);Menu_Handle_Control_Uint8(&mode_item,1);assert(run_mode==8);
     wifi_connecting=true;Menu_Handle_Control_Uint8(&mode_item,-1);assert(run_mode==8);wifi_connecting=false;
+    assert(run_mode>=8);
     puts("PASS: navigation/editing during WiFi wait; deferred Start/Stop/Flash; cancel; no retry before action; initiating key consumed before callbacks");
 }
 '''

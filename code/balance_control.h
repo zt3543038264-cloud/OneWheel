@@ -17,11 +17,17 @@ extern volatile int32 roll_rate_test_state;
 extern volatile float roll_rate_test_actual, roll_rate_test_error, roll_rate_test_pwm;
 extern volatile float pitch_balance_target_rate, pitch_balance_error;
 extern volatile float pitch_balance_actual_angle, pitch_balance_target_angle;
-extern float pitch_balance_kp, pitch_balance_rate_limit;
-extern float roll_rate_test_kp, roll_rate_test_limit, roll_rate_test_sign;
+extern float pitch_balance_kp, pitch_balance_rate_limit, flywheel_vel_kp;
+extern float pitch_balance_kd, flywheel_vel_kd; /* Mode10 measurement derivatives, seconds-based. */
+extern volatile float fly_angle_d_out, fly_vel_d_out;
+/* Mode10 flywheel speed loop: driver feedback (set by control ISR) and angle offset output. */
+extern volatile int16 flywheel_speed_feedback_left, flywheel_speed_feedback_right;
+extern volatile uint32 flywheel_speed_feedback_sequence;
+extern volatile float flywheel_vel_angle_out;
+extern float roll_rate_test_kp, roll_rate_test_ki, roll_rate_test_limit, roll_rate_test_sign;
 extern volatile uint8 ground_rate_test_enabled;
 extern float ground_rate_test_kp, ground_rate_test_limit, ground_rate_test_sign;
-extern float ground_deadzone_pwm;      /* static-friction feed-forward, PWM duty */
+extern float ground_deadzone_pos_pwm, ground_deadzone_neg_pwm; /* nonnegative duty offsets */
 extern uint8 ground_deadzone_enable;   /* 0 disables the feed-forward */
 extern float ground_angle_kp, ground_angle_rate_limit;
 extern volatile uint8 dual_balance_enabled;
@@ -43,7 +49,8 @@ extern uint32 control_startup_ramp_ms;
 void roll_rate_only_arm(void);
 void ground_rate_only_arm(void);
 void dual_balance_arm(void);
-void speed_balance_arm(void); /* Mode2: dual attitude + ground speed outer loop. */
+void mode10_balance_arm(void); /* Roll incremental cascade + ground four-loop hold. */
+void speed_balance_arm(void); /* Mode2: dual attitude + ground position/speed loops. */
 void ground_rate_test_arm(void);
 void roll_rate_test_arm(void);
 void roll_rate_test_stop(void);

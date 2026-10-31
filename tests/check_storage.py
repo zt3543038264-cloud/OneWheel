@@ -46,7 +46,7 @@ int main(void){
  bad=NAN;memcpy(&memory[6],&bad,4);repair_checksum();get_flash();assert(ground_rate_test_kp==GROUND_RATE_KP);
  assert(write_flash());memory[13]=5001;repair_checksum();get_flash();assert(control_startup_ramp_ms==BALANCE_STARTUP_RAMP_MS);
  balance_control_defaults();assert(pitch_balance_rate_limit==FLY_RATE_LIMIT_DPS && roll_rate_test_limit==8000);
- assert(roll_rate_test_kp==FLY_RATE_KP && pitch_balance_kp==FLY_ANGLE_KP && ground_rate_test_kp==30 && mono_params.balance_angle_y==BALANCE_ZERO_Y_DEG && mono_params.balance_angle_x==BALANCE_ZERO_X_DEG && ground_rate_test_limit==6000);
+ assert(roll_rate_test_kp==FLY_RATE_KP && pitch_balance_kp==FLY_ANGLE_KP && ground_rate_test_kp==GROUND_RATE_KP && mono_params.balance_angle_y==BALANCE_ZERO_Y_DEG && mono_params.balance_angle_x==BALANCE_ZERO_X_DEG && ground_rate_test_limit==6000);
  pitch_balance_rate_limit=ground_angle_rate_limit=200;roll_rate_test_limit=ground_rate_test_limit=8000;
  assert(write_flash());balance_control_defaults();get_flash();
  assert(pitch_balance_rate_limit==200 && ground_angle_rate_limit==200 && roll_rate_test_limit==8000 && ground_rate_test_limit==8000);

@@ -924,19 +924,8 @@ void sensorless_motor_isr(void)
                 motor_left.motor_speed_filter = (motor_left.motor_speed + motor_left.motor_speed_filter * 99.0f) / 100.0f;      // 对转速进行低通滤波
             }
             
-            if(motor_left.pit_trig_count > 1000 && motor_left.pit_trig_count % SENSERLESS_SPEED_INCREMENTAL == 0)               // 缓加速 & 缓减速 进入闭环 50ms 后 根据用户配置的加减速步长 执行加减速
-            {
-                if(motor_left.sensorless_duty < motor_left.motor_duty)
-                {
-                    motor_left.sensorless_duty += (func_limit_ab(func_abs(motor_left.sensorless_duty) * 0.0003, 0.0001, 0.0003));  
-                }
-                else if(motor_left.sensorless_duty > motor_left.motor_duty)
-                {
-                    motor_left.sensorless_duty -= (func_limit_ab(func_abs(motor_left.sensorless_duty) * 0.0003, 0.0001, 0.0003));  
-                }
-                
-                motor_left.sensorless_duty = func_limit_ab(motor_left.sensorless_duty, -1.0f, 1.0f);
-            }
+            // Apply the requested duty immediately; no duty ramp.
+            motor_left.sensorless_duty = func_limit_ab(motor_left.motor_duty, -1.0f, 1.0f);
             
             if(motor_left.pit_trig_count % 20 == 0)                             // 1ms 执行一次 记录闭环速度数据 用于高速抗干扰保护
             {
@@ -1203,19 +1192,8 @@ void sensorless_motor_isr(void)
                 motor_right.motor_speed_filter = (motor_right.motor_speed + motor_right.motor_speed_filter * 99.0f) / 100.0f;    // 对转速进行低通滤波
             }
             
-            if(motor_right.pit_trig_count > 1000 && motor_right.pit_trig_count % SENSERLESS_SPEED_INCREMENTAL == 0)              // 缓加速 & 缓减速 进入闭环 50ms 后 根据用户配置的加减速步长 执行加减速
-            {
-                if(motor_right.sensorless_duty < motor_right.motor_duty)
-                {
-                    motor_right.sensorless_duty += (func_limit_ab(func_abs(motor_right.sensorless_duty) * 0.0003, 0.00005, 0.0003));  
-                }
-                else if(motor_right.sensorless_duty > motor_right.motor_duty)
-                {
-                    motor_right.sensorless_duty -= (func_limit_ab(func_abs(motor_right.sensorless_duty) * 0.0003, 0.00005, 0.0003));
-                }
-                
-                motor_right.sensorless_duty = func_limit_ab(motor_right.sensorless_duty, -1.0f, 1.0f);
-            }
+            // Apply the requested duty immediately; no duty ramp.
+            motor_right.sensorless_duty = func_limit_ab(motor_right.motor_duty, -1.0f, 1.0f);
             
             if(motor_right.pit_trig_count % 20 == 0)                            // 1ms 执行一次 记录闭环速度数据 用于高速抗干扰保护
             {

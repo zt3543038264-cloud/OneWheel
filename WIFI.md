@@ -1,5 +1,30 @@
 # WiFi-SPI 直立遥测
 
+Mode10 连接成功和 Start 时默认发送以下 7 通道，周期 20 ms；`MCAR SUB` 回执会公布相同顺序，上位机仍可用 `SUB` 替换订阅：
+
+```text
+dual_roll_actual_deg,dual_roll_target_deg,dual_roll_target_rate_dps,dual_roll_rate_dps,dual_roll_pwm,motor_left_pwm,motor_right_pwm
+```
+
+分别为 Roll 实际角度、目标角度、目标角速度、实际角速度、控制器 PWM、左飞轮实际下发 PWM、右飞轮实际下发 PWM。角度单位为 °，角速度为 °/s。其他模式沿用原有默认遥测。
+
+地轮正、负 PWM 方向的静摩擦补偿现可分别在线修改，当前编译默认值为 1800、3200：
+
+```text
+[slider,ground_deadzone_pos_pwm,1800]
+[slider,ground_deadzone_neg_pwm,3200]
+```
+
+两个值均填非负数，允许 0..8000；设为 0 关闭该方向补偿。方向按 `motor_ground_pwm` 的正负判断，不能直接等同于车身前后。闭环控制量为 0 时保持零输出；补偿随启动斜坡增加，最终输出仍受地轮 PWM 限幅约束。Mode8 和菜单开环测试不加此补偿。参数修改即时写入 RAM，Stop/Start 保留，重启恢复编译默认值，现有 Storage/Save 不保存这两项。
+
+订阅补偿值、补偿前后 PWM 和地轮速度：
+
+```text
+SUB ground_deadzone_pos_pwm,ground_deadzone_neg_pwm,dual_pitch_pwm,motor_ground_pwm,wheel_speed_cps
+```
+
+Mode10 飞轮速度／角度环支持 `fly_vel_kd`、`fly_angle_kd`，默认均为 0，允许 0..1000，命令格式与 Kp 相同。它们可同名订阅回读，D 项输出分别为 `fly_vel_d_out`（度）和 `fly_angle_d_out`（度/秒）。两项仅保存在 RAM；算法及秒制尺度见 [Mode10 控制说明](MODE10_CONTROL.md)。
+
 网络、SPI引脚和速率统一在 `code/config.h`。本地目标PC为192.168.0.112:8081，模块命令端口5001；WiFi名和密码保持原值。
 
 先停车并退出IMU/开环预览，在Startup/WiFi connect选中后设On。连接失败可再次设On重试；连接后可Start或使用IMU预览。Stop停电机但保持遥测。WiFi等待期间仍处理菜单导航，硬件动作待SPI退出后执行。

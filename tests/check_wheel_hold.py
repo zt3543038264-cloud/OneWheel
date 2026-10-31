@@ -43,6 +43,8 @@ static void tick(void){++imu_sample_sequence;for(unsigned i=0;i<APP_CONTROL_DIVI
 static void fresh(float speed){++sample.sequence;sample.speed_cps=speed;sample.dt_ms=20;sample.age_ms=0;sample.valid=sample.position_valid=1;sample.position_epoch=fake_epoch;}
 static void arm(int mode){
     balance_control_defaults();shacheflag=1;control_startup_ramp_ms=0;
+    /* Exercise a defined inner-loop gain, independent of stored/default tuning. */
+    ground_angle_kp=40;ground_rate_test_kp=30;ground_deadzone_enable=0;
     imu_roll_deg=BALANCE_ZERO_X_DEG;imu_pitch_deg=BALANCE_ZERO_Y_DEG;
     imu_attitude_status=1;attitude_state.gyro.x=attitude_state.gyro.y=0;
     fresh(0);if(mode==2)speed_balance_arm();else dual_balance_arm();fresh(0);

@@ -62,7 +62,7 @@
 #define QCAR_WIFI_PASSWORD "zyz520520"
 #endif
 #ifndef QCAR_WIFI_TARGET_IP
-#define QCAR_WIFI_TARGET_IP "192.168.0.107"
+#define QCAR_WIFI_TARGET_IP "192.168.0.108"
 #endif
 #ifndef QCAR_WIFI_TARGET_PORT
 #define QCAR_WIFI_TARGET_PORT "8081"
@@ -203,21 +203,25 @@
  * displayed Pitch = ground wheel = imu_roll_deg / gyro.x
  * 零点采用本车静止扶稳读数；不要套用旧版原始量零点 -100 / 190。
  */
-#define BALANCE_ZERO_X_DEG           4.2f
-#define BALANCE_ZERO_Y_DEG           1.0f
-#define FLY_RATE_KP                 36.0f
-#define FLY_RATE_KI                  0.0f
+#define BALANCE_ZERO_X_DEG           4.7f
+#define BALANCE_ZERO_Y_DEG           -1.0f
+#define FLY_RATE_KP                 14.4f
+#define FLY_RATE_KI                  0.2f
 #define FLY_RATE_KD                  0.0f
-#define FLY_ANGLE_KP                40.0f
+#define FLY_ANGLE_KP                60.0f
 #define FLY_ANGLE_KI                 0.0f
 #define FLY_ANGLE_KD                 0.0f
+#define FLY_VEL_KP                   0.2f
+#define FLY_VEL_KD                   0.0f
+#define FLY_VEL_D_LPF_TAU_S          0.030f
+#define FLY_VEL_ANGLE_LIMIT_DEG     15.0f
 #define FLY_RATE_LIMIT_DPS         160.0f
 #define FLY_PWM_LIMIT             8000.0f
 #define FLY_OUTPUT_SIGN              1.0f
-#define GROUND_RATE_KP              30.0f
+#define GROUND_RATE_KP              5.3f
 #define GROUND_RATE_KI               0.0f
 #define GROUND_RATE_KD               0.0f
-#define GROUND_ANGLE_KP             40.0f
+#define GROUND_ANGLE_KP             10.0f
 #define GROUND_ANGLE_KI              0.0f
 #define GROUND_ANGLE_KD              0.0f
 #define GROUND_RATE_LIMIT_DPS      100.0f
@@ -249,8 +253,13 @@
  * nonzero command in its own direction (feed-forward). The offset follows the
  * startup ramp, so Start still ramps smoothly. 0 disables the compensation;
  * Mode8 raw PWM and the menu PWM test never use it. */
-#ifndef GROUND_DEADZONE_PWM
-#define GROUND_DEADZONE_PWM        1800.0f
+/* Independent nonnegative PWM offsets, selected after output direction mapping.
+ * 0 disables that direction's compensation. WiFi edits RAM, not these defaults. */
+#ifndef GROUND_DEADZONE_POS_PWM
+#define GROUND_DEADZONE_POS_PWM    1800.0f
+#endif
+#ifndef GROUND_DEADZONE_NEG_PWM
+#define GROUND_DEADZONE_NEG_PWM    3200.0f
 #endif
 /* Negative or zero is treated as "no feed-forward" by the shaping helper;
  * the TASKING preprocessor cannot compare float literals in #if. */
@@ -270,7 +279,8 @@
 #define FLY_ANGLE_FF_KP             300.0f
 #endif
 #define BALANCE_TILT_LIMIT_DEG       30.0f
-#define BALANCE_IMU_STALE_MS         25u
+/* Tolerate brief publication gaps; fault at 50ms without a new fused sample. */
+#define BALANCE_IMU_STALE_MS         50u
 #define BALANCE_STARTUP_RAMP_MS    1000u
 #define APP_DEFAULT_MODE               5u /* 2 dual + ground speed; 3/4/5 angle; 6/7 rate-only; 8 PWM debug */
 /* Mode8 signed raw duty commands; 10000 means 100% duty. Starts at zero.

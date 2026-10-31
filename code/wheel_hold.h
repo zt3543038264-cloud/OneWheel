@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "wheel_encoder.h"
 
-/* Mode2 position P -> speed PI -> ground tilt. No actuator writes.
+/* Modes 2/10: position P -> speed PI -> ground tilt. No actuator writes.
  * Parameters are degrees per (count/s), degrees per count, and degrees.
  * The six runtime parameters are not part of the current Flash record. */
 extern volatile uint8_t wheel_hold_enabled, wheel_feedback_valid;

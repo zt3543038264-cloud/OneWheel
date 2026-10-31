@@ -52,7 +52,7 @@
 
 #define  BRUSHED_MODE                   (3)             // 有刷驱动模式               A 相 + B 相组成 H 桥
 
-#define  MOTOR_DRIVER_MODE              FAST_FOC_MODE   // 驱动工作模式 默认为 快速FOC驱动模式
+#define  MOTOR_DRIVER_MODE              FAST_FOC_MODE   // Magnetic encoder FAST_FOC mode
 
 #define  USER_CONTROL_MODE              (0)             // 0 串口通讯控制    1 PWM控制(1~2ms高电平时间，限制50~300hz，无感电调模式专用)
 /************************** 驱动模式配置 **************************/
@@ -75,21 +75,11 @@
 
 #define  FOC_REVERSAL_PREACT_ANGLE      (70.0f)         // 快速FOC模式下   由于高转速时的牵引滞后导致异常发热电流  通过超前角的方式防止该情况 大幅度减小 高转速时的发热情况 默认70° （要求电机KV值准确）
 
-#define  FOC_BEMF_FF_ENABLE             DRIVER_ENABLE   // 快速FOC模式下   反电动势前馈补偿使能  将主控占空比指令从端电压映射为有效力矩/角加速度指令
+#define  FOC_BEMF_FF_ENABLE             DRIVER_ENABLE   // 快速FOC模式下   反电动势前馈补偿使能  用于抵消中高速反电动势导致的扭矩衰减
 
-#define  FOC_BEMF_FF_GAIN               (1.0f)          // 快速FOC模式下   反电动势前馈增益系数  默认1.0 (按 RPM / (KV * Vbus) 实时补偿反电动势)
+#define  FOC_BEMF_FF_GAIN               (1.0f)          // 快速FOC模式下   反电动势前馈增益系数  默认1.0 (按 KV * Vbus 比例100%补偿)
 
-#define  FOC_BEMF_FF_LIMIT              (0.80f)         // 快速FOC模式下   反电动势前馈最大占空比限幅  默认0.80 (预留动态加减速裕量)
-
-#define  FOC_ACCEL_LOOP_ENABLE          DRIVER_ENABLE   // 快速FOC模式下   隐式角加速度闭环使能 (主控角加速度指令积分 -> 目标转速 -> 速度闭环)
-
-#define  FOC_ACCEL_FULLSCALE_RPM_S      (12000.0f)      // 快速FOC模式下   满量程(1.0)占空比指令对应的目标角加速度  单位：RPM/s (即1ms积分12RPM)
-
-#define  FOC_SPEED_LOOP_KP              (0.0005f)       // 快速FOC模式下   速度闭环比例增益Kp  单位：占空比/RPM (例如600RPM误差对应0.30占空比补偿)
-
-#define  FOC_SPEED_ERR_MAX_RPM          (600.0f)        // 快速FOC模式下   目标转速与实际转速的最大允许跟踪误差窗口  单位：RPM (防积分饱和)
-
-#define  FOC_SPEED_LOOP_LIMIT           (0.30f)         // 快速FOC模式下   速度闭环最大占空比补偿限幅  默认0.30
+#define  FOC_BEMF_FF_LIMIT              (0.80f)         // 快速FOC模式下   反电动势前馈最大占空比限幅  默认0.80 (预留20%动态调速裕量)
  
 #define  BLDC_DEBUG_OUTPUT_PHASE        (0)             // BLDC模式下      固定只输出某个相位  0:不启用   1~6:输出指定相位  
                                                         // 仅用于调试      可测试单步输出是否正常，已限制输出占空比(最大10%)
@@ -114,7 +104,6 @@
                                                                            
 #define  SENSERLESS_CLOSELOOP_CHECK     (8)             // 无感电调模式下  若开环BLDC成功牵引该值电角度(默认4圈)，则进入闭环模式
                                                                            
-#define  SENSERLESS_SPEED_INCREMENTAL   (1)             // 无感电调模式下  加减速响应速度  1为最快  越高越慢
                                                                            
 #define  SENSERLESS_RESTART_TIME        (1000)          // 无感电调模式下  重启的间隔时长，默认1000ms
 /************************** 驱动参数配置 **************************/

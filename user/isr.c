@@ -45,6 +45,11 @@ IFX_INTERRUPT(cc60_pit_ch0_isr, 0, CCU6_0_CH0_ISR_PRIORITY)
 {
     interrupt_global_enable(0);
     pit_clear_flag(CCU60_CH0);
+    uint32 speed_snapshot_irq=interrupt_global_disable();
+    flywheel_speed_feedback_left = motor_value.receive_left_speed_data;
+    flywheel_speed_feedback_right = motor_value.receive_right_speed_data;
+    flywheel_speed_feedback_sequence = small_driver_speed_frames;
+    interrupt_global_enable(speed_snapshot_irq);
     balance_control_tick_1ms();
 }
 
