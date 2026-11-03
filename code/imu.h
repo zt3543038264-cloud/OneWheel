@@ -1,4 +1,4 @@
-/** IMU660RB 采样、状态机与姿态发布；不依赖 WiFi 或显示驱动。 */
+/** IMU660RA 采样、状态机与姿态发布；不依赖 WiFi 或显示驱动。 */
 #ifndef MCAR_IMU_H
 #define MCAR_IMU_H
 #include "zf_common_typedef.h"

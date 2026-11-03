@@ -15,6 +15,23 @@
 #endif
 #define QCAR_DRIVER_SPEED_QUERY_MS 20u
 #define QCAR_DRIVER_FEEDBACK_TIMEOUT_MS 100u
+/* Chassis layout: 0 = original parallel pair; 1 = independent horizontal /
+ * vertical flywheels. The new chassis has LEFT=horizontal, RIGHT=vertical.
+ * Only the vertical wheel participates in upright modes; Mode8 stays raw. */
+#define QCAR_FLYWHEEL_PARALLEL 0
+#define QCAR_FLYWHEEL_ORTHOGONAL 1
+#ifndef QCAR_FLYWHEEL_LAYOUT
+#define QCAR_FLYWHEEL_LAYOUT QCAR_FLYWHEEL_ORTHOGONAL
+#endif
+#ifndef QCAR_VERTICAL_FLYWHEEL_CHANNEL
+#define QCAR_VERTICAL_FLYWHEEL_CHANNEL 1 /* 0=left, 1=right */
+#endif
+#if QCAR_FLYWHEEL_LAYOUT != 0 && QCAR_FLYWHEEL_LAYOUT != 1
+#error QCAR_FLYWHEEL_LAYOUT must be 0 or 1
+#endif
+#if QCAR_VERTICAL_FLYWHEEL_CHANNEL != 0 && QCAR_VERTICAL_FLYWHEEL_CHANNEL != 1
+#error QCAR_VERTICAL_FLYWHEEL_CHANNEL must be 0 or 1
+#endif
 /* 左右飞轮最终输出方向：+1保持逻辑方向，-1反向；只允许+1或-1。
  * 两路独立，适用于Mode3/5/6/8和停车诊断；不改变PID Sign和原始转速。
  * 默认保持原有两路反向效果；修改后重新编译、烧录TC264。 */
@@ -32,10 +49,10 @@
 #endif
 #define QCAR_MOTOR_PWM ATOM0_CH3_P21_5
 #define QCAR_MOTOR_DIR P21_4
-#define QCAR_KEY1 P20_7
-#define QCAR_KEY2 P20_6
-#define QCAR_KEY3 P11_3
-#define QCAR_EC11_KEY P11_2
+#define QCAR_KEY1     P20_6
+#define QCAR_KEY2     P20_7
+#define QCAR_KEY3     P11_2
+#define QCAR_EC11_KEY P11_3
 /* 1: initialize the IMU and start the configured sampling timer at boot.
  * 0: leave the IMU off until Start / IMU preview. Use 0 to bisect a
  *    boot-time menu freeze between the IMU path and the rest. */
@@ -90,7 +107,19 @@
 #endif
 
 
-/* zf_device_imu660rb.h：现用接线/速率 */
+/* zf_device_imu660ra.h：现用接线/速率 */
+#define IMU660RA_USE_SOFT_IIC                       (0)                         // 默认使用硬件 SPI 方式驱动
+#define IMU660RA_SOFT_IIC_DELAY                     (59 )                       // 软件 IIC 的时钟延时周期 数值越小 IIC 通信速率越快
+#define IMU660RA_SCL_PIN                            (P20_11)                    // 软件 IIC SCL 引脚 连接 IMU660RA 的 SCL 引脚
+#define IMU660RA_SDA_PIN                            (P20_14)                    // 软件 IIC SDA 引脚 连接 IMU660RA 的 SDA 引脚
+#define IMU660RA_SPI_SPEED                          (10 * 1000 * 1000)          // 硬件 SPI 速率
+#define IMU660RA_SPI                                (SPI_0           )          // 硬件 SPI 号
+#define IMU660RA_SPC_PIN                            (SPI0_SCLK_P20_11)          // 硬件 SPI SCK 引脚
+#define IMU660RA_SDI_PIN                            (SPI0_MOSI_P20_14)          // 硬件 SPI MOSI 引脚
+#define IMU660RA_SDO_PIN                            (SPI0_MISO_P20_12)          // 硬件 SPI MISO 引脚
+#define IMU660RA_CS_PIN                             (P20_13)                    // CS 片选引脚
+
+/* zf_device_imu660rb.h：仅供 SDK 中未调用的 RB 驱动编译，不是当前 IMU */
 #define IMU660RB_USE_SOFT_IIC                       (0)                         // 默认使用硬件 SPI 方式驱动
 #define IMU660RB_SOFT_IIC_DELAY                     (59 )                       // 软件 IIC 的时钟延时周期 数值越小 IIC 通信速率越快
 #define IMU660RB_SCL_PIN                            (P20_11)                    // 软件 IIC SCL 引脚 连接 IMU660RB 的 SCL 引脚
@@ -172,13 +201,11 @@
 #define MAX_SKIP_DT              0.050f
 
 #define CALIBRATION_SAMPLES      500u /* 500Hz: keep a 1 second stillness window. */
-#define IMU_CTRL1_XL_CONFIG      0x7Eu /* 833Hz accelerometer, +/-8g. */
-#define IMU_CTRL2_G_CONFIG       0x7Cu /* 833Hz gyroscope, +/-2000dps. */
-#define IMU_CTRL3_C_CONFIG       0x44u /* BDU + address increment, NOT a filter. */
-#define IMU_CTRL4_C_CONFIG       0x02u /* Enable gyro LPF1. */
-#define IMU_CTRL6_C_CONFIG       0x02u /* FTYPE=010: 140Hz at 833Hz ODR. */
-#define IMU_CTRL7_G_CONFIG       0x00u /* Gyro high performance, HPF disabled. */
-#define IMU_CTRL8_XL_CONFIG      0x00u /* No acceleration high pass/user offset. */
+/* BMI270 (IMU660RA): both sensors 800Hz; normal-bandwidth HW filtering. */
+#define IMU_RA_ACC_CONF_CONFIG  0xABu /* Performance, normal filter, 800Hz. */
+#define IMU_RA_GYR_CONF_CONFIG  0xEBu /* Filter/noise performance, normal, 800Hz. */
+#define IMU_RA_PWR_CONF_CONFIG  0x00u /* Advanced power saving disabled. */
+#define IMU_RA_PWR_CTRL_CONFIG  0x0Eu /* Gyro + accel + temperature enabled. */
 #define CAL_GYRO_LIMIT_DPS       10.0f
 #define CAL_GYRO_SPAN_DPS        6.0f
 #define CAL_ACCEL_SPAN_G         0.12f
@@ -186,25 +213,38 @@
 #define CAL_GYRO_MEAN_MAX_DPS    3.5f
 #define IMU_TIMEOUT_MS           100u
 
-/* Observed mounting: side tilt was old pitch, fore/aft was old roll.
- * Body X/Y/Z = sensor Z/-Y/X. New X=old Y, new Y=-old X, new Z=old Z.
- * Both accel and gyro use this right-handed mapping. Motor sign is separate. */
-#define IMU_BODY_X_AXIS 2
-#define IMU_BODY_Y_AXIS 1
+/* Body frame retained by the controllers: X=right, Y=front, Z=up.
+ * New mount: sensor +X=down, +Z=rear, hence +Y=right.
+ * Body X/Y/Z = sensor Y/-Z/-X, for BOTH gyro and accelerometer.
+ * Axis indices 0/1/2 mean sensor X/Y/Z; signs must be integer +/-1. */
+#define IMU_BODY_X_AXIS 1
+#define IMU_BODY_Y_AXIS 2
 #define IMU_BODY_Z_AXIS 0
-#define IMU_BODY_X_SIGN 1.0f
-#define IMU_BODY_Y_SIGN -1.0f
-#define IMU_BODY_Z_SIGN 1.0f
+#define IMU_BODY_X_SIGN 1
+#define IMU_BODY_Y_SIGN -1
+#define IMU_BODY_Z_SIGN -1
+#if IMU_BODY_X_AXIS < 0 || IMU_BODY_X_AXIS > 2 || IMU_BODY_Y_AXIS < 0 || IMU_BODY_Y_AXIS > 2 || IMU_BODY_Z_AXIS < 0 || IMU_BODY_Z_AXIS > 2
+#error IMU_BODY axes must be sensor indices 0, 1, 2
+#endif
+#if IMU_BODY_X_AXIS == IMU_BODY_Y_AXIS || IMU_BODY_X_AXIS == IMU_BODY_Z_AXIS || IMU_BODY_Y_AXIS == IMU_BODY_Z_AXIS
+#error IMU_BODY axes must be distinct
+#endif
+#if (IMU_BODY_X_SIGN != 1 && IMU_BODY_X_SIGN != -1) || (IMU_BODY_Y_SIGN != 1 && IMU_BODY_Y_SIGN != -1) || (IMU_BODY_Z_SIGN != 1 && IMU_BODY_Z_SIGN != -1)
+#error IMU_BODY signs must be integer +1 or -1
+#endif
+#if IMU_BODY_X_SIGN * IMU_BODY_Y_SIGN * IMU_BODY_Z_SIGN != (((IMU_BODY_X_AXIS > IMU_BODY_Y_AXIS) + (IMU_BODY_X_AXIS > IMU_BODY_Z_AXIS) + (IMU_BODY_Y_AXIS > IMU_BODY_Z_AXIS)) % 2 ? -1 : 1)
+#error IMU_BODY mapping must preserve a right-handed coordinate frame
+#endif
 #define DEG_TO_RAD 0.01745329251994329577f
 #define RAD_TO_DEG 57.29577951308232088f
 
 /* ===== 直立参数：只在此处改编译默认值；菜单/上位机改的是 RAM =====
  * displayed Roll = flywheel = imu_pitch_deg / gyro.y
  * displayed Pitch = ground wheel = imu_roll_deg / gyro.x
- * 零点采用本车静止扶稳读数；不要套用旧版原始量零点 -100 / 190。
+ * New chassis starts at 0/0 degrees; tune actual CoM targets on this chassis.
  */
-#define BALANCE_ZERO_X_DEG           4.7f
-#define BALANCE_ZERO_Y_DEG           -1.0f
+#define BALANCE_ZERO_X_DEG           0.0f
+#define BALANCE_ZERO_Y_DEG           0.0f
 #define FLY_RATE_KP                 14.4f
 #define FLY_RATE_KI                  0.2f
 #define FLY_RATE_KD                  0.0f

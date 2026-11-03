@@ -5,11 +5,22 @@
 #include "balance_control.h"
 #include "pid.h"
 #include "wheel_hold.h"
+#include "flywheel_layout.h"
 
 uint8_t shacheflag;
 int16 costrained_flywheel_speed_left, costrained_flywheel_speed_right, costrained_wheel_speed;
 float cascade_angle_out,cascade_angle_out_p,cascade_angle_vel_out,cascade_angle_vel_out_p;
 Mono_params mono_params;
+/* One actuator mapping for every upright mode; raw Mode8 is independent. */
+static void balance_flywheel_output(int16 output)
+{
+    int16_t left,right;
+    flywheel_balance_mix(output,&left,&right);
+    costrained_flywheel_speed_left=left;
+    /* Retain the existing telemetry convention: right logical PWM=-internal. */
+    costrained_flywheel_speed_right=(int16)-right;
+    small_driver_set_duty(left,right);
+}
 // 函数简介：将输入值限制在指定的上下限范围内。
 // 参数说明：v 为待限制的输入值；lo 为下限；hi 为上限。
 // 返回值：返回限制后的数值。
@@ -78,7 +89,7 @@ static float balance_rate_pid(unsigned axis,float target,float rate,float kp,flo
 
 static float mode10_flywheel_velocity_pid(float vel_kp,float vel_kd,float left_speed,float right_speed,uint32 sequence)
 {
-    float real_speed=(left_speed-right_speed)*0.005f;
+    float real_speed=flywheel_balance_speed(left_speed,right_speed);
     float err=0.0f-real_speed;
     float output;
     if (!isfinite(vel_kp) || !isfinite(vel_kd) || vel_kd<0 || !isfinite(err)) {
@@ -524,9 +535,8 @@ static void dual_balance_update(void)
     roll_rate_test_actual=dual_rate[1];roll_rate_test_error=dual_rate_error[1];roll_rate_test_pwm=dual_pwm[1];
     cascade_angle_out=dual_target_rate[0];cascade_angle_out_p=dual_target_rate[1];
     cascade_angle_vel_out=(float)output[0];cascade_angle_vel_out_p=(float)output[1];
-    costrained_flywheel_speed_left=costrained_flywheel_speed_right=(int16)output[0];
     costrained_wheel_speed=(int16)ground_output;
-    small_driver_set_duty((int16)output[0],(int16)(-output[0]));
+    balance_flywheel_output((int16)output[0]);
     motor_m_ctrl(ground_output);
 }
 
@@ -609,11 +619,9 @@ static void roll_rate_test_update(void)
     cascade_angle_out = ground_rate_test_enabled ? 0.0f : pitch_balance_target_rate;
     cascade_angle_vel_out = ground_rate_test_enabled ? 0.0f : (float)output;
     cascade_angle_vel_out_p = ground_rate_test_enabled ? (float)output : 0.0f;
-    costrained_flywheel_speed_left = ground_rate_test_enabled ? 0 : (int16)output;
-    costrained_flywheel_speed_right = ground_rate_test_enabled ? 0 : (int16)output;
     if (ground_rate_test_enabled) ground_output = ground_deadzone_shape(output, ground_rate_test_limit);
     costrained_wheel_speed = ground_rate_test_enabled ? (int16)ground_output : 0;
-    small_driver_set_duty(costrained_flywheel_speed_left,-costrained_flywheel_speed_right);
+    balance_flywheel_output(ground_rate_test_enabled ? 0 : (int16)output);
     motor_m_ctrl(ground_output);
 }
 

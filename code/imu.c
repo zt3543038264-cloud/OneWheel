@@ -1,4 +1,4 @@
-/* IMU660RB 2ms pipeline: sample, calibrate, fuse and publish.
+/* IMU660RA 2ms pipeline: sample, calibrate, fuse and publish.
  * TC264 STM0 clock, +/-8g and +/-2000dps. */
 #include "imu.h"
 #include "attitude.h"
@@ -6,14 +6,14 @@
 #include "IfxStm.h"
 #include "attitude_algorithm.h"
 #include "zf_common_interrupt.h"
-#include "zf_device_imu660rb.h"
+#include "zf_device_imu660ra.h"
 #include "zf_driver_delay.h"
 #include "zf_driver_gpio.h"
 #include "zf_driver_spi.h"
 #include <math.h>
 #include <string.h>
-#define IMU_STATUS_REG 0x1Eu
-#define IMU_CTRL8_REG 0x17u /* LSM6DSR CTRL8_XL, absent from vendor header. */
+#define IMU_STATUS_REG 0x03u /* BMI270 STATUS. */
+#define IMU_DATA_READY_MASK 0xC0u /* drdy_acc (bit 7) + drdy_gyr (bit 6). */
 static float g_stm_hz;
 
 volatile int32 imu_attitude_status=IMU_ATTITUDE_INIT_FAILED;
@@ -102,57 +102,57 @@ static void imu_publish_filter_diagnostics(uint32 started)
 }
 static void imu_reg_write(uint8 reg,uint8 value)
 {
-    uint8 tx[2]={reg|IMU660RB_SPI_W,value};
-    IMU660RB_CS(0);
-    if(spi_transfer_8bit_timeout(IMU660RB_SPI,tx,NULL,2,1))++imu_spi_timeouts;
-    IMU660RB_CS(1);system_delay_ms(1);
+    uint8 tx[2]={reg|IMU660RA_SPI_W,value};
+    IMU660RA_CS(0);
+    if(spi_transfer_8bit_timeout(IMU660RA_SPI,tx,NULL,2,1))++imu_spi_timeouts;
+    IMU660RA_CS(1);system_delay_ms(1);
 }
 static uint8 imu_reg_read(uint8 reg)
 {
-    uint8 tx[2]={reg|IMU660RB_SPI_R,0},rx[2];
+    uint8 tx[3]={reg|IMU660RA_SPI_R,0,0},rx[3];
     uint8 failed;
-    IMU660RB_CS(0);
-    failed=spi_transfer_8bit_timeout(IMU660RB_SPI,tx,rx,2,1);
-    IMU660RB_CS(1);
+    IMU660RA_CS(0);
+    failed=spi_transfer_8bit_timeout(IMU660RA_SPI,tx,rx,3,1);
+    IMU660RA_CS(1);
     if(failed){++imu_spi_timeouts;return 0xff;}
-    return rx[1];
+    return rx[2];
 }
-/* RB (LSM6DSR): STATUS_REG bits 0/1, gyro then accel, no RA dummy byte.
- * BDU and IF_INC are enabled by CTRL3_C=0x44. One burst owns SPI0. */
+/* RA (BMI270): STATUS bits 7/6; accel then gyro at 0x0C..0x17.
+ * A read clocks address + one dummy byte + data. One burst owns SPI0. */
 static uint8 imu_read_sample(float gyro_dps[3],float accel_g[3])
 {
     uint8 data[12],i;
-    uint8 tx[13]={0},rx[13];
+    uint8 tx[14]={0},rx[14];
     float sensor_g[3],sensor_a[3];
     uint8 status=imu_reg_read(IMU_STATUS_REG);
     uint8 accel_clip=0;
     g_sample_gyro_clip=0;
     /* 单次读到 0xFF/无 ready 位多为总线毛刺，同一 tick 内重试一次。 */
-    if (status==0xFFu || (status&0x03u)!=0x03u) status=imu_reg_read(IMU_STATUS_REG);
+    if (status==0xFFu || (status&IMU_DATA_READY_MASK)!=IMU_DATA_READY_MASK) status=imu_reg_read(IMU_STATUS_REG);
     imu_last_status_reg=status;
-    if (status==0xFFu || (status&0x03u)!=0x03u) {++imu_not_ready_samples;return 0u;}
-    tx[0]=IMU660RB_OUTX_L_G|IMU660RB_SPI_R;
-    IMU660RB_CS(0);
-    i=spi_transfer_8bit_timeout(IMU660RB_SPI,tx,rx,13,1);
-    IMU660RB_CS(1);
+    if (status==0xFFu || (status&IMU_DATA_READY_MASK)!=IMU_DATA_READY_MASK) {++imu_not_ready_samples;return 0u;}
+    tx[0]=IMU660RA_ACC_ADDRESS|IMU660RA_SPI_R;
+    IMU660RA_CS(0);
+    i=spi_transfer_8bit_timeout(IMU660RA_SPI,tx,rx,14,1);
+    IMU660RA_CS(1);
     if(i){++imu_spi_timeouts;return 0u;}
-    memcpy(data,rx+1,12);
+    memcpy(data,rx+2,12);
     /* 12 字节完全相同（全 0x00 或全 0xFF）是总线掉线，不能当样本交给 EKF。 */
     for (i=1u;i<12u;++i) if (data[i]!=data[0]) break;
     if (i==12u) {++imu_bad_bursts;return 0u;}
-    imu660rb_gyro_x=(int16)((uint16)data[0]|((uint16)data[1]<<8));
-    imu660rb_gyro_y=(int16)((uint16)data[2]|((uint16)data[3]<<8));
-    imu660rb_gyro_z=(int16)((uint16)data[4]|((uint16)data[5]<<8));
-    imu660rb_acc_x=(int16)((uint16)data[6]|((uint16)data[7]<<8));
-    imu660rb_acc_y=(int16)((uint16)data[8]|((uint16)data[9]<<8));
-    imu660rb_acc_z=(int16)((uint16)data[10]|((uint16)data[11]<<8));
+    imu660ra_acc_x=(int16)((uint16)data[0]|((uint16)data[1]<<8));
+    imu660ra_acc_y=(int16)((uint16)data[2]|((uint16)data[3]<<8));
+    imu660ra_acc_z=(int16)((uint16)data[4]|((uint16)data[5]<<8));
+    imu660ra_gyro_x=(int16)((uint16)data[6]|((uint16)data[7]<<8));
+    imu660ra_gyro_y=(int16)((uint16)data[8]|((uint16)data[9]<<8));
+    imu660ra_gyro_z=(int16)((uint16)data[10]|((uint16)data[11]<<8));
     for(i=0u;i<3u;++i) {
-        int16 raw_g=(int16)((uint16)data[2u*i]|((uint16)data[2u*i+1u]<<8));
-        int16 raw_a=(int16)((uint16)data[6u+2u*i]|((uint16)data[7u+2u*i]<<8));
+        int16 raw_a=(int16)((uint16)data[2u*i]|((uint16)data[2u*i+1u]<<8));
+        int16 raw_g=(int16)((uint16)data[6u+2u*i]|((uint16)data[7u+2u*i]<<8));
         if(raw_g>=IMU_RAW_CLIP_COUNTS || raw_g<=-IMU_RAW_CLIP_COUNTS) g_sample_gyro_clip=1;
         if(raw_a>=IMU_RAW_CLIP_COUNTS || raw_a<=-IMU_RAW_CLIP_COUNTS) accel_clip=1;
-        sensor_g[i]=imu660rb_gyro_transition(raw_g);
-        sensor_a[i]=imu660rb_acc_transition(raw_a);
+        sensor_g[i]=imu660ra_gyro_transition(raw_g);
+        sensor_a[i]=imu660ra_acc_transition(raw_a);
     }
     gyro_dps[0]=sensor_g[IMU_BODY_X_AXIS]*IMU_BODY_X_SIGN;
     gyro_dps[1]=sensor_g[IMU_BODY_Y_AXIS]*IMU_BODY_Y_SIGN;
@@ -166,23 +166,21 @@ static uint8 imu_read_sample(float gyro_dps[3],float accel_g[3])
 }
 static uint8 imu_hardware_init(void)
 {
-    if (imu660rb_init()!=0u) return 0u;
-    /* 833Hz hardware ODR for BOTH sensors; 500Hz solver. Keep Qcar's
-     * +/-8g, +/-2000dps ranges, and driver-provided conversion factors. */
-    imu_reg_write(IMU660RB_CTRL3_C,IMU_CTRL3_C_CONFIG);
-    imu_reg_write(IMU660RB_CTRL4_C,IMU_CTRL4_C_CONFIG);
-    imu_reg_write(IMU660RB_CTRL6_C,IMU_CTRL6_C_CONFIG);
-    imu_reg_write(IMU660RB_CTRL7_G,IMU_CTRL7_G_CONFIG);
-    imu_reg_write(IMU_CTRL8_REG,IMU_CTRL8_XL_CONFIG);
-    imu_reg_write(IMU660RB_CTRL1_XL,IMU_CTRL1_XL_CONFIG);
-    imu_reg_write(IMU660RB_CTRL2_G,IMU_CTRL2_G_CONFIG);
-    return (imu_reg_read(IMU660RB_CTRL1_XL)==IMU_CTRL1_XL_CONFIG &&
-            imu_reg_read(IMU660RB_CTRL2_G)==IMU_CTRL2_G_CONFIG &&
-            imu_reg_read(IMU660RB_CTRL3_C)==IMU_CTRL3_C_CONFIG &&
-            imu_reg_read(IMU660RB_CTRL4_C)==IMU_CTRL4_C_CONFIG &&
-            imu_reg_read(IMU660RB_CTRL6_C)==IMU_CTRL6_C_CONFIG &&
-            imu_reg_read(IMU660RB_CTRL7_G)==IMU_CTRL7_G_CONFIG &&
-            imu_reg_read(IMU_CTRL8_REG)==IMU_CTRL8_XL_CONFIG)?1u:0u;
+    if (imu660ra_init()!=0u) return 0u;
+    /* The vendor RA driver loads the BMI270 configuration image and sets
+     * +/-8g, +/-2000dps conversion factors. Override its 50/200Hz defaults
+     * with 800Hz normal-bandwidth performance sampling for the 500Hz solver. */
+    imu_reg_write(IMU660RA_PWR_CONF,IMU_RA_PWR_CONF_CONFIG);
+    imu_reg_write(IMU660RA_ACC_CONF,IMU_RA_ACC_CONF_CONFIG);
+    imu_reg_write(IMU660RA_GYR_CONF,IMU_RA_GYR_CONF_CONFIG);
+    imu_reg_write(IMU660RA_PWR_CTRL,IMU_RA_PWR_CTRL_CONFIG);
+    return (imu_reg_read(IMU660RA_CHIP_ID)==0x24u &&
+            imu_reg_read(IMU660RA_PWR_CONF)==IMU_RA_PWR_CONF_CONFIG &&
+            imu_reg_read(IMU660RA_PWR_CTRL)==IMU_RA_PWR_CTRL_CONFIG &&
+            imu_reg_read(IMU660RA_ACC_CONF)==IMU_RA_ACC_CONF_CONFIG &&
+            imu_reg_read(IMU660RA_GYR_CONF)==IMU_RA_GYR_CONF_CONFIG &&
+            imu_reg_read(IMU660RA_ACC_RANGE)==0x02u &&
+            imu_reg_read(IMU660RA_GYR_RANGE)==0x00u)?1u:0u;
 }
 static void imu_reset_pipeline(void)
 {

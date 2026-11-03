@@ -59,27 +59,9 @@
 
 #include "zf_common_typedef.h"
 
-// IMU660RA_USE_SOFT_IIC定义为0表示使用硬件SPI驱动 定义为1表示使用软件IIC驱动
-// 当更改IMU660RA_USE_SOFT_IIC定义后，需要先编译并下载程序，单片机与模块需要断电重启才能正常通讯
-#define IMU660RA_USE_SOFT_IIC         (0)                                       // 默认使用硬件 SPI 方式驱动
+/* Qcar pin/bus settings are centralized in code/config.h. */
+#include "config.h"
 
-#if IMU660RA_USE_SOFT_IIC                                                       // 这两段 颜色正常的才是正确的 颜色灰的就是没有用的
-//====================================================软件 IIC 驱动====================================================
-#define IMU660RA_SOFT_IIC_DELAY     (59)                                       // 软件 IIC 的时钟延时周期 数值越小 IIC 通信速率越快
-#define IMU660RA_SCL_PIN            (P20_11)                                       // 软件 IIC SCL 引脚 连接 IMU660RA 的 SCL 引脚
-#define IMU660RA_SDA_PIN            (P20_14)                                       // 软件 IIC SDA 引脚 连接 IMU660RA 的 SDA 引脚
-//====================================================软件 IIC 驱动====================================================
-#else
-
-//====================================================硬件 SPI 驱动====================================================
-#define IMU660RA_SPI_SPEED          (10 * 1000 * 1000)                          // 硬件 SPI 速率
-#define IMU660RA_SPI                (SPI_0)                                     // 硬件 SPI 号
-#define IMU660RA_SPC_PIN            (SPI0_SCLK_P20_11 )                             // 硬件 SPI SCK 引脚
-#define IMU660RA_SDI_PIN            (SPI0_MOSI_P20_14)                             // 硬件 SPI MOSI 引脚
-#define IMU660RA_SDO_PIN            (SPI0_MISO_P20_12)                             // 硬件 SPI MISO 引脚
-//====================================================硬件 SPI 驱动====================================================
-#endif
-#define IMU660RA_CS_PIN             (P20_13)                                       // CS 片选引脚
 #define IMU660RA_CS(x)              ((x) ? (gpio_high(IMU660RA_CS_PIN)) : (gpio_low(IMU660RA_CS_PIN)))
 
 typedef enum
