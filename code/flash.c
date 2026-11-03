@@ -17,68 +17,75 @@ uint8 my_flash_check(uint32 sector_num, uint32 page_num)
 
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 擦除指定逻辑扇区。
-// sector_num：需要写入的逻辑扇区编号。
-//  @return     void
-//  @since      v1.0
-//  Sample usage:               eeprom_erase_sector(0);
-//-------------------------------------------------------------------------------------------------------------------
-void eeprom_erase_sector(uint32 sector_num)
+/* The iLLD waitUnbusy() has no deadline, and entering page mode is
+ * asynchronous: D0BUSY == 0 does NOT mean DFPAGE == 1. Never assert or
+ * poll forever in a menu action. STM keeps running independently of IRQs. */
+#include "IfxStm.h"
+#define FLASH_BUSY_MASK (1u << 1)
+#define FLASH_PAGE_MASK (1u << 10)
+#define FLASH_ERROR_MASK ((7u << 11) | (3u << 25))
+static int flash_wait(uint32 mask, uint32 expected, uint32 timeout_ms)
 {
-    zf_assert(QCAR_EEPROM_SECTOR_NUM > sector_num);
-
-    uint32 flash = 0;
-    uint16 end_init_sfty_pw;
-    uint32 sector_addr = IfxFlash_dFlashTableEepLog[sector_num].start;
-
-    end_init_sfty_pw = IfxScuWdt_getSafetyWatchdogPassword();
-
-    IfxScuWdt_clearSafetyEndinit(end_init_sfty_pw);
+    uint32 start = IfxStm_getLower(&MODULE_STM0);
+    uint32 ticks = (uint32)(IfxStm_getFrequency(&MODULE_STM0) / 1000.0f) * timeout_ms;
+    uint32 polls = 10000000u; /* also bounded if STM is misconfigured */
+    do {
+        uint32 status = FLASH0_FSR.U;
+        if (status & FLASH_ERROR_MASK) return 0;
+        if ((status & mask) == expected) { __dsync(); return 1; }
+        if ((uint32)(IfxStm_getLower(&MODULE_STM0) - start) >= ticks) return 0;
+    } while (--polls);
+    return 0;
+}
+static void flash_read_mode(void)
+{
+    /* Do not access DFlash or send another command after a busy timeout. */
+    if (!(FLASH0_FSR.U & FLASH_BUSY_MASK)) IfxFlash_resetToRead(0);
+}
+int eeprom_erase_sector(uint32 sector_num)
+{
+    uint32 irq, sector_addr;
+    uint16 password;
+    if (sector_num >= QCAR_EEPROM_SECTOR_NUM) return 0;
+    if (FLASH0_FSR.U & FLASH_BUSY_MASK) return 0;
+    IfxFlash_resetToRead(0);
+    IfxFlash_clearStatus(0);
+    sector_addr = IfxFlash_dFlashTableEepLog[sector_num].start;
+    /* Protect the command sequence and the safety-ENDINIT window only,
+     * not the millisecond erase wait, from timer/UART interrupts. */
+    irq = interrupt_global_disable();
+    password = IfxScuWdt_getSafetyWatchdogPassword();
+    IfxScuWdt_clearSafetyEndinit(password);
     IfxFlash_eraseSector(sector_addr);
-    IfxScuWdt_setSafetyEndinit(end_init_sfty_pw);
-
-    IfxFlash_waitUnbusy(flash, IfxFlash_FlashType_D0);
-
+    IfxScuWdt_setSafetyEndinit(password);
+    interrupt_global_enable(irq);
+    if (!flash_wait(FLASH_BUSY_MASK, 0, 1000)) { flash_read_mode(); return 0; }
+    return 1;
 }
-
-//-------------------------------------------------------------------------------------------------------------------
-// 编程指定 Flash 物理页。
-// sector_num：需要写入的逻辑扇区编号。
-// page_num：扇区内需要写入的物理页编号。
-// buf：待写入的 uint32 数据地址。
-//  @return     void
-//  @since      v1.0
-//  Sample usage:               eeprom_page_program(0,0, &buf);
-//-------------------------------------------------------------------------------------------------------------------
-void eeprom_page_program(uint32 sector_num, uint32 page_num, uint32 *buf)
+int eeprom_page_program(uint32 sector_num, uint32 page_num, uint32 *buf)
 {
-    zf_assert(QCAR_EEPROM_SECTOR_NUM>sector_num);
-    zf_assert(QCAR_EEPROM_SECTOR_PAGE_NUM>page_num);
-
-    uint32 errors = 0;
-    uint32 flash = 0;
-    uint16 end_init_sfty_pw;
-    uint32 sector_addr = IfxFlash_dFlashTableEepLog[sector_num].start;
-
-    end_init_sfty_pw = IfxScuWdt_getSafetyWatchdogPassword();
-
-    uint32 page_addr = sector_addr + page_num * IFXFLASH_DFLASH_PAGE_LENGTH;
-    errors = IfxFlash_enterPageMode(page_addr);
-    zf_assert(0 == errors);
-
-    IfxFlash_waitUnbusy(flash, IfxFlash_FlashType_D0);
-
+    uint32 irq, page_addr, error;
+    uint16 password;
+    if (sector_num >= QCAR_EEPROM_SECTOR_NUM ||
+        page_num >= QCAR_EEPROM_SECTOR_PAGE_NUM || !buf) return 0;
+    if (!flash_wait(FLASH_BUSY_MASK, 0, 10)) return 0;
+    page_addr = IfxFlash_dFlashTableEepLog[sector_num].start + page_num * IFXFLASH_DFLASH_PAGE_LENGTH;
+    irq = interrupt_global_disable();
+    error = IfxFlash_enterPageMode(page_addr);
+    interrupt_global_enable(irq);
+    if (error || !flash_wait(FLASH_PAGE_MASK, FLASH_PAGE_MASK, 10)) {
+        flash_read_mode(); return 0;
+    }
+    irq = interrupt_global_disable();
     IfxFlash_loadPage(page_addr, buf[0], 0);
-
-    IfxScuWdt_clearSafetyEndinit(end_init_sfty_pw);
+    password = IfxScuWdt_getSafetyWatchdogPassword();
+    IfxScuWdt_clearSafetyEndinit(password);
     IfxFlash_writePage(page_addr);
-    IfxScuWdt_setSafetyEndinit(end_init_sfty_pw);
-
-    IfxFlash_waitUnbusy(flash, IfxFlash_FlashType_D0);
-
+    IfxScuWdt_setSafetyEndinit(password);
+    interrupt_global_enable(irq);
+    if (!flash_wait(FLASH_BUSY_MASK, 0, 10)) { flash_read_mode(); return 0; }
+    return 1;
 }
-
 
 #define BALANCE_STORAGE_MAGIC 0x4F574232u
 #define BALANCE_PARAMETER_COUNT 12u
@@ -111,13 +118,15 @@ int write_flash(void)
     interrupt_global_enable(irq);
     if(!stored_valid(snapshot,ramp)) return 0;
     memcpy(words,snapshot,sizeof(words));
-    eeprom_erase_sector(0);
+    if (!eeprom_erase_sector(0)) return 0;
     for(i=0;i<BALANCE_PARAMETER_COUNT;++i) {
-        eeprom_page_program(0,i+1,&words[i]);crc=checksum_word(crc,words[i]);
+        if (!eeprom_page_program(0,i+1,&words[i])) return 0;
+        crc=checksum_word(crc,words[i]);
     }
-    eeprom_page_program(0,13,&ramp);crc=checksum_word(crc,ramp);
-    eeprom_page_program(0,14,&crc);
-    eeprom_page_program(0,0,&magic);
+    if (!eeprom_page_program(0,13,&ramp)) return 0;
+    crc=checksum_word(crc,ramp);
+    if (!eeprom_page_program(0,14,&crc)) return 0;
+    if (!eeprom_page_program(0,0,&magic)) return 0;
     IfxFlash_resetToRead(0);
     if(my_flash_read(0,0,uint32)!=magic || my_flash_read(0,14,uint32)!=crc) return 0;
     for(i=0;i<BALANCE_PARAMETER_COUNT;++i) if(my_flash_read(0,i+1,uint32)!=words[i])return 0;
@@ -129,6 +138,7 @@ void get_flash(void)
 #if QCAR_BOOT_LOAD_FLASH
     float snapshot[BALANCE_PARAMETER_COUNT];
     uint32 words[BALANCE_PARAMETER_COUNT],crc=BALANCE_STORAGE_MAGIC,ramp;unsigned i;
+    if (FLASH0_FSR.U & FLASH_BUSY_MASK) return;
     IfxFlash_resetToRead(0);
     if(my_flash_read(0,0,uint32)!=BALANCE_STORAGE_MAGIC) return;
     for(i=0;i<BALANCE_PARAMETER_COUNT;++i) {words[i]=my_flash_read(0,i+1,uint32);crc=checksum_word(crc,words[i]);}

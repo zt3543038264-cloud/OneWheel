@@ -61,9 +61,10 @@
 #endif
 /* 1: load saved parameters from DFlash at boot. 0: keep the compiled-in
  * defaults only. Setting 0 isolates the menu from the boot-time flash
- * read (Storage -> Load also does nothing while this is 0). */
+ * read (Storage -> Load also does nothing while this is 0).
+ * Keep disabled until on-target DFlash read/trap handling is validated. */
 #ifndef QCAR_BOOT_LOAD_FLASH
-#define QCAR_BOOT_LOAD_FLASH 0
+#define QCAR_BOOT_LOAD_FLASH 1
 #endif
 /* CPU0 owns WiFi-SPI UDP telemetry. */
 #ifndef QCAR_WIFI_ENABLED

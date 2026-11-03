@@ -23,7 +23,8 @@
 //  @since      v1.0
 //  Sample usage:               my_flash_read(0,0,uint32);//读取0号扇区  第0页数据 类型为uint32
 
-#define     my_flash_read(sector_num, page_num, type)                  (*(type *)((uint32)((QCAR_EEPROM_BASE_ADDR + (sector_num)*QCAR_EEPROM_SECTOR_SIZE) + (page_num*8))))
+/* Parenthesize every argument: callers pass page expressions such as i+1. */
+#define my_flash_read(sector_num, page_num, type) (*(volatile type *)(QCAR_EEPROM_BASE_ADDR + ((sector_num) * QCAR_EEPROM_SECTOR_SIZE) + ((page_num) * QCAR_EEPROM_PAGE_SIZE)))
 //-------------------------------------------------------------------------------------------------------------------
 //  @brief      将浮点数转换为二进制数据
 //  @param      float_data      需要转换的浮点数
@@ -33,8 +34,8 @@
 //-------------------------------------------------------------------------------------------------------------------
 
 uint8 my_flash_check(uint32 sector_num, uint32 page_num);
-void eeprom_erase_sector(uint32 sector_num);
-void eeprom_page_program(uint32 sector_num, uint32 page_num, uint32 *buf);
+int eeprom_erase_sector(uint32 sector_num);
+int eeprom_page_program(uint32 sector_num, uint32 page_num, uint32 *buf);
 int write_flash(void);
 void get_flash(void);
 
