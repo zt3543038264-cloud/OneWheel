@@ -73,6 +73,18 @@ volatile uint8 pwm_debug_enabled;
 volatile int32 pwm_step_state;
 volatile uint32 pwm_step_ms,pwm_step_stage;
 int pwm_step_command(int run) { if (run && !pwm_debug_enabled) return 0; pwm_step_state=run?1:-1; return 1; }
+volatile int32 right_pulse_state,right_pulse_pwm;
+volatile uint32 right_pulse_ms;
+volatile uint32 right_pulse_level,right_pulse_duration_ms;
+int right_pulse_command(int direction) {
+    if (direction && !pwm_debug_enabled) return 0;
+    right_pulse_state=direction?1:-1;right_pulse_pwm=0;return 1;
+}
+int right_pulse_level_command(int signed_level) {
+    if (signed_level && !pwm_debug_enabled) return 0;
+    right_pulse_level=(uint32)(signed_level<0?-signed_level:signed_level);
+    right_pulse_state=signed_level?1:-1;right_pulse_pwm=0;return 1;
+}
 
 volatile float pwm_debug_fly_left,pwm_debug_fly_right,pwm_debug_ground;
 volatile int32 control_fault_reason,control_fault_imu_status;
@@ -294,9 +306,23 @@ static void test_transport(void)
     assert(pwm_step_state==1 && has_reply("MCAR SLIDER debug_step_run 1\n"));
     float held=pwm_debug_fly_left;
     command("[slider,debug_fly_left_pwm,123]\n");
-    assert(pwm_debug_fly_left==held && has_reply("MCAR ERR step running; cancel with debug_step_run=0 first\n"));
+    assert(pwm_debug_fly_left==held && has_reply("MCAR ERR diagnostic running; cancel it before manual PWM\n"));
     command("[slider,debug_step_run,0]\n");
     assert(pwm_step_state==-1);
+    command("[slider,debug_right_pulse_run,2]\n");
+    assert(has_reply("MCAR ERR right pulse expects -1, 0 or 1\n"));
+    command("[slider,debug_right_pulse_run,1]\n");
+    assert(right_pulse_state==1 && has_reply("MCAR SLIDER debug_right_pulse_run 1\n"));
+    command("[slider,debug_fly_right_pwm,123]\n");
+    assert(has_reply("MCAR ERR diagnostic running; cancel it before manual PWM\n"));
+    command("[slider,debug_right_pulse_run,0]\n");
+    assert(right_pulse_state==-1);
+    command("[slider,debug_right_pulse_level,4.5]\n");
+    assert(has_reply("MCAR ERR right pulse level expects an integer from -4 to 4\n"));
+    command("[slider,debug_right_pulse_level,-4]\n");
+    assert(right_pulse_state==1 && right_pulse_level==4 &&
+           has_reply("MCAR SLIDER debug_right_pulse_level -4\n"));
+    command("[slider,debug_right_pulse_level,0]\n");assert(right_pulse_state==-1);
     command("DTRACE ARM\n");assert(has_reply("MCAR ERR DTRACE requires started zero-output Mode8\n"));
     pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0;
     costrained_flywheel_speed_left=costrained_flywheel_speed_right=costrained_wheel_speed=0;

@@ -80,7 +80,7 @@
 #define QCAR_WIFI_PASSWORD "zyz520520"
 #endif
 #ifndef QCAR_WIFI_TARGET_IP
-#define QCAR_WIFI_TARGET_IP "192.168.0.108"
+#define QCAR_WIFI_TARGET_IP "192.168.0.109"
 #endif
 #ifndef QCAR_WIFI_TARGET_PORT
 #define QCAR_WIFI_TARGET_PORT "8081"
@@ -327,6 +327,23 @@
 /* Mode8 signed raw duty commands; 10000 means 100% duty. Starts at zero.
  * No PID, IMU readiness or tilt interlock in this bench-test mode. */
 #define DEBUG_PWM_LIMIT             4000.0f
+/* One-shot Mode8 diagnostic for the RIGHT (vertical) flywheel.  These are
+ * compile-time limits: the host can choose direction, but not amplitude or
+ * duration. 10000 represents 100% duty. */
+#define RIGHT_PULSE_PWM              300.0f
+#define RIGHT_PULSE_DURATION_MS       500u
+/* Conservative, manually triggered graded bench pulses. The real flywheel,
+ * motor and driver limits are not known, so this diagnostic intentionally
+ * stops at 600/10000 and 250 ms. Every level must start near rest. */
+#define RIGHT_PULSE_GRADED_DURATION_MS 250u
+#define RIGHT_PULSE_LEVEL1_PWM        150.0f
+#define RIGHT_PULSE_LEVEL2_PWM        300.0f
+#define RIGHT_PULSE_LEVEL3_PWM        450.0f
+#define RIGHT_PULSE_LEVEL4_PWM        600.0f
+#define RIGHT_PULSE_LEVEL_COUNT          4u
+#define RIGHT_PULSE_START_SPEED_MAX     30
+#define RIGHT_PULSE_RUN_SPEED_MAX      300
+#define RIGHT_PULSE_START_FEEDBACK_MAX_AGE_MS 50u
 #define APP_CONTROL_TICK_US         1000u
 #define APP_CONTROL_DIVIDER            2u
 #define APP_IMU_PERIOD_US           2000u

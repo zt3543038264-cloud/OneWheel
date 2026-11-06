@@ -49,6 +49,8 @@ IFX_INTERRUPT(cc60_pit_ch0_isr, 0, CCU6_0_CH0_ISR_PRIORITY)
     flywheel_speed_feedback_left = motor_value.receive_left_speed_data;
     flywheel_speed_feedback_right = motor_value.receive_right_speed_data;
     flywheel_speed_feedback_sequence = small_driver_speed_frames;
+    flywheel_speed_feedback_age_ms = small_driver_feedback_age_ms;
+    flywheel_speed_feedback_fresh = small_driver_feedback_fresh;
     interrupt_global_enable(speed_snapshot_irq);
     balance_control_tick_1ms();
 }

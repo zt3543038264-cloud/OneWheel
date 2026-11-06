@@ -145,6 +145,9 @@ static float g_telemetry_ms;
     X(wheel_ref_count, wheel_ref_count) X(wheel_pos_error, wheel_pos_error) \
     X(wheel_pos_kp, wheel_pos_kp) X(wheel_speed_limit, wheel_speed_limit) \
     X(step_state, pwm_step_state) X(step_ms, pwm_step_ms) X(step_stage, pwm_step_stage) \
+    X(right_pulse_state, right_pulse_state) X(right_pulse_ms, right_pulse_ms) \
+    X(right_pulse_pwm, right_pulse_pwm) X(right_pulse_level, right_pulse_level) \
+    X(right_pulse_duration_ms, right_pulse_duration_ms) \
     X(imu_quality, imu_quality) X(imu_reject_reason, imu_reject_reason) \
     X(imu_reject_ms, imu_reject_ms) X(imu_accept_ratio, imu_accept_ratio) \
     X(imu_reject_count, imu_reject_count) X(imu_accel_vib_g, imu_accel_vibration_g) \
@@ -316,9 +319,43 @@ static void process_slider(char *command)
         send_reply(reply);
         return;
     }
-    if (pwm_step_state==1 && (strcmp(name,"debug_fly_left_pwm")==0 ||
+    if (strcmp(name,"debug_right_pulse_run")==0) {
+        int accepted=0;
+        if (value!=-1.0f && value!=0.0f && value!=1.0f) {
+            command_error("right pulse expects -1, 0 or 1"); return;
+        }
+        primask=interrupt_global_disable();
+        accepted=right_pulse_command((int)value);
+        interrupt_global_enable(primask);
+        if (!accepted) {
+            command_error("right pulse requires Mode8 Start, full ramp, fresh feedback and zero commands"); return;
+        }
+        (void)snprintf(reply,sizeof(reply),"MCAR SLIDER debug_right_pulse_run %.9g\n",(double)value);
+        send_reply(reply);
+        return;
+    }
+    if (strcmp(name,"debug_right_pulse_level")==0) {
+        int accepted=0,signed_level=(int)value;
+        if (value!=(float)signed_level || signed_level<-4 || signed_level>4) {
+            command_error("right pulse level expects an integer from -4 to 4"); return;
+        }
+        primask=interrupt_global_disable();
+        accepted=right_pulse_level_command(signed_level);
+        interrupt_global_enable(primask);
+        if (!accepted) {
+            command_error("graded pulse requires Mode8 Start, fresh feedback, near-zero speed and zero commands"); return;
+        }
+        (void)snprintf(reply,sizeof(reply),"MCAR SLIDER debug_right_pulse_level %d\n",signed_level);
+        send_reply(reply);
+        return;
+    }
+    if ((pwm_step_state==1 || right_pulse_state==1) && (strcmp(name,"debug_fly_left_pwm")==0 ||
         strcmp(name,"debug_fly_right_pwm")==0 || strcmp(name,"debug_ground_pwm")==0)) {
-        command_error("step running; cancel with debug_step_run=0 first"); return;
+        command_error("diagnostic running; cancel it before manual PWM"); return;
+    }
+    if (right_pulse_state==1 && (strcmp(name,"fly_test_left")==0 ||
+        strcmp(name,"fly_test_right")==0)) {
+        command_error("graded pulse owns both flywheel outputs"); return;
     }
     for (i=0;i<sizeof(g_slider_parameters)/sizeof(g_slider_parameters[0]);++i) {
         if (strcmp(name,g_slider_parameters[i].name)==0) { parameter=&g_slider_parameters[i]; break; }
@@ -369,7 +406,7 @@ static void process_command(char *line)
         char *op=command+7;
         if(strcmp(op,"CANCEL")==0)index=65533u;
         else {
-            if(!pwm_debug_enabled || roll_rate_test_state!=2 || pwm_step_state==1 ||
+            if(!pwm_debug_enabled || roll_rate_test_state!=2 || pwm_step_state==1 || right_pulse_state==1 ||
                pwm_debug_fly_left!=0 || pwm_debug_fly_right!=0 || pwm_debug_ground!=0 ||
                costrained_flywheel_speed_left || costrained_flywheel_speed_right || costrained_wheel_speed) {
                 command_error("DTRACE requires started zero-output Mode8");return;
@@ -645,6 +682,17 @@ void wifispi_telemetry_dual_profile(void)
     static const uint8_t channels[]={TV_telemetry_ms,TV_rate_seq,TV_imu_seq,TV_imu_status,TV_rate_state,TV_dual_enabled,TV_dual_roll_actual_deg,TV_dual_roll_target_deg,TV_dual_roll_error_deg,TV_dual_roll_target_rate_dps,TV_dual_roll_rate_dps,TV_dual_roll_rate_error_dps,TV_dual_roll_pwm,TV_dual_pitch_actual_deg,TV_dual_pitch_target_deg,TV_dual_pitch_error_deg,TV_dual_pitch_target_rate_dps,TV_dual_pitch_rate_dps,TV_dual_pitch_rate_error_dps,TV_dual_pitch_pwm,TV_fly_angle_kp,TV_fly_rate_kp,TV_fly_sign,TV_fly_rate_limit_dps,TV_fly_pwm_limit,TV_ground_angle_kp,TV_ground_rate_kp,TV_ground_sign,TV_ground_rate_limit_dps,TV_ground_pwm_limit,TV_motor_left_pwm,TV_motor_right_pwm,TV_motor_ground_pwm,TV_imu_dt_ms,TV_fault_reason,TV_fault_imu_status,TV_fault_imu_dt_ms,TV_imu_spi_timeouts,TV_imu_not_ready,TV_startup_scale,TV_flywheel_left_speed_raw,TV_flywheel_right_speed_raw,TV_driver_speed_frames,TV_driver_feedback_age_ms,TV_driver_feedback_fresh};
     memcpy(g_channels,channels,sizeof(channels));
     wifi_telemetry_channel_count=sizeof(channels)/sizeof(channels[0]);wifi_telemetry_period_ms=APP_TELEMETRY_PROFILE_MS;
+    wifi_telemetry_stream_enabled=1;g_announce_pending=1;
+#endif
+}
+
+void wifispi_telemetry_pwm_debug_profile(void)
+{
+#if QCAR_WIFI_ENABLED
+    static const uint8_t channels[]={TV_telemetry_ms,TV_rate_seq,TV_rate_state,TV_pwm_debug_enabled,TV_startup_scale,TV_fault_reason,TV_right_pulse_state,TV_right_pulse_ms,TV_right_pulse_pwm,TV_right_pulse_level,TV_right_pulse_duration_ms,TV_debug_fly_left_pwm,TV_debug_fly_right_pwm,TV_debug_ground_pwm,TV_motor_left_pwm,TV_motor_right_pwm,TV_motor_ground_pwm,TV_flywheel_left_speed_raw,TV_flywheel_right_speed_raw,TV_driver_speed_frames,TV_driver_feedback_age_ms,TV_driver_feedback_fresh,TV_pitch_deg,TV_roll_deg};
+    memcpy(g_channels,channels,sizeof(channels));
+    wifi_telemetry_channel_count=sizeof(channels)/sizeof(channels[0]);
+    wifi_telemetry_period_ms=APP_TELEMETRY_PROFILE_MS;
     wifi_telemetry_stream_enabled=1;g_announce_pending=1;
 #endif
 }

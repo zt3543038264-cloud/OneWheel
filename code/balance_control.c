@@ -6,6 +6,7 @@
 #include "pid.h"
 #include "wheel_hold.h"
 #include "flywheel_layout.h"
+#include <stdlib.h>
 
 uint8_t shacheflag;
 int16 costrained_flywheel_speed_left, costrained_flywheel_speed_right, costrained_wheel_speed;
@@ -150,6 +151,13 @@ volatile float pwm_debug_fly_left, pwm_debug_fly_right, pwm_debug_ground;
 volatile int32 pwm_step_state;
 volatile uint32 pwm_step_ms, pwm_step_stage;
 static uint32 pwm_step_next_ms;
+volatile int32 right_pulse_state;
+volatile uint32 right_pulse_ms;
+volatile int32 right_pulse_pwm;
+volatile uint32 right_pulse_level,right_pulse_duration_ms;
+static int32 right_pulse_direction;
+static uint32 right_pulse_next_ms;
+static void control_latch_fault(int32 state,int32 reason);
 
 /* Called with interrupts disabled by the WiFi parser. No remote Start. */
 int pwm_step_command(int run)
@@ -161,6 +169,7 @@ int pwm_step_command(int run)
     }
     if (!pwm_debug_enabled || !roll_rate_test_enabled || roll_rate_test_state!=2 ||
         !shacheflag || control_startup_scale<1.0f ||
+        right_pulse_state==1 ||
         !isfinite(DEBUG_PWM_LIMIT) || DEBUG_PWM_LIMIT<600.0f || DEBUG_PWM_LIMIT>4000.0f)
         return 0;
     if (pwm_step_state==1) return 1; /* Duplicate UDP trigger never restarts. */
@@ -169,6 +178,101 @@ int pwm_step_command(int run)
     pwm_step_ms=pwm_step_stage=pwm_step_next_ms=0;
     pwm_step_state=1;
     return 1;
+}
+
+/* Called with interrupts disabled by the WiFi parser. The only host-selected
+ * value is direction. Amplitude and duration stay compile-time bounded. */
+static float right_pulse_level_pwm(uint32 level)
+{
+    static const float pwm[RIGHT_PULSE_LEVEL_COUNT]={
+        RIGHT_PULSE_LEVEL1_PWM,RIGHT_PULSE_LEVEL2_PWM,
+        RIGHT_PULSE_LEVEL3_PWM,RIGHT_PULSE_LEVEL4_PWM
+    };
+    return level>=1u && level<=RIGHT_PULSE_LEVEL_COUNT?pwm[level-1u]:0.0f;
+}
+
+static int right_pulse_start(int direction,uint32 level,uint32 duration_ms)
+{
+    float amplitude=level?right_pulse_level_pwm(level):RIGHT_PULSE_PWM;
+    if (!direction) {
+        right_pulse_state=-1;
+        right_pulse_pwm=right_pulse_direction=0;
+        right_pulse_level=right_pulse_duration_ms=0;
+        pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0.0f;
+        return 1;
+    }
+    if ((direction!=1 && direction!=-1) ||
+        !pwm_debug_enabled || !roll_rate_test_enabled || roll_rate_test_state!=2 ||
+        !shacheflag || control_startup_scale<1.0f || pwm_step_state==1 ||
+        right_pulse_state==1 || !flywheel_speed_feedback_fresh ||
+        flywheel_speed_feedback_age_ms>RIGHT_PULSE_START_FEEDBACK_MAX_AGE_MS ||
+        abs((int)flywheel_speed_feedback_left)>RIGHT_PULSE_START_SPEED_MAX ||
+        abs((int)flywheel_speed_feedback_right)>RIGHT_PULSE_START_SPEED_MAX ||
+        pwm_debug_fly_left!=0 || pwm_debug_fly_right!=0 || pwm_debug_ground!=0 ||
+        !isfinite(amplitude) || amplitude<=0.0f || amplitude>600.0f ||
+        amplitude>DEBUG_PWM_LIMIT || duration_ms==0u || duration_ms>500u)
+        return 0;
+    right_pulse_ms=right_pulse_next_ms=0;
+    right_pulse_pwm=0;
+    right_pulse_direction=direction;
+    right_pulse_level=level;
+    right_pulse_duration_ms=duration_ms;
+    right_pulse_state=1;
+    return 1;
+}
+
+int right_pulse_command(int direction)
+{
+    return right_pulse_start(direction,0u,RIGHT_PULSE_DURATION_MS);
+}
+
+int right_pulse_level_command(int signed_level)
+{
+    uint32 level=(uint32)(signed_level<0?-signed_level:signed_level);
+    if (!signed_level) return right_pulse_start(0,0u,0u);
+    if (level<1u || level>RIGHT_PULSE_LEVEL_COUNT) return 0;
+    return right_pulse_start(signed_level<0?-1:1,level,RIGHT_PULSE_GRADED_DURATION_MS);
+}
+
+static void right_pulse_update(void)
+{
+    uint32 t;
+    if (right_pulse_state!=1) return;
+    if (!pwm_debug_enabled || roll_rate_test_state!=2 || !shacheflag ||
+        control_startup_scale<1.0f || pwm_step_state==1) {
+        right_pulse_state=-1;
+        right_pulse_pwm=right_pulse_direction=0;
+        pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0.0f;
+        return;
+    }
+    if (!flywheel_speed_feedback_fresh ||
+        flywheel_speed_feedback_age_ms>QCAR_DRIVER_FEEDBACK_TIMEOUT_MS) {
+        right_pulse_state=-1;
+        right_pulse_pwm=right_pulse_direction=0;
+        pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0.0f;
+        control_latch_fault(-3,7);
+        return;
+    }
+    if (abs((int)flywheel_speed_feedback_right)>RIGHT_PULSE_RUN_SPEED_MAX) {
+        right_pulse_state=-1;
+        right_pulse_pwm=right_pulse_direction=0;
+        pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0.0f;
+        control_latch_fault(-3,12);
+        return;
+    }
+    t=right_pulse_next_ms;
+    right_pulse_ms=t;
+    pwm_debug_fly_left=pwm_debug_ground=0.0f;
+    if (t<right_pulse_duration_ms) {
+        float amplitude=right_pulse_level?right_pulse_level_pwm(right_pulse_level):RIGHT_PULSE_PWM;
+        right_pulse_pwm=(int32)(right_pulse_direction*(int32)amplitude);
+        pwm_debug_fly_right=(float)right_pulse_pwm;
+        right_pulse_next_ms+=APP_CONTROL_TICK_US*APP_CONTROL_DIVIDER/1000u;
+    } else {
+        right_pulse_pwm=right_pulse_direction=0;
+        pwm_debug_fly_right=0.0f;
+        right_pulse_state=2;
+    }
 }
 
 static void pwm_step_update(void)
@@ -221,6 +325,8 @@ volatile float fly_angle_d_out, fly_vel_d_out;
 /* Flywheel speed feedback copied from the driver UART by the control ISR (user/isr.c). */
 volatile int16 flywheel_speed_feedback_left, flywheel_speed_feedback_right;
 volatile uint32 flywheel_speed_feedback_sequence;
+volatile uint32 flywheel_speed_feedback_age_ms=0xffffffffu;
+volatile uint8 flywheel_speed_feedback_fresh;
 volatile float flywheel_vel_angle_out;
 float pitch_balance_rate_limit = FLY_RATE_LIMIT_DPS;
 float roll_rate_test_kp = FLY_RATE_KP;
@@ -242,6 +348,9 @@ void roll_rate_test_stop(void)
     dual_balance_enabled=0;rate_only_test=0;
     pwm_debug_enabled=0;
     pwm_step_state=0;pwm_step_ms=pwm_step_stage=pwm_step_next_ms=0;
+    right_pulse_state=0;right_pulse_ms=right_pulse_next_ms=0;
+    right_pulse_level=right_pulse_duration_ms=0;
+    right_pulse_pwm=right_pulse_direction=0;
     pwm_debug_fly_left=pwm_debug_fly_right=pwm_debug_ground=0.0f;
     control_fault_reason=control_fault_imu_status=0;control_fault_seq=0;
     control_fault_dt_ms=control_startup_scale=0;control_startup_elapsed_ms=0;
@@ -357,6 +466,7 @@ static void pwm_debug_update(void)
 {
     float left,right,ground;
     pwm_step_update();
+    right_pulse_update();
     int output[3]={0,0,0};
     uint32 irq=interrupt_global_disable();
     left=pwm_debug_fly_left;right=pwm_debug_fly_right;ground=pwm_debug_ground;

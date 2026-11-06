@@ -67,6 +67,7 @@ static void small_driver_uart_init(void){}
 static void imu_prepare_start(void){++prepares;}
 static int wifispi_is_ready(void){return ready;}
 static void wifispi_telemetry_dual_profile(void){profile=2;}
+static void wifispi_telemetry_pwm_debug_profile(void){profile=6;}
 static void wifispi_telemetry_roll_profile(void){profile=5;}
 static void wifispi_telemetry_startup_profile(void){profile=1;}
 static void wifispi_telemetry_speed_profile(void){profile=3;}
@@ -102,7 +103,7 @@ int main(void){
     Menu_Handle_Control_Uint8(&mode,3);assert(run_mode==8);
     pwm_debug_fly_left=900;pwm_debug_fly_right=450;pwm_debug_ground=-800;start_car();
     assert(running && shacheflag && pwm_debug_enabled && !imu_attempts && !prepares);
-    assert(timers[0] && !timers[1] && profile==2 && !pwm_debug_fly_left && !pwm_debug_fly_right && !pwm_debug_ground);
+    assert(timers[0] && !timers[1] && profile==6 && !pwm_debug_fly_left && !pwm_debug_fly_right && !pwm_debug_ground);
     control_startup_ramp_ms=0;pwm_debug_fly_left=300;pwm_debug_fly_right=-700;pwm_debug_ground=-500;tick();
     assert(fly_l==300 && fly_r==-700 && ground==-500);
     Menu_Handle_Control_Uint8(&mode,-6);assert(run_mode==2);

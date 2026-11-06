@@ -18,6 +18,8 @@ extern struct host_attitude { struct {float x,y;} gyro; } attitude_state;
 extern volatile float imu_roll_deg,imu_pitch_deg,imu_sample_dt_ms;
 extern volatile uint32 imu_sample_sequence;
 extern volatile int32 imu_attitude_status;
+extern volatile uint8 small_driver_feedback_fresh;
+extern volatile uint32 small_driver_feedback_age_ms;
 uint32 interrupt_global_disable(void);
 void interrupt_global_enable(uint32);
 void small_driver_set_duty(int16,int16);
@@ -32,6 +34,8 @@ struct host_attitude attitude_state;
 volatile float imu_roll_deg,imu_pitch_deg,imu_sample_dt_ms=5;
 volatile uint32 imu_sample_sequence;
 volatile int32 imu_attitude_status;
+volatile uint8 small_driver_feedback_fresh=1;
+volatile uint32 small_driver_feedback_age_ms;
 static int fly_l,fly_r,ground;
 uint32 interrupt_global_disable(void){return 0;}
 void interrupt_global_enable(uint32 n){(void)n;}

@@ -23,6 +23,8 @@ extern volatile float fly_angle_d_out, fly_vel_d_out;
 /* Mode10 flywheel speed loop: driver feedback (set by control ISR) and angle offset output. */
 extern volatile int16 flywheel_speed_feedback_left, flywheel_speed_feedback_right;
 extern volatile uint32 flywheel_speed_feedback_sequence;
+extern volatile uint32 flywheel_speed_feedback_age_ms;
+extern volatile uint8 flywheel_speed_feedback_fresh;
 extern volatile float flywheel_vel_angle_out;
 extern float roll_rate_test_kp, roll_rate_test_ki, roll_rate_test_limit, roll_rate_test_sign;
 extern volatile uint8 ground_rate_test_enabled;
@@ -42,6 +44,14 @@ void pwm_debug_arm(void);
 extern volatile int32 pwm_step_state;
 extern volatile uint32 pwm_step_ms, pwm_step_stage;
 int pwm_step_command(int run);
+/* Fixed-amplitude, finite RIGHT/vertical-flywheel diagnostic.
+ * direction: -1/+1 starts once; 0 cancels. It never auto-repeats. */
+extern volatile int32 right_pulse_state;
+extern volatile uint32 right_pulse_ms;
+extern volatile int32 right_pulse_pwm;
+extern volatile uint32 right_pulse_level,right_pulse_duration_ms;
+int right_pulse_command(int direction);
+int right_pulse_level_command(int signed_level);
 extern volatile int32 control_fault_reason,control_fault_imu_status;
 extern volatile uint32 control_fault_seq;
 extern volatile float control_fault_dt_ms,control_startup_scale;

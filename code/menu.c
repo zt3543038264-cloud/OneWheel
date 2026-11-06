@@ -96,7 +96,8 @@ static void start_car(void)
     if (wifispi_is_ready()) {
         if (run_mode==2) wifispi_telemetry_hold_profile();
         else if (run_mode==10) wifispi_telemetry_roll_profile();
-        else if (run_mode==5 || run_mode==8) wifispi_telemetry_dual_profile();
+        else if (run_mode==8) wifispi_telemetry_pwm_debug_profile();
+        else if (run_mode==5) wifispi_telemetry_dual_profile();
         else wifispi_telemetry_startup_profile();
     }
     if (imu_ready) pit_init(CCU60_CH1, APP_IMU_PERIOD_US);
