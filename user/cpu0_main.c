@@ -33,6 +33,7 @@ int core0_main(void)
     {
         vofa_cmd_poll();                // 先接受 Run Test 命令，避免屏幕刷新增加转向基准延迟
         menu_run();                     // 按键与刷屏
+        control_imu_recovery_poll();     // 先画初始化提示，再做前台传感器配置/姿态对齐
         (void)control_ipm_flush();      // 标定完成后在主循环写 Flash
         vofa_poll();                    // 按分频把波形快照格式化进上行环
         // 串口字节的实际收发在 1ms 中断的 vofa_tick1ms() 里，不受上面刷屏拖累

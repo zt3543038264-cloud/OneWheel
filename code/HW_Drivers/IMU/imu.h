@@ -51,6 +51,11 @@ uint8 imu_init(void);
 // 使用示例     imu_calibrate();
 //-------------------------------------------------------------------------------------------------------------------
 void imu_calibrate(void);
+/* Runtime recovery: call begin once, then tick once per real 1 ms interrupt.
+ * The blocking boot wrapper above uses exactly the same sample/retry rules. */
+void imu_calibrate_begin(void);
+void imu_calibrate_tick(void);
+uint8 imu_calibrate_busy(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     读取 IMU 标定状态

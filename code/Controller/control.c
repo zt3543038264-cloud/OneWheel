@@ -28,7 +28,7 @@ float g_flywheel_common_rpm = 0.0f;             // (A+B)/2共模RPM
 float g_yaw_momentum_scale = 1.0f;              // 共模动量剩余权限
 
 float g_dbg_error   = 0.0f;                     // 归一化横向偏差，正值要求正向 Yaw
-uint8 g_imu_ok      = 0;                        // IMU660RB 初始化结果
+volatile uint8 g_imu_ok = 0;                    // IMU660RB 初始化结果
 uint8 g_cam_ok      = 0;                        // CPU1 摄像头就绪标志
 uint8 g_vision_ipm_ok = 0;                      // CPU1 侧逆透视是否可用，Camera 页显示 IPM0/1
 uint8 g_track_valid = 0;                        // 最新一帧循迹是否有效
@@ -1445,6 +1445,7 @@ static void test_run(void)
 //-------------------------------------------------------------------------------------------------------------------
 static control_block_t control_attitude_block_reason(void)
 {
+    if (control_imu_recovery_busy()) return CTRL_BLOCK_ATT_CONVERGING;
     if (imu_forward_pending()) return CTRL_BLOCK_IMU_RESTART;
     if (!g_imu_ok)              return CTRL_BLOCK_IMU_FAIL;
     if (imu_link_lost())        return CTRL_BLOCK_IMU_LOST;
@@ -1584,6 +1585,8 @@ void control_stop(void)
 // 返回参数     uint8           1=已启动 0=被安全条件阻止，原因见 control_test_last_status()
 // 使用示例     if (!control_balance_start()) menu_status(...);
 //-------------------------------------------------------------------------------------------------------------------
+#include "Controller/control_imu_recovery.inc"
+
 uint8 control_balance_start(void)
 {
     control_block_t block;
@@ -1677,7 +1680,7 @@ uint8 control_ipm_flush(void)
         "ipm_h6", "ipm_h7", "ipm_h8",
     };
 
-    if (!s_ipm_new || start_flag != START_STOP || path_nav_busy() ||
+    if (control_imu_recovery_busy() || !s_ipm_new || start_flag != START_STOP || path_nav_busy() ||
         control_test_running() || control_jog_running() != MOTOR_JOG_NONE)
         return 0;
     if (!param_save_names(names, 9u)) return 0;
@@ -2341,7 +2344,7 @@ static void control_vision_exchange(uint8 publish_feedback)
  * 500 ms; no flash operation is ever scheduled by the control interrupt. */
 uint8 control_path_storage_ready(void)
 {
-    return (uint8)(start_flag == START_STOP && !s_test_running &&
+    return (uint8)(!control_imu_recovery_busy() && start_flag == START_STOP && !s_test_running &&
         s_jog_target == MOTOR_JOG_NONE && !path_nav_busy() &&
         s_path_stopped_ms >= 500u && !control_ipm_pending() && vofa_flash_idle());
 }
@@ -2498,6 +2501,7 @@ void control_loop(void)
     if (tick == 0)
         Y_Motor_EncoderUpdate5ms();     // C 轮编码器唯一硬件读取点
 
+    control_imu_recovery_tick();
     if (g_imu_ok)
     {
         imu_update_gyro();
@@ -2514,7 +2518,13 @@ void control_loop(void)
     control_vision_exchange((uint8)(tick == 0));
 
     // 三个输出分支互斥，每拍必有一个给 W_Motor 下发帧，喂住驱动侧失控保护看门狗
-    if (s_test_running)
+    if (control_imu_recovery_busy())
+    {
+        /* Recovery never owns an actuator. Keep the driver's stop heartbeat
+         * and the key/encoder/telemetry interrupt alive throughout calibration. */
+        control_motor_stop();
+    }
+    else if (s_test_running)
     {
         test_run();
         if (!s_test_running)

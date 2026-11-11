@@ -177,6 +177,7 @@ static void handle_path(uint8 up, uint8 down, uint8 enter, uint8 back)
     if (s_cursor==1u || s_cursor==2u)
     {
         if (!path_confirm(s_cursor)) return;
+        if (menu_imu_recovery_intercept()) return;
         if (control_path_record_start((uint8)(s_cursor==2u))) menu_status("RECORD START: FORWARD ONLY");
         else menu_status(test_status_text(control_test_last_status()));
     }
@@ -185,8 +186,9 @@ static void handle_path(uint8 up, uint8 down, uint8 enter, uint8 back)
         path_status_t st;
         control_path_status(&st);
         if (!st.valid || st.length_m < 0.30f) { menu_status("NEED VALID PATH >= 0.30m"); return; }
-        if (!path_nav_heading_ready(imu_get_angle_yaw())) { menu_status("ALIGN CAR TO LOCKED YAW"); return; }
+        if (!control_imu_recovery_needed() && !path_nav_heading_ready(imu_get_angle_yaw())) { menu_status("ALIGN CAR TO LOCKED YAW"); return; }
         if (!path_confirm(3u)) return;
+        if (menu_imu_recovery_intercept()) return;
         if (control_path_start(s_path_menu_speed)) menu_status("PATH RUNNING");
         else menu_status(test_status_text(control_test_last_status()));
     }

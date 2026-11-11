@@ -440,7 +440,7 @@ static uint8 cfg_dangerous(const char *name)
 
 static uint8 cfg_stopped(void)
 {
-    return (uint8)(start_flag == START_STOP && !control_test_running() &&
+    return (uint8)(!control_imu_recovery_busy() && start_flag == START_STOP && !control_test_running() &&
         control_jog_running() == MOTOR_JOG_NONE && !control_run_running() && !control_remote_running() &&
         !path_nav_busy() && !control_path_active());
 }

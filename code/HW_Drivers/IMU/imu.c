@@ -18,9 +18,9 @@ static float element_angle;             // 元素状态机使用的独立连续�
 static float static_acc_x = 0.0f;       // 标定期间的重力方向，供姿态冷启动对齐
 static float static_acc_y = 0.0f;
 static float static_acc_z = 1.0f;
-static imu_calib_state_t calib_state = IMU_CALIB_NONE;  // 静止标定结果
+static volatile imu_calib_state_t calib_state = IMU_CALIB_NONE;  // 静止标定结果
 
-static uint8  link_lost;                // 链路失效标志，一旦置位不再自动恢复
+static volatile uint8 link_lost;        // 链路失效标志，由显式重初始化清除
 
 #define IMU_SETTLE_MS           (150)   // 改完 ODR 后等数字滤波器稳定的时间(ms)
 
@@ -28,6 +28,22 @@ static uint8  link_lost;                // 链路失效标志，一旦置位不�
 #define IMU_CALIB_RETRY         (3)     // 检测到晃动后的重试次数
 #define IMU_CALIB_MOVE_DPS      (3.0f)  // 标定期间陀螺峰峰值超过它判定为动过
 #define IMU_CALIB_MOVE_G        (0.15f) // 标定期间加计峰峰值超过它判定为动过
+
+/* Recovery-only workspace, CPU0-owned. Use globally addressed spare DSPR1
+ * data RAM; CPU0's fixed-stack layout has insufficient contiguous slack.
+ * No control/estimator state or stack reserve is moved. */
+#if defined(__TASKING__)
+#pragma section farbss "cpu1_dsram"
+#endif
+static struct {
+    float gs[3], as[3], gmin[3], gmax[3], amin[3], amax[3];
+    uint16 samples;
+    uint8 attempt;
+    volatile uint8 busy;
+} s_cal;
+#if defined(__TASKING__)
+#pragma section farbss restore
+#endif
 
 static const char *s_imu_fault = "IMU LINK LOST";
 static void imu_latch_fault(const char *reason)
@@ -147,6 +163,7 @@ uint8 imu_init(void)
     s_imu_fault = "IMU LINK LOST";
     r10h_sample_valid = r10h_identity_ticks = 0;
     calib_state = IMU_CALIB_NONE;
+    s_cal.busy = 0;
     yaw_angle     = 0.0f;
     element_angle = 0.0f;
 
@@ -171,68 +188,73 @@ uint8 imu_init(void)
 // 返回参数     void
 // 使用示例     imu_calibrate();
 //-------------------------------------------------------------------------------------------------------------------
+static void imu_calibrate_reset_window(void)
+{
+    uint8 k;
+    s_cal.samples = 0;
+    for (k = 0; k < 3u; ++k) {
+        s_cal.gs[k] = s_cal.as[k] = 0.0f;
+        s_cal.gmin[k] = s_cal.amin[k] = 1e30f;
+        s_cal.gmax[k] = s_cal.amax[k] = -1e30f;
+    }
+}
+
+void imu_calibrate_begin(void)
+{
+    s_cal.busy = 0;
+    calib_state = IMU_CALIB_NONE;
+    s_cal.attempt = 0;
+    imu_calibrate_reset_window();
+    s_cal.busy = (uint8)!link_lost;
+}
+
+uint8 imu_calibrate_busy(void) { return s_cal.busy; }
+
+void imu_calibrate_tick(void)
+{
+    float g[3], a[3], norm, inv;
+    uint8 k, moved = 0;
+    if (!s_cal.busy) return;
+    imu_read_gyro_body(&g[0], &g[1], &g[2]);
+    imu_read_acc_body(&a[0], &a[1], &a[2]);
+    if (link_lost) { s_cal.busy = 0; return; }
+    for (k = 0; k < 3u; ++k) {
+        s_cal.gs[k] += g[k]; s_cal.as[k] += a[k];
+        if (g[k] < s_cal.gmin[k]) s_cal.gmin[k] = g[k];
+        if (g[k] > s_cal.gmax[k]) s_cal.gmax[k] = g[k];
+        if (a[k] < s_cal.amin[k]) s_cal.amin[k] = a[k];
+        if (a[k] > s_cal.amax[k]) s_cal.amax[k] = a[k];
+    }
+    if (++s_cal.samples < IMU_CALIB_SAMPLES) return;
+    inv = 1.0f / (float)IMU_CALIB_SAMPLES;
+    for (k = 0; k < 3u; ++k)
+        if (s_cal.gmax[k]-s_cal.gmin[k] > IMU_CALIB_MOVE_DPS ||
+            s_cal.amax[k]-s_cal.amin[k] > IMU_CALIB_MOVE_G) moved = 1;
+    norm = sqrtf(s_cal.as[0]*s_cal.as[0] + s_cal.as[1]*s_cal.as[1] +
+                 s_cal.as[2]*s_cal.as[2]) * inv;
+    if (norm < 0.75f || norm > 1.25f) moved = 1;
+    if (!moved) {
+        /* Only commit a complete, stationary window. */
+        gyro_bias_x = s_cal.gs[0]*inv; gyro_bias_y = s_cal.gs[1]*inv;
+        gyro_bias_z = s_cal.gs[2]*inv;
+        static_acc_x = s_cal.as[0]*inv; static_acc_y = s_cal.as[1]*inv;
+        static_acc_z = s_cal.as[2]*inv;
+        calib_state = IMU_CALIB_OK;
+        s_cal.busy = 0;
+    } else {
+        calib_state = IMU_CALIB_MOVED;
+        if (++s_cal.attempt >= IMU_CALIB_RETRY) s_cal.busy = 0;
+        else imu_calibrate_reset_window();
+    }
+}
+
 void imu_calibrate(void)
 {
-    uint8 attempt;
-
-    calib_state = IMU_CALIB_NONE;
-    for (attempt = 0; attempt < IMU_CALIB_RETRY; ++attempt)
-    {
-        float g_sum[3] = {0.0f, 0.0f, 0.0f};
-        float a_sum[3] = {0.0f, 0.0f, 0.0f};
-        float g_min[3] = {1e30f, 1e30f, 1e30f}, g_max[3] = {-1e30f, -1e30f, -1e30f};
-        float a_min[3] = {1e30f, 1e30f, 1e30f}, a_max[3] = {-1e30f, -1e30f, -1e30f};
-        uint8 moved = 0;
-        uint16 i;
-        uint8 k;
-
-        for (i = 0; i < IMU_CALIB_SAMPLES; ++i)
-        {
-            float g[3], a[3];
-
-            imu_read_gyro_body(&g[0], &g[1], &g[2]);
-            imu_read_acc_body(&a[0], &a[1], &a[2]);
-            if (link_lost) return; // Invalid samples never enter the startup mean.
-
-            for (k = 0; k < 3u; ++k)
-            {
-                g_sum[k] += g[k];
-                a_sum[k] += a[k];
-                if (g[k] < g_min[k]) g_min[k] = g[k];
-                if (g[k] > g_max[k]) g_max[k] = g[k];
-                if (a[k] < a_min[k]) a_min[k] = a[k];
-                if (a[k] > a_max[k]) a_max[k] = a[k];
-            }
-            system_delay_ms(1);
-        }
-
-        {
-            float inv = 1.0f / (float)IMU_CALIB_SAMPLES;
-            gyro_bias_x = g_sum[0] * inv;
-            gyro_bias_y = g_sum[1] * inv;
-            gyro_bias_z = g_sum[2] * inv;
-            static_acc_x = a_sum[0] * inv;
-            static_acc_y = a_sum[1] * inv;
-            static_acc_z = a_sum[2] * inv;
-        }
-
-        for (k = 0; k < 3u; ++k)
-            if ((g_max[k] - g_min[k]) > IMU_CALIB_MOVE_DPS ||
-                (a_max[k] - a_min[k]) > IMU_CALIB_MOVE_G)
-                moved = 1;
-
-        {
-            float norm = sqrtf(static_acc_x*static_acc_x + static_acc_y*static_acc_y + static_acc_z*static_acc_z);
-            if (norm < 0.75f || norm > 1.25f) moved = 1;
-        }
-        if (!moved)
-        {
-            calib_state = IMU_CALIB_OK;
-            break;
-        }
-        calib_state = IMU_CALIB_MOVED;      
+    imu_calibrate_begin();
+    while (imu_calibrate_busy()) {
+        imu_calibrate_tick();
+        system_delay_ms(1);
     }
-
 }
 
 //-------------------------------------------------------------------------------------------------------------------

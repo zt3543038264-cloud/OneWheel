@@ -122,6 +122,8 @@ static int control_run_running(void){return run;}
 static int control_remote_running(void){return remote;}
 static int path_nav_busy(void){return path;}
 static int control_path_active(void){return active;}
+static int recovering;
+static int control_imu_recovery_busy(void){return recovering;}
 '''
     for name in ('cfg_group','cfg_dangerous','cfg_stopped','cfg_live_control'):
         if name == 'cfg_group':
@@ -134,7 +136,8 @@ int main(void){
  assert(cfg_dangerous("enc_dir_a")&&cfg_dangerous("enc_dir_b"));
  assert(!cfg_live_control("enc_dir_a")&&!cfg_live_control("enc_dir_b"));
  assert(cfg_stopped());jog=1;assert(!cfg_stopped());jog=0;test=1;assert(!cfg_stopped());
- test=0;start_flag=1;assert(!cfg_stopped());return 0;
+ test=0;start_flag=1;assert(!cfg_stopped());start_flag=0;
+ recovering=1;assert(!cfg_stopped());return 0;
 }
 '''
     _compile_run(tmp_path, source)

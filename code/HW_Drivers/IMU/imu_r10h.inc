@@ -40,7 +40,7 @@ static uint8 r10h_read_body(void)
     r10h_sample_valid=1;
     return 1;
 invalid_sample:
-    imu_latch_fault(reason); /* Fixed-dt core cannot resume after a missing sample. Reboot and recalibrate. */
+    imu_latch_fault(reason); /* Fixed-dt core needs explicit stopped reinit/calibration, never auto-resume. */
     return 0;
 }
 uint8 imu_get_raw_sample(imu_data_t *out)

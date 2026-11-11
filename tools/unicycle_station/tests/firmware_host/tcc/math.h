@@ -35,6 +35,12 @@ static inline float powf(float x,float y) { return (float)pow(x,y); }
 static inline float floorf(float x) { return (float)floor(x); }
 static inline float ceilf(float x) { return (float)ceil(x); }
 static inline float fmodf(float x,float y) { return (float)fmod(x,y); }
+static inline float fmaxf(float x,float y) {
+    if(x!=x)return y;if(y!=y)return x;return x>y?x:y;
+}
+static inline float fminf(float x,float y) {
+    if(x!=x)return y;if(y!=y)return x;return x<y?x:y;
+}
 #define NAN (0.0f/0.0f)
 #define INFINITY (1.0f/0.0f)
 #define isfinite(x) ((x)==(x) && (x)<=DBL_MAX && (x)>=-DBL_MAX)

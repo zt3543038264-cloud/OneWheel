@@ -215,6 +215,13 @@ int path_nav_heading_ready(float yaw)
         fabsf(wrap(yaw - s.heading_reference_deg)) <= PATH_START_YAW_LIMIT);
 }
 
+void path_nav_invalidate_heading(void)
+{
+    s.heading_locked = 0;
+    s.heading_reference_deg = 0.0f;
+    s_revision++;
+}
+
 /* Ordered local projection: never choose a remote crossing or another lap.
  * At most eight segment advances plus 24 preview advances per 20 ms. */
 static void plan(float yaw, float speed, float permission)

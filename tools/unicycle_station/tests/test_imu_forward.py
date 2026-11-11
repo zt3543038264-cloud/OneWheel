@@ -76,7 +76,8 @@ def test_restart_blocks_real_control_entry_gate(tmp_path):
 #include "Controller/control.h"
 #include <assert.h>
 static uint8 pending;
-uint8 g_imu_ok=1;
+volatile uint8 g_imu_ok=1;
+uint8 control_imu_recovery_busy(void) {return 0;}
 static uint8 imu_forward_pending(void) {return pending;}
 static uint8 imu_link_lost(void) {return 0;}
 static uint8 imu_calib_state(void) {return 1;}

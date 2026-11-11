@@ -95,8 +95,12 @@ static uint32 g_control_uptime_ms, g_vision_age_ms;
 static uint8 g_imu_ok=1, s_angle_due, s_test_running, s_jog_target;
 static int s_control_test_active, s_test_status;
 static int samples, rates, core, publish, enc, path, feedback, keys, snapshots, uart;
+static int recovering,calibrating,cal_samples,stops,heartbeats;
 static uint32 last_core, last_publish;
-static void W_Motor_Tick1ms(void) {}
+static void W_Motor_Tick1ms(void) {++heartbeats;}
+static uint8 control_imu_recovery_busy(void) {return recovering;}
+static void control_imu_recovery_tick(void) {if(calibrating)++cal_samples;}
+static void control_motor_stop(void) {++stops;}
 static void key_scanner(void) { ++keys; }
 static void Y_Motor_EncoderUpdate5ms(void) { assert(g_control_uptime_ms%5==0); ++enc; }
 static void imu_update_gyro(void) { ++samples; }
@@ -134,6 +138,17 @@ int main(void) {
     assert(samples==1000 && rates==1000 && core==1000 && publish==1000);
     assert(enc==200 && path==200 && feedback==200 && keys==100);
     assert(snapshots==1000 && uart==1000);
+    /* Reconfiguration/calibration retain all background interrupt services.
+     * Estimator sampling is disabled, and no controller owns the motors. */
+    s_test_running=s_jog_target=0;recovering=calibrating=1;g_imu_ok=0;
+    for(i=0;i<6000;i++)control_loop();
+    assert(samples==1000 && core==1000 && cal_samples==6000 && stops==6000);
+    assert(heartbeats==7000 && snapshots==7000 && uart==7000 && keys==700);
+    /* Convergence uses real-rate sensor samples while still zeroing outputs. */
+    calibrating=0;g_imu_ok=1;
+    for(i=0;i<3000;i++)control_loop();
+    assert(samples==4000 && core==4000 && publish==4000 && stops==9000);
+    assert(heartbeats==10000 && snapshots==10000 && uart==10000 && keys==1000);
     return 0;
 }
 '''

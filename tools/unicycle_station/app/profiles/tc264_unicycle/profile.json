@@ -698,21 +698,29 @@
       "step": 0.5,
       "decimals": 2,
       "default": 56.0,
-      "description": "正数表示当前实车的 Yaw 作用方向，内部统一乘 -1。"
+      "description": "当前 Yaw 角速度增益采用正值（内部乘 +1）；角度误差为目标减实际，旧 Flash 负增益在加载时转正。"
     },
     "y_rate_ki": {
       "label": "航向角速度环 KI",
       "step": 0.01,
       "decimals": 3,
       "default": 0.0,
-      "description": "正数表示当前实车的 Yaw 作用方向，内部统一乘 -1。"
+      "description": "当前 Yaw 角速度增益采用正值（内部乘 +1）；角度误差为目标减实际，旧 Flash 负增益在加载时转正。"
     },
     "y_rate_kd": {
       "label": "航向角速度环 KD",
       "step": 0.5,
       "decimals": 2,
       "default": 0.0,
-      "description": "正数表示当前实车的 Yaw 作用方向，内部统一乘 -1。"
+      "description": "当前 Yaw 角速度增益采用正值（内部乘 +1）；角度误差为目标减实际，旧 Flash 负增益在加载时转正。"
+    },
+    "yaw_hold_deg": {
+      "label": "航向保持偏移",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 0.0,
+      "unit": "°",
+      "description": "普通 Balance 下相对本次启动航向的偏移；目标按 30°/s 逼近，共模回收还可叠加让角。"
     },
     "lean_turn_kp": {
       "label": "方向预压弯",
@@ -1572,6 +1580,16 @@
       "group": "Yaw",
       "step": 0.5,
       "flags": 5
+    },
+    {
+      "name": "yaw_hold_deg",
+      "type": "float",
+      "min": -180.0,
+      "max": 180.0,
+      "value": 0.0,
+      "group": "Yaw",
+      "step": 1.0,
+      "flags": 4
     },
     {
       "name": "lean_turn_kp",

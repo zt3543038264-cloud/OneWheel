@@ -26,7 +26,7 @@ extern float g_flywheel_common_rpm;                  // (A+B)/2共模RPM，用�
 extern float g_yaw_momentum_scale;                   // 共模动量剩余权限(0..1)
 
 extern float  g_dbg_error;                  // 中线偏差，右偏为正
-extern uint8  g_imu_ok;                     // IMU660RB 初始化结果
+extern volatile uint8 g_imu_ok;             // IMU660RB 初始化结果，主循环/中断共享
 extern uint8  g_cam_ok;                     // CPU1 摄像头就绪标志
 extern uint8  g_vision_ipm_ok;               // CPU1 侧逆透视是否可用
 extern uint8  g_track_valid;                // 最新一帧循迹是否有效
@@ -148,6 +148,18 @@ void control_init(void);
 // 使用示例     control_loop();
 //-------------------------------------------------------------------------------------------------------------------
 void control_loop(void);
+
+/* Explicit stopped recovery. READY never starts a motor; a new menu
+ * confirmation is required. Hardware init/alignment run in foreground. */
+typedef enum {
+    CTRL_IMU_IDLE = 0, CTRL_IMU_INIT, CTRL_IMU_CALIBRATING,
+    CTRL_IMU_ALIGN, CTRL_IMU_CONVERGING, CTRL_IMU_READY, CTRL_IMU_FAILED
+} control_imu_recovery_t;
+uint8 control_imu_recovery_needed(void);
+uint8 control_imu_recovery_busy(void);
+uint8 control_imu_recovery_request(void);
+control_imu_recovery_t control_imu_recovery_state(void);
+void control_imu_recovery_poll(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     立即停止 Test、点动与三轴平衡，三电机清零并锁死动量轮软件刹车

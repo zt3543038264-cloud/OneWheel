@@ -22,6 +22,8 @@ def numeric(value, depth=0):
 pid = [f"{axis}_{ring}_k{k}" for axis, rings in [("r", ("rate", "angle", "rcy")), ("p", ("rate", "angle", "vel")), ("y", ("rate", "angle"))] for ring in rings for k in "pid"]
 groups = ["Roll", "Pitch", "Yaw", "Lean", "Run", "Camera", "Element", "Motor", "Zero", "Odometry", "IPM"]
 def group(n):
+    if n.startswith("yaw_"):
+        return "Yaw"
     for prefix, g in [("r_", "Roll"), ("p_", "Pitch"), ("y_", "Yaw"), ("lean_", "Lean"), ("ipm_", "IPM"), ("odom_", "Odometry"), ("run_", "Run"), ("direction_", "Run"), ("elem_", "Element"), ("ring_", "Element"), ("zebra_", "Element"), ("cam_", "Camera"), ("err_front", "Camera"), ("imu_forward_", "Zero"), ("roll_", "Zero"), ("pitch_", "Zero")]:
         if n.startswith(prefix):
             return g
@@ -46,13 +48,15 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
         step = 1
     params.append(dict(name=name, type="float" if floating == "1" else "int", min=lo, max=hi, value=value,
                        group=g, step=step, flags=4 | (1 if name in pid or name in LIVE_CONTROL_PARAMETERS else 0) | (16 if name in LIVE_CONTROL_PARAMETERS else 0) | (2 if g in ("Motor", "Zero", "IPM") else 0)))
-    label = labels.get(name, "")
+    label = "航向保持偏移" if name == "yaw_hold_deg" else labels.get(name, "")
     if name in pid:
         axis, ring, gain = name.split("_")
         label = {"r":"横滚", "p":"俯仰", "y":"航向"}[axis] + {"rate":"角速度环", "angle":"角度环", "rcy":"回收环", "vel":"速度环"}[ring] + " " + gain.upper()
     if not label:
         label = {"Run":"跑车", "Element":"元素", "Motor":"电机", "IPM":"逆透视"}.get(g, g) + " · " + name
     metadata[name] = dict(label=label, step=step, decimals=decimals, default=value, description="当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。")
+    if name == "yaw_hold_deg":
+        metadata[name].update(unit="°", description="普通 Balance 下相对本次启动航向的偏移；目标按 30°/s 逼近，共模回收还可叠加让角。")
     if name in lean_units:
         metadata[name]["unit"] = lean_units[name]
     if name in lean_descriptions:
@@ -63,7 +67,7 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
     if name == "r_rate_kd":
         metadata[name]["description"] = "正数表示已确认实车的 D 作用方向，内部系数为负；不与 Roll P 一起翻转。"
     if name.startswith("y_rate_k"):
-        metadata[name]["description"] = "正数表示当前实车的 Yaw 作用方向，内部统一乘 -1。"
+        metadata[name]["description"] = "当前 Yaw 角速度增益采用正值（内部乘 +1）；角度误差为目标减实际，旧 Flash 负增益在加载时转正。"
     if name == "steer_dir":
         metadata[name]["description"] = "+1 保持当前视觉/遥控转向纠偏，-1 反转；不是 IMU 或电机方向。"
     if name == "imu_forward_dir":

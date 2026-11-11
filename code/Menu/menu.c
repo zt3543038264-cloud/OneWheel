@@ -321,6 +321,7 @@ static int menu_tree_build(void);
 static void run_action(void);
 static void menu_enter(void);
 static void menu_back(void);
+static uint8 menu_imu_recovery_intercept(void);
 
 static menu_page_t s_page;                          // 当前页面
 static uint8       s_group_index;                   // 当前参数组下标
@@ -1264,6 +1265,8 @@ static void render_page(void)
  s_dirty=0;
 }
 
+#include "Menu/menu_imu_recovery.inc"
+
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     执行一次架空点动，动作索引偶数为正转、奇数为反转
 // 参数说明     action_index    组内动作索引
@@ -1492,6 +1495,7 @@ static void balance_action(void)
     }
 
     s_balance_armed_until_ms = 0;
+    if (menu_imu_recovery_intercept()) return;
     if (control_balance_start())
     {
         s_balance_on = 1;
@@ -1540,6 +1544,7 @@ static void remote_action(void)
     }
 
     s_remote_armed_until_ms = 0;
+    if (menu_imu_recovery_intercept()) return;
     if (control_remote_start())
     {
         s_balance_on = 1;
@@ -1791,6 +1796,7 @@ static void run_action(void)
     }
 
     s_run_armed_until_ms = 0;
+    if (menu_imu_recovery_intercept()) return;
     if (control_run_start())
     {
         s_run_on = 1;
@@ -2244,6 +2250,7 @@ void menu_init(void)
 //-------------------------------------------------------------------------------------------------------------------
 void menu_run(void)
 {
+    if (menu_imu_recovery_guard()) return;
     uint8 up = key_event(MENU_KEY_UP, 1);
     uint8 down = key_event(MENU_KEY_DOWN, 1);
     uint8 enter = 0;

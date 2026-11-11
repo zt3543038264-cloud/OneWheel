@@ -45,6 +45,8 @@ int path_nav_start(float yaw_deg, float speed_mps);
  * Capture only while inactive; caller must enforce vehicle STOP/IMU gates. */
 int path_nav_lock_heading(float yaw_deg);
 int path_nav_heading_ready(float yaw_deg);
+/* Sensor yaw reset invalidates only the RAM heading lock, not the route. */
+void path_nav_invalidate_heading(void);
 void path_nav_abort(void);
 void path_nav_clear(void);
 /* 5 ms odometry integration; planner runs once per four calls. */
