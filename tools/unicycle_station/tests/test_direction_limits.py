@@ -42,6 +42,8 @@ static float image_fclip(float v,float lo,float hi){return constrain_float(v,lo,
 static int ctrl_is_finite(float v){return isfinite(v);}
 static float Y_Motor_GetSpeedMps(void){return .5f;}
 static float imu_get_angle_yaw(void){return 17;}
+/* Lane regression; the beacon-specific gates are exercised separately. */
+static uint8 beacon_search_active(void){return 0;}
 '''
     for text, name in [(image, 'image_update_direction_camera'),
                        (control, 'direction_balance_Control'),

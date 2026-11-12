@@ -1,32 +1,29 @@
-"""Verify Qcar configured defaults through actual param_load_defaults; no MCU-readback claim."""
+"""Verify current profile defaults through production param_init; no MCU-readback claim.
+
+docs/qcar-defaults.json is a historical 75-field serial capture, not a current
+schema after the Roll PI, encoder, Beacon and Yaw migrations.
+"""
 import json
 import re
 from test_lean_limits import ROOT, _compile_run, _function
+from test_imu_forward import param_host_source
 
 
-def test_mcu_snapshot_with_documented_forward_frame_changes(tmp_path):
-    snapshot=json.loads((ROOT/'tools/unicycle_station/docs/qcar-defaults.json').read_text(encoding='utf-8'))
-    values=snapshot['parameters']
-    assert snapshot['transport']=='serial' and snapshot['count']==len(values)==75
+def test_current_profiles_match_production_defaults(tmp_path):
+    path=ROOT/'tools/unicycle_station/app/profiles/tc264_unicycle/profile.json'
+    profile=json.loads(path.read_text(encoding='utf-8'))
+    values={p['name']:p for p in profile['mock_parameters']}
     source=(ROOT/'code/Common/param.c').read_text(encoding='utf-8')
     table=re.search(r'const param_desc_t g_param_table\[\] =\s*\{.*?^\};',source,re.M|re.S).group()
     order=re.findall(r'\{\s*"(\w+)"',table)
     assert set(order)==set(values)
     expected=','.join(repr(float(values[n]['value']))+'f' for n in order)
-    c='''#include "config.h"
-#include "Common/param.h"
-#include "Common/param.h"
-#include <assert.h>
-#include <math.h>
-param_t g_param;
-volatile uint32 g_param_revision;
-'''+table+'\n'+_function(source,'param_load_defaults')+'''
+    c=param_host_source()+'''
 int main(void){
     const float expected[]={'''+expected+'''};
-    param_load_defaults();
-    assert(g_param_revision==1);
-    assert(sizeof(g_param_table)/sizeof(g_param_table[0])==75);
-    for(unsigned i=0;i<75;i++){
+    param_init();
+    assert(sizeof(g_param_table)/sizeof(g_param_table[0])==sizeof(expected)/sizeof(expected[0]));
+    for(unsigned i=0;i<sizeof(expected)/sizeof(expected[0]);i++){
         const param_desc_t *d=&g_param_table[i];
         float v=d->is_float?*(float*)d->ptr:(float)*(int*)d->ptr;
         assert(isfinite(v) && v==expected[i] && v>=d->vmin && v<=d->vmax);

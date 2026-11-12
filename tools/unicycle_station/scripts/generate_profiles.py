@@ -9,6 +9,8 @@ root = Path(__file__).resolve().parents[3]
 station = Path(__file__).resolve().parents[1]
 table = (root / "code/Common/param.c").read_text(encoding="utf-8")
 board = (root / "code/config.h").read_text(encoding="utf-8")
+beacon_defaults = dict(re.findall(r'c->(\w+)\s*=\s*([^;]+);',
+    (root / "code/Estimation/Beacon/beacon_config.c").read_text(encoding="utf-8")))
 menu = (root / "code/Menu/menu.c").read_text(encoding="utf-8")
 macros = dict(re.findall(r"^#define\s+(\w+)\s+([^\n/]+)", board, re.M))
 def numeric(value, depth=0):
@@ -20,8 +22,10 @@ def numeric(value, depth=0):
     return float(value)
 
 pid = [f"{axis}_{ring}_k{k}" for axis, rings in [("r", ("rate", "angle", "rcy")), ("p", ("rate", "angle", "vel")), ("y", ("rate", "angle"))] for ring in rings for k in "pid"]
-groups = ["Roll", "Pitch", "Yaw", "Lean", "Run", "Camera", "Element", "Motor", "Zero", "Odometry", "IPM"]
+groups = ["Roll", "Pitch", "Yaw", "Lean", "Run", "Camera", "Element", "Motor", "Zero", "Odometry", "IPM", "Beacon"]
 def group(n):
+    if n.startswith("beacon_"):
+        return "Beacon"
     if n.startswith("yaw_"):
         return "Yaw"
     for prefix, g in [("r_", "Roll"), ("p_", "Pitch"), ("y_", "Yaw"), ("lean_", "Lean"), ("ipm_", "IPM"), ("odom_", "Odometry"), ("run_", "Run"), ("direction_", "Run"), ("elem_", "Element"), ("ring_", "Element"), ("zebra_", "Element"), ("cam_", "Camera"), ("err_front", "Camera"), ("imu_forward_", "Zero"), ("roll_", "Zero"), ("pitch_", "Zero")]:
@@ -29,17 +33,19 @@ def group(n):
             return g
     return "Motor"
 steps = {name: (float(step.rstrip("f")), int(dec)) for _, name, step, dec in re.findall(r'\{\s*"([^"]+)",\s*"([^"]+)",\s*([\d.]+f?),\s*(\d+)\s*\}', menu)}
+steps.setdefault("r_rate_kd", (0.5, 2))  # retained read-only compatibility field
+live_parameters = set(LIVE_CONTROL_PARAMETERS) | {"r_rate_notch_hz", "r_rate_notch_q", "r_rate_notch_db"}
 defaults = dict(re.findall(r'g_param\.([\w\[\]]+)\s*=\s*(\w+_DEFAULT);', table))
 labels = {"imu_forward_dir":"IMU 前向", "run_speed_straight":"直道速度", "run_speed_curve":"弯道速度", "cam_exposure":"摄像头曝光", "err_front_row":"前瞻行", "roll_zero_init":"横滚机械零点", "pitch_zero_init":"俯仰机械零点", "roll_protect":"横滚保护角", "pitch_protect":"俯仰保护角", "fly_speed_limit":"飞轮限速", "fly_slew":"飞轮输出变化率", "odom_counts_per_m":"每米编码器计数", "odom_test_speed":"里程测试速度", "steer_dir":"转向极性", "enc_dir_c":"编码器极性", "lean_turn_kp":"方向预压弯", "lean_speed_kp":"速度压弯倍率", "lean_slew_dps":"压弯变化速度", "lean_max_angle":"压弯最大角度"}
 lean_units = {'lean_turn_kp': 's', 'lean_speed_kp': '倍', 'lean_slew_dps': '°/s', 'lean_max_angle': '°'}
 lean_descriptions = {'lean_turn_kp': '乘以去死区转弯率，低速淡出；当前范围以 MCU Schema 为准。', 'lean_speed_kp': 'v×转弯率/g 的倍率；当前实际范围以 MCU Schema 为准。', 'lean_slew_dps': '正常入弯、反向和回正的变化上限；停车/串级复位直接清零。'}
 params, metadata = [], {}
-pattern = r'\{\s*"([^"]+)",\s*&g_param\.([\w\[\]]+),\s*([01]),\s*([^,]+),\s*([^}]+)\}'
+pattern = r'\{\s*"([^"]+)",\s*&g_param\.([\w.\[\]]+),\s*([01]),\s*([^,]+),\s*([^}]+)\}'
 for name, member, floating, low, high in re.findall(pattern, table.split("#define PARAM_TABLE_NUM")[0]):
     g = group(name)
     lo, hi = numeric(low), numeric(high)
     try:
-        value = numeric(defaults[member])
+        value = numeric(beacon_defaults[member.split(".")[1]]) if member.startswith("beacon.") else numeric(defaults[member])
     except (ValueError, KeyError):
         value = max(lo, min(hi, 0))
     if floating == "0": value = int(value)
@@ -47,7 +53,7 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
     if name.startswith("elem_en_"):
         step = 1
     params.append(dict(name=name, type="float" if floating == "1" else "int", min=lo, max=hi, value=value,
-                       group=g, step=step, flags=4 | (1 if name in pid or name in LIVE_CONTROL_PARAMETERS else 0) | (16 if name in LIVE_CONTROL_PARAMETERS else 0) | (2 if g in ("Motor", "Zero", "IPM") else 0)))
+                       group=g, step=step, flags=4 | (1 if name in pid or name in live_parameters else 0) | (16 if name in live_parameters else 0) | (2 if g in ("Motor", "Zero", "IPM", "Beacon") else 0)))
     label = "航向保持偏移" if name == "yaw_hold_deg" else labels.get(name, "")
     if name in pid:
         axis, ring, gain = name.split("_")
@@ -76,6 +82,31 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
     if "dir" in name and g == "Motor":
         metadata[name]["enum_options"] = {"-1":"相对基准反向 −1", "1":"当前实车基准 +1"}
 
+# Keep the hand-audited PI/encoder descriptions when regenerating the table.
+descriptions = {
+    "r_rcy_kp": "归一化转速差A−B经Speed PID生成Roll目标偏移；目标=机械零点+回收偏移，合成偏移限幅±10°。需先验证两路编码器符号。",
+    "r_rate_kp": "Roll增量式PI的P：每拍PWM增量包含Kp×(本拍角速度误差−上拍误差)。周期1ms。",
+    "r_rate_ki": "Roll增量式PI的I：每1ms增加Ki×角速度误差；Ki=0时不增加积分，Stop/Start清除累计输出。",
+    "r_rate_kd": "兼容旧协议字段；Roll角速度内环已改为1ms增量式PI，D固定为0且不可启用。",
+}
+for name, description in descriptions.items():
+    metadata[name]["description"] = description
+for axis in ("a", "b"):
+    name = "enc_dir_" + axis
+    metadata[name].update(label=f"Flywheel {axis.upper()} encoder polarity", description=f"Motor > Enc {axis.upper()}: +1/-1 raw encoder polarity relative to driver duty. Stop all motors before editing; save Motor page to Flash. Does not reverse PWM output.")
+    metadata[name].pop("enum_options", None)
+for suffix, label in (("hz", "Hz"), ("q", "Q"), ("db", "dB")):
+    metadata["r_rate_notch_"+suffix].update(label="Roll Rate Notch "+label, description="Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09.")
+for name, label, description in (
+    ("beacon_track_row", "动态中线起始行", "目标cy达到此原图行号后使用动态中线；必须小于Turn Row。"),
+    ("beacon_turn_row", "近处转弯行", "目标cy达到此原图行号后锁存转向；丢标时沿该方向搜索。"),
+    ("beacon_line_kp", "动态中线斜率", "近处中线偏移=Line Kp×cy−Line Offset，左右方向相反。"),
+    ("beacon_line_offset", "动态中线偏移", "与Line Kp一起确定近处追踪中线，单位为原图像素。"),
+    ("beacon_search_error", "搜索像素偏差", "搜索时送给当前方向控制器的偏差绝对值；仍受Yaw Max约束，0关闭搜索。"),
+    ("beacon_search_frames", "搜索等待帧数", "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。600ms丢标保护仍有效。"),
+):
+    metadata[name].update(label=label, description=description)
+
 names = ["uptime_ms", "roll", "roll_target", "roll_rate", "recovery_feedback", "recovery_output", "roll_output", "lean_offset", "yaw_rate_target", "yaw_rate_command", "yaw_rate_actual", "yaw_output_raw", "yaw_output_applied", "flywheel_common_rpm", "direction_offset", "lateral_error", "heading_error", "curvature", "speed_plan", "speed_ramp", "speed_actual", "momentum_scale", "vision_quality", "vision_age_ms", "state_flags"]
 cn = ["MCU 时间", "Roll 实际角", "Roll 目标角", "Roll 角速度", "回收反馈 A−B", "回收输出", "Roll 输出", "压弯零点", "Yaw 目标角速度", "Yaw 命令", "Yaw 实际角速度", "Yaw 混控前", "Yaw 实际分配", "A/B 共模转速", "方向像素误差", "BEV 横向误差", "航向误差", "曲率", "规划速度", "速度斜坡", "实测速度", "Yaw 动量权限", "视觉质量", "视觉帧年龄", "状态位"]
 units = ["ms", "°", "°", "°/s", "RPM", "°", "duty", "°", "°/s", "°/s", "°/s", "duty", "duty", "RPM", "pixel", "", "°", "", "m/s", "m/s", "m/s", "", "", "ms", ""]
@@ -97,9 +128,15 @@ profile = dict(schema_version=1, kind="device_profile", id="tc264_unicycle", nam
     workbenches={"Roll":names[1:7],"Pitch":["pitch","speed_actual","speed_error"],"Yaw":names[8:13]})
 def save(path, data):
     path.parent.mkdir(parents=True,exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2),encoding="utf-8")
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2),encoding="utf-8",newline="\n")
 display = json.loads((station/"app/profiles/tc264_unicycle/display.json").read_text(encoding="utf-8"))
 profile["channels"].update(display.pop("channels", {}))
+profile["channels"]["fly"] = [dict(name=n,label=l,unit=u) for n,l,u in (
+    ("fly_uptime_ms","Flywheel MCU time","ms"),
+    ("flywheel_a_rpm","A actual RPM","RPM"),
+    ("flywheel_b_rpm","B actual RPM","RPM"),
+    ("flywheel_link_ok","A/B feedback valid",""))]
+profile["status_bits"]["path_active"] = ["state_flags",7,1]
 profile.update(display)
 save(station/"app/profiles/tc264_unicycle/profile.json", profile)
 generic = dict(schema_version=1, kind="device_profile", id="generic_sensor", name="通用双通道传感器", version="1.0", protocol_plugin="firewater_v1",

@@ -114,6 +114,12 @@ const param_desc_t g_param_table[] =
     { "beacon_weight_dist", &g_param.beacon.weight_dist, 1, 0.000000f, 10.000000f },
     { "beacon_weight_angle", &g_param.beacon.weight_angle, 1, 0.000000f, 10.000000f },
     { "beacon_weight_continuity", &g_param.beacon.weight_continuity, 1, 0.000000f, 10.000000f },
+    { "beacon_track_row", &g_param.beacon.track_row, 0, 25.0f, 118.0f },
+    { "beacon_turn_row", &g_param.beacon.turn_row, 0, 26.0f, 119.0f },
+    { "beacon_line_kp", &g_param.beacon.line_kp, 1, 0.0f, 2.0f },
+    { "beacon_line_offset", &g_param.beacon.line_offset, 1, 0.0f, 187.0f },
+    { "beacon_search_error", &g_param.beacon.search_error_px, 1, 0.0f, 94.0f },
+    { "beacon_search_frames", &g_param.beacon.search_frames, 0, 1.0f, 100.0f },
 
 };
 
@@ -205,6 +211,12 @@ uint8 param_set_by_name(const char *name, float value)
     }
     if (value < d->vmin) value = d->vmin;
     if (value > d->vmax) value = d->vmax;
+
+    /* Both are pixel rows, not physical distance. Keep approach before turn. */
+    if (d->ptr == &g_param.beacon.track_row &&
+        (int)(value+0.5f) >= g_param.beacon.turn_row) return 0;
+    if (d->ptr == &g_param.beacon.turn_row &&
+        (int)(value+0.5f) <= g_param.beacon.track_row) return 0;
 
     if (d->is_float) *(float *)d->ptr = value;
     else             *(int *)d->ptr   = (int)(value + (value >= 0.0f ? 0.5f : -0.5f));
@@ -725,7 +737,17 @@ static uint8 param_name_listed(const char *name, const char *const *names, uint1
 //-------------------------------------------------------------------------------------------------------------------
 static uint8 param_save_impl(const char *const *names, uint16 count)
 {
-    static uint32 expected[PARAM_RECORD_WORDS];     // 回读比对用，放静态区不占栈
+    /* CPU0-only Flash readback scratch. Use globally addressed DSPR1 spare
+     * space rather than the almost-full CPU0 main-data interval; no ISR/CPU1
+     * accesses this array and the control stack/CSA reserves stay unchanged. */
+#if defined(__TASKING__)
+#pragma section farbss "flash_readback"
+#endif
+    static uint32 expected[PARAM_RECORD_WORDS];
+    typedef char flash_readback_fits_reserved_tail[(PARAM_RECORD_WORDS*4u<=1024u)?1:-1];
+#if defined(__TASKING__)
+#pragma section farbss restore
+#endif
     uint32 words;
     uint16 t;
     uint16 n = 0;                                   // 实际写进去的记录条数

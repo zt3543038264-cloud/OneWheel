@@ -255,8 +255,13 @@ int main(void){
  have_frame=1;memset(gray.p,0,sizeof(gray.p));vision_core_run();
  assert(publications==2 && !published.track_valid && !published.beacon.valid && published.speed_limit_mps==0 && published.direction_camera==0);
  assert(published.track_mode==TRACK_MODE_HOLD);
+ for(int i=1;i<20;i++)vision_core_run();
+ assert(!published.beacon.valid && !published.track_valid && published.beacon.searching);
+ assert(published.beacon.steer_valid && published.track_mode==TRACK_MODE_MIDDLE);
+ assert(published.direction_camera<0 && published.speed_limit_mps==incoming.beacon.speed_mps);
+ assert(published.beacon.cx==0 && published.beacon.cy==0);
  incoming.beacon.mode=0;incoming.input_seq++;vision_core_run();
- assert(publications==3 && edges==1 && published.source_mode==0 && !published.beacon.valid);
+ assert(publications==22 && edges==1 && published.source_mode==0 && !published.beacon.valid);
  incoming.beacon.mode=3;incoming.input_seq++;patch(70,65);vision_core_run();
  assert(published.source_mode==3 && published.beacon.valid && edges==1);
  return 0;

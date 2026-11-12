@@ -15,28 +15,6 @@
     "ending": "\r\n"
   },
   "channels": {
-    "fly": [
-      {
-            "name": "fly_uptime_ms",
-            "label": "Flywheel MCU time",
-            "unit": "ms"
-      },
-      {
-            "name": "flywheel_a_rpm",
-            "label": "A actual RPM",
-            "unit": "RPM"
-      },
-      {
-            "name": "flywheel_b_rpm",
-            "label": "B actual RPM",
-            "unit": "RPM"
-      },
-      {
-            "name": "flywheel_link_ok",
-            "label": "A/B feedback valid",
-            "unit": ""
-      }
-],
     "att": [
       {
         "name": "att_roll",
@@ -361,6 +339,28 @@
         "label": "Run 状态",
         "unit": ""
       }
+    ],
+    "fly": [
+      {
+        "name": "fly_uptime_ms",
+        "label": "Flywheel MCU time",
+        "unit": "ms"
+      },
+      {
+        "name": "flywheel_a_rpm",
+        "label": "A actual RPM",
+        "unit": "RPM"
+      },
+      {
+        "name": "flywheel_b_rpm",
+        "label": "B actual RPM",
+        "unit": "RPM"
+      },
+      {
+        "name": "flywheel_link_ok",
+        "label": "A/B feedback valid",
+        "unit": ""
+      }
     ]
   },
   "parameters": {
@@ -609,6 +609,27 @@
       "default": 0.0,
       "description": "兼容旧协议字段；Roll角速度内环已改为1ms增量式PI，D固定为0且不可启用。"
     },
+    "r_rate_notch_hz": {
+      "label": "Roll Rate Notch Hz",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 45.0,
+      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
+    },
+    "r_rate_notch_q": {
+      "label": "Roll Rate Notch Q",
+      "step": 0.5,
+      "decimals": 1,
+      "default": 3.0,
+      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
+    },
+    "r_rate_notch_db": {
+      "label": "Roll Rate Notch dB",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 0.0,
+      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
+    },
     "p_vel_kp": {
       "label": "俯仰速度环 KP",
       "step": 0.001,
@@ -718,9 +739,9 @@
       "label": "航向保持偏移",
       "step": 1.0,
       "decimals": 1,
-      "default": 0.0,
-      "unit": "°",
-      "description": "普通 Balance 下相对本次启动航向的偏移；目标按 30°/s 逼近，共模回收还可叠加让角。"
+      "default": 0,
+      "description": "普通 Balance 下相对本次启动航向的偏移；目标按 30°/s 逼近，共模回收还可叠加让角。",
+      "unit": "°"
     },
     "lean_turn_kp": {
       "label": "方向预压弯",
@@ -875,6 +896,20 @@
         "1": "当前实车基准 +1"
       }
     },
+    "enc_dir_a": {
+      "label": "Flywheel A encoder polarity",
+      "step": 2.0,
+      "decimals": 0,
+      "default": 1,
+      "description": "Motor > Enc A: +1/-1 raw encoder polarity relative to driver duty. Stop all motors before editing; save Motor page to Flash. Does not reverse PWM output."
+    },
+    "enc_dir_b": {
+      "label": "Flywheel B encoder polarity",
+      "step": 2.0,
+      "decimals": 0,
+      "default": 1,
+      "description": "Motor > Enc B: +1/-1 raw encoder polarity relative to driver duty. Stop all motors before editing; save Motor page to Flash. Does not reverse PWM output."
+    },
     "enc_dir_c": {
       "label": "编码器极性",
       "step": 2.0,
@@ -925,145 +960,152 @@
       "default": 0,
       "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
-    "enc_dir_a": {
-      "label": "Flywheel A encoder polarity",
-      "step": 2.0,
+    "beacon_mode": {
+      "label": "Beacon · beacon_mode",
+      "step": 1.0,
       "decimals": 0,
-      "default": 1,
-      "description": "Motor > Enc A: +1/-1 raw encoder polarity relative to driver duty. Stop all motors before editing; save Motor page to Flash. Does not reverse PWM output."
+      "default": 0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
-    "enc_dir_b": {
-      "label": "Flywheel B encoder polarity",
-      "step": 2.0,
+    "beacon_threshold": {
+      "label": "Beacon · beacon_threshold",
+      "step": 1.0,
       "decimals": 0,
-      "default": 1,
-      "description": "Motor > Enc B: +1/-1 raw encoder polarity relative to driver duty. Stop all motors before editing; save Motor page to Flash. Does not reverse PWM output."
+      "default": 60,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
-    "r_rate_notch_hz": {
-      "label": "Roll Rate Notch Hz",
+    "beacon_radius": {
+      "label": "Beacon · beacon_radius",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 3,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_min_gray": {
+      "label": "Beacon · beacon_min_gray",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 100,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_max_miss": {
+      "label": "Beacon · beacon_max_miss",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 5,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_min_std": {
+      "label": "Beacon · beacon_min_std",
       "step": 1.0,
       "decimals": 1,
-      "default": 45.0,
-      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
+      "default": 20.0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
-    "r_rate_notch_q": {
-      "label": "Roll Rate Notch Q",
+    "beacon_min_ratio": {
+      "label": "Beacon · beacon_min_ratio",
+      "step": 0.1,
+      "decimals": 2,
+      "default": 1.0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_near_area": {
+      "label": "Beacon · beacon_near_area",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 20.0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_match_px": {
+      "label": "Beacon · beacon_match_px",
       "step": 0.5,
       "decimals": 1,
       "default": 3.0,
-      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
-    },
-    "r_rate_notch_db": {
-      "label": "Roll Rate Notch dB",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 0.0,
-      "description": "Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09."
-    },
-    "beacon_mode": {
-      "label": "Mode (0 lane /1 distance /2 time /3 pro)",
-      "default": 0,
-      "step": 1,
-      "decimals": 0,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_threshold": {
-      "label": "Threshold",
-      "default": 60,
-      "step": 1,
-      "decimals": 0,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_radius": {
-      "label": "Connectivity radius",
-      "default": 3,
-      "step": 1,
-      "decimals": 0,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_min_gray": {
-      "label": "Small target min gray",
-      "default": 100,
-      "step": 1,
-      "decimals": 0,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_max_miss": {
-      "label": "Max missed frames",
-      "default": 5,
-      "step": 1,
-      "decimals": 0,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_min_std": {
-      "label": "Small target min std",
-      "default": 20,
-      "step": 1,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_min_ratio": {
-      "label": "Min width/height",
-      "default": 1,
-      "step": 0.1,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_near_area": {
-      "label": "Near target min area",
-      "default": 20,
-      "step": 1,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
-    },
-    "beacon_match_px": {
-      "label": "Tracker match pixels",
-      "default": 3,
-      "step": 0.5,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_speed_mps": {
-      "label": "Beacon speed m/s",
-      "default": 0.15,
+      "label": "Beacon · beacon_speed_mps",
       "step": 0.01,
       "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "default": 0.15,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_yaw_limit_dps": {
-      "label": "Beacon yaw limit deg/s",
-      "default": 30,
-      "step": 1,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "label": "Beacon · beacon_yaw_limit_dps",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 30.0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_mid_x": {
-      "label": "Image middle x",
-      "default": 93,
-      "step": 1,
-      "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "label": "Beacon · beacon_mid_x",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 93.0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_weight_dist": {
-      "label": "Route distance weight",
-      "default": 0.5,
+      "label": "Beacon · beacon_weight_dist",
       "step": 0.1,
       "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "default": 0.5,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_weight_angle": {
-      "label": "Route turn weight",
-      "default": 0.5,
+      "label": "Beacon · beacon_weight_angle",
       "step": 0.1,
       "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "default": 0.5,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "beacon_weight_continuity": {
-      "label": "Route continuity weight",
-      "default": 0.2,
+      "label": "Beacon · beacon_weight_continuity",
       "step": 0.1,
       "decimals": 2,
-      "description": "Restored Qcar beacon pipeline. Stopped-state editing only; save Beacon page to Flash. Mode 0 keeps existing lane Run; never starts motors automatically."
+      "default": 0.2,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "beacon_track_row": {
+      "label": "动态中线起始行",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 50,
+      "description": "目标cy达到此原图行号后使用动态中线；必须小于Turn Row。"
+    },
+    "beacon_turn_row": {
+      "label": "近处转弯行",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 110,
+      "description": "目标cy达到此原图行号后锁存转向；丢标时沿该方向搜索。"
+    },
+    "beacon_line_kp": {
+      "label": "动态中线斜率",
+      "step": 0.05,
+      "decimals": 2,
+      "default": 0.8,
+      "description": "近处中线偏移=Line Kp×cy−Line Offset，左右方向相反。"
+    },
+    "beacon_line_offset": {
+      "label": "动态中线偏移",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 41.0,
+      "description": "与Line Kp一起确定近处追踪中线，单位为原图像素。"
+    },
+    "beacon_search_error": {
+      "label": "搜索像素偏差",
+      "step": 1.0,
+      "decimals": 1,
+      "default": 60.0,
+      "description": "搜索时送给当前方向控制器的偏差绝对值；仍受Yaw Max约束，0关闭搜索。"
+    },
+    "beacon_search_frames": {
+      "label": "搜索等待帧数",
+      "step": 1.0,
+      "decimals": 0,
+      "default": 20,
+      "description": "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。600ms丢标保护仍有效。"
     }
   },
   "parameter_groups": [
@@ -1432,6 +1474,36 @@
       "flags": 5
     },
     {
+      "name": "r_rate_notch_hz",
+      "type": "float",
+      "min": 5.0,
+      "max": 200.0,
+      "value": 45.0,
+      "group": "Roll",
+      "step": 1.0,
+      "flags": 21
+    },
+    {
+      "name": "r_rate_notch_q",
+      "type": "float",
+      "min": 0.5,
+      "max": 20.0,
+      "value": 3.0,
+      "group": "Roll",
+      "step": 0.5,
+      "flags": 21
+    },
+    {
+      "name": "r_rate_notch_db",
+      "type": "float",
+      "min": -40.0,
+      "max": 0.0,
+      "value": 0.0,
+      "group": "Roll",
+      "step": 1.0,
+      "flags": 21
+    },
+    {
       "name": "p_vel_kp",
       "type": "float",
       "min": -50.0,
@@ -1586,7 +1658,7 @@
       "type": "float",
       "min": -180.0,
       "max": 180.0,
-      "value": 0.0,
+      "value": 0,
       "group": "Yaw",
       "step": 1.0,
       "flags": 4
@@ -1862,101 +1934,71 @@
       "flags": 6
     },
     {
-      "name": "r_rate_notch_hz",
-      "type": "float",
-      "min": 5.0,
-      "max": 200.0,
-      "value": 45.0,
-      "group": "Roll",
-      "step": 1.0,
-      "flags": 21
-    },
-    {
-      "name": "r_rate_notch_q",
-      "type": "float",
-      "min": 0.5,
-      "max": 20.0,
-      "value": 3.0,
-      "group": "Roll",
-      "step": 0.5,
-      "flags": 21
-    },
-    {
-      "name": "r_rate_notch_db",
-      "type": "float",
-      "min": -40.0,
-      "max": 0.0,
-      "value": 0.0,
-      "group": "Roll",
-      "step": 1.0,
-      "flags": 21
-    },
-    {
       "name": "beacon_mode",
       "type": "int",
-      "min": 0,
-      "max": 3,
+      "min": 0.0,
+      "max": 3.0,
       "value": 0,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_threshold",
       "type": "int",
-      "min": 1,
-      "max": 254,
+      "min": 1.0,
+      "max": 254.0,
       "value": 60,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_radius",
       "type": "int",
-      "min": 1,
-      "max": 4,
+      "min": 1.0,
+      "max": 4.0,
       "value": 3,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_min_gray",
       "type": "int",
-      "min": 0,
-      "max": 255,
+      "min": 0.0,
+      "max": 255.0,
       "value": 100,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_max_miss",
       "type": "int",
-      "min": 0,
-      "max": 40,
+      "min": 0.0,
+      "max": 40.0,
       "value": 5,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_min_std",
       "type": "float",
-      "min": 0,
-      "max": 128,
-      "value": 20,
+      "min": 0.0,
+      "max": 128.0,
+      "value": 20.0,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_min_ratio",
       "type": "float",
-      "min": 0,
-      "max": 10,
-      "value": 1,
+      "min": 0.0,
+      "max": 10.0,
+      "value": 1.0,
       "group": "Beacon",
       "step": 0.1,
       "flags": 6
@@ -1964,19 +2006,19 @@
     {
       "name": "beacon_near_area",
       "type": "float",
-      "min": 0,
-      "max": 2000,
-      "value": 20,
+      "min": 0.0,
+      "max": 2000.0,
+      "value": 20.0,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_match_px",
       "type": "float",
-      "min": 0,
-      "max": 50,
-      "value": 3,
+      "min": 0.0,
+      "max": 50.0,
+      "value": 3.0,
       "group": "Beacon",
       "step": 0.5,
       "flags": 6
@@ -1984,7 +2026,7 @@
     {
       "name": "beacon_speed_mps",
       "type": "float",
-      "min": 0,
+      "min": 0.0,
       "max": 0.5,
       "value": 0.15,
       "group": "Beacon",
@@ -1994,28 +2036,28 @@
     {
       "name": "beacon_yaw_limit_dps",
       "type": "float",
-      "min": 0,
-      "max": 60,
-      "value": 30,
+      "min": 0.0,
+      "max": 60.0,
+      "value": 30.0,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_mid_x",
       "type": "float",
-      "min": 0,
-      "max": 187,
-      "value": 93,
+      "min": 0.0,
+      "max": 187.0,
+      "value": 93.0,
       "group": "Beacon",
-      "step": 1,
+      "step": 1.0,
       "flags": 6
     },
     {
       "name": "beacon_weight_dist",
       "type": "float",
-      "min": 0,
-      "max": 10,
+      "min": 0.0,
+      "max": 10.0,
       "value": 0.5,
       "group": "Beacon",
       "step": 0.1,
@@ -2024,8 +2066,8 @@
     {
       "name": "beacon_weight_angle",
       "type": "float",
-      "min": 0,
-      "max": 10,
+      "min": 0.0,
+      "max": 10.0,
       "value": 0.5,
       "group": "Beacon",
       "step": 0.1,
@@ -2034,11 +2076,71 @@
     {
       "name": "beacon_weight_continuity",
       "type": "float",
-      "min": 0,
-      "max": 10,
+      "min": 0.0,
+      "max": 10.0,
       "value": 0.2,
       "group": "Beacon",
       "step": 0.1,
+      "flags": 6
+    },
+    {
+      "name": "beacon_track_row",
+      "type": "int",
+      "min": 25.0,
+      "max": 118.0,
+      "value": 50,
+      "group": "Beacon",
+      "step": 1.0,
+      "flags": 6
+    },
+    {
+      "name": "beacon_turn_row",
+      "type": "int",
+      "min": 26.0,
+      "max": 119.0,
+      "value": 110,
+      "group": "Beacon",
+      "step": 1.0,
+      "flags": 6
+    },
+    {
+      "name": "beacon_line_kp",
+      "type": "float",
+      "min": 0.0,
+      "max": 2.0,
+      "value": 0.8,
+      "group": "Beacon",
+      "step": 0.05,
+      "flags": 6
+    },
+    {
+      "name": "beacon_line_offset",
+      "type": "float",
+      "min": 0.0,
+      "max": 187.0,
+      "value": 41.0,
+      "group": "Beacon",
+      "step": 1.0,
+      "flags": 6
+    },
+    {
+      "name": "beacon_search_error",
+      "type": "float",
+      "min": 0.0,
+      "max": 94.0,
+      "value": 60.0,
+      "group": "Beacon",
+      "step": 1.0,
+      "flags": 6
+    },
+    {
+      "name": "beacon_search_frames",
+      "type": "int",
+      "min": 1.0,
+      "max": 100.0,
+      "value": 20,
+      "group": "Beacon",
+      "step": 1.0,
       "flags": 6
     }
   ],
@@ -2164,11 +2266,6 @@
       6,
       1
     ],
-    "path_active": [
-      "state_flags",
-      7,
-      1
-    ],
     "element": [
       "state_flags",
       8,
@@ -2178,6 +2275,11 @@
       "state_flags",
       12,
       7
+    ],
+    "path_active": [
+      "state_flags",
+      7,
+      1
     ]
   },
   "derived_channels": {

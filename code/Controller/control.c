@@ -418,6 +418,17 @@ static void run_vision_target_update(void)
 // 返回参数     void
 // 使用示例     run_target_update();
 //-------------------------------------------------------------------------------------------------------------------
+/* A fresh CPU1 search command is distinct from a detected target. It may only
+ * steer within this Run's existing loss window; a frozen camera cannot search. */
+static uint8 beacon_search_active(void)
+{
+    return (uint8)(s_run_active && s_run_vision_armed &&
+        g_param.beacon.mode>=1 && g_param.beacon.mode<=3 &&
+        g_vision_source_mode==g_param.beacon.mode &&
+        !g_track_valid && g_beacon_result.searching && g_beacon_result.steer_valid &&
+        !vision_link_lost() && s_run_lost_ms<RUN_LOST_STOP_MS);
+}
+
 static void run_target_update(void)
 {
     float speed_mps;
@@ -467,6 +478,14 @@ static void run_target_update(void)
             return;
         }
         speed_mps = run_speed_limit(RUN_SPEED_LOST);
+        if (g_param.beacon.mode != 0)
+        {
+            /* Losing a slow beacon must not accelerate to the lane Lost
+             * default. Wait stationary, or search at the capped Lost speed. */
+            float cap = run_speed_limit(g_param.beacon.speed_mps);
+            if (!beacon_search_active()) speed_mps = 0.0f;
+            else if (speed_mps > cap) speed_mps = cap;
+        }
     }
     else
     {
@@ -673,7 +692,7 @@ static void direction_control_update(void)
     mode = g_vision_track_mode;
     if (mode > TRACK_MODE_HOLD) mode = TRACK_MODE_MIDDLE;
 
-    if (mode == TRACK_MODE_HOLD || !g_track_valid)
+    if (mode == TRACK_MODE_HOLD || (!g_track_valid && !beacon_search_active()))
     {
         if (s_direction_last_mode != TRACK_MODE_HOLD)
             s_direction_hold_yaw = imu_get_angle_yaw();

@@ -51,7 +51,7 @@
 #define UI_BALANCE_CONFIRM_MS  (3000u)   // Balance 二次确认窗口
 #define UI_MAIN_ITEM_COUNT     (5u)
 #define UI_RUN_TEST_ITEM_COUNT (3u)
-#define UI_MAX_GROUP_ITEMS     (20u)     // 单页参数行上限，子页 Save 组名字表用
+#define UI_MAX_GROUP_ITEMS     (24u)     // 单页参数行上限，子页 Save 组名字表用
 #define UI_CAM_FRAME_TIMEOUT_MS (100u)   // 超过该时间没有新帧视为摄像头帧失联
 
 typedef enum
@@ -242,6 +242,12 @@ static const menu_param_item_t s_beacon_items[] = {
     { "W Distance", "beacon_weight_dist", 0.100f, 2 },
     { "W Turn", "beacon_weight_angle", 0.100f, 2 },
     { "W Continue", "beacon_weight_continuity", 0.100f, 2 },
+    { "Track Row", "beacon_track_row", 1.000f, 0 },
+    { "Turn Row", "beacon_turn_row", 1.000f, 0 },
+    { "Line Kp", "beacon_line_kp", 0.050f, 2 },
+    { "Line Offset", "beacon_line_offset", 1.000f, 1 },
+    { "Search Err", "beacon_search_error", 1.000f, 1 },
+    { "Search Frames", "beacon_search_frames", 1.000f, 0 },
 };
 
 static const menu_group_t s_groups[] =
@@ -1017,9 +1023,11 @@ static void render_group_live(void)
         uint32 irq=interrupt_global_disable();b=g_beacon_result;interrupt_global_enable(irq);
         (void)snprintf(line,sizeof(line),"MODE%d N%u/%u NEXT%u",g_param.beacon.mode,(unsigned)b.count,(unsigned)b.total,(unsigned)b.next);
         ui_line(229,line,UI_CYAN);
-        (void)snprintf(line,sizeof(line),"TARGET X%.1f Y%.1f",(double)b.cx,(double)b.cy);ui_line(245,line,UI_CYAN);
-        (void)snprintf(line,sizeof(line),"DIST%.2fm TURN%u",(double)b.distance_m,(unsigned)b.turn);ui_line(261,line,UI_CYAN);
-        ui_line(277,b.valid?"BEACON VALID":"NO BEACON / CHECK IMAGE",b.valid?UI_GREEN:UI_YELLOW);
+        (void)snprintf(line,sizeof(line),"X%.1f Y%.1f MID%.1f",(double)b.cx,(double)b.cy,(double)b.follow_mid_x);ui_line(245,line,UI_CYAN);
+        (void)snprintf(line,sizeof(line),"ERR%+.1f TURN%u MISS%u",(double)b.error_px,(unsigned)b.turn,(unsigned)b.missed_frames);ui_line(261,line,UI_CYAN);
+        ui_line(277,b.searching?"BEACON SEARCH":
+                    b.steer_valid?(b.follow_state==BEACON_FOLLOW_NEAR?"BEACON NEAR":"BEACON TRACK"):
+                    "NO TARGET / HOLD",b.valid&&b.steer_valid?UI_GREEN:UI_YELLOW);
         return;
     }
 

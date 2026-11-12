@@ -61,6 +61,12 @@ void beacon_process(const uint8_t *g,uint8_t (*b)[188],const beacon_config_t *c,
  memset(r,0,sizeof(*r));if(!g||!b||!c||!c->mode)return;beacons++;memset(b,255,120*188);r->valid=1;r->cx=80;r->cy=70;
 }
 void beacon_reset(void){}
+/* Detector/control math is covered by test_beacon_follow; camera tests retain
+ * a deterministic valid target without linking the large legacy classifier. */
+void beacon_follow_update(const beacon_config_t *c,uint8_t running,beacon_result_t *r){
+ (void)running;r->steer_valid=r->valid;r->follow_mid_x=c->mid_x;
+ r->error_px=r->cx-c->mid_x;
+}
 const uint8 *image_gray_data(void){return &img_gray[0][0];}
 uint8 param_set_by_name(const char *n,float v){assert(!strcmp(n,"cam_exposure"));sets++;g_param.cam_exposure=(int)v;return 1;}
 '''

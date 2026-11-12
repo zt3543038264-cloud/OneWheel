@@ -292,6 +292,14 @@ derivative tc26B
             select "(.bss.edmembss|.bss.edmembss*)";
         }
 
+        /* CPU0 Flash-save scratch occupies the free 1 KiB above CSA1, in
+         * linear (far-data) space. No stack/interrupt-stack/CSA is reduced. */
+        group flash_readback (ordered, align = 4, attributes=rw,
+                              run_addr = mem:dsram1[LCF_DSPR1_SIZE - 1k])
+        {
+            select "(.bss.flash_readback|.bss.flash_readback.*)";
+        }
+
         group (ordered, contiguous, align = 32, attributes=rw, run_addr = mem:dsram1)
         {
             select "(.data.vision_shared|.data.vision_shared.*)";

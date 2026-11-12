@@ -1,0 +1,62 @@
+{
+  "baseline": "6725a8bb9792223b99b932627bee977ac5db613e",
+  "source_commit": "bc24e89cac8d557327d03be9a24e940b9714adf7",
+  "build": {
+    "success": true,
+    "exit_code": 0,
+    "seconds": 37.8,
+    "run": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\unicycle-ads-build\\d03f74fdf88e\\20261112-214522-37096",
+    "build_log": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\unicycle-ads-build\\d03f74fdf88e\\20261112-214522-37096\\build.log",
+    "input_sha256": "ae841d58d6e0f9e5f9c131e2bd2131dec16dd4c47a07255b3c17593cdf6a068d",
+    "changed_inputs": [
+      "Lcf_Tasking_Tricore_Tc.lsl"
+    ],
+    "removed_inputs": [],
+    "artifacts": [
+      {
+        "path": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\unicycle-ads-build\\d03f74fdf88e\\project\\Debug\\OneWheelUpright.elf",
+        "bytes": 13528560,
+        "sha256": "4d75a66d05f11ea19c9873d16dfc0c90ceb5d26010e6de55264f91249b17c902"
+      },
+      {
+        "path": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\unicycle-ads-build\\d03f74fdf88e\\project\\Debug\\OneWheelUpright.hex",
+        "bytes": 547499,
+        "sha256": "137b5103ed5f7bdad8ee6b6da125906996cda0d0c6b56460e474834a0aafd0bb"
+      },
+      {
+        "path": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\unicycle-ads-build\\d03f74fdf88e\\project\\Debug\\OneWheelUpright.map",
+        "bytes": 3343658,
+        "sha256": "f7091efcb481d09d9afd5f7ab1126795d8aa73d2fd84db35afe22ed69b84ca61"
+      }
+    ],
+    "result": "STATUS=OK\nERRORS=0\n"
+  },
+  "tests": {
+    "passed": 50,
+    "skipped": 3,
+    "skip_reason": "Optional GCC preprocessor unavailable",
+    "gui": "not run; PySide6 unavailable"
+  },
+  "unchanged_control_functions": [
+    "control_motor_output",
+    "cascade_gain_refresh",
+    "roll_rate_ctrl",
+    "roll_recovery_offset",
+    "roll_cascade_ctrl",
+    "pitch_cascade_ctrl",
+    "yaw_cascade_ctrl",
+    "cascade_run"
+  ],
+  "ram_free_bytes": {
+    "cpu0_dspr": 2523,
+    "cpu1_dspr": 1100
+  },
+  "flash_readback": {
+    "address": "0x6001dc00",
+    "bytes": 828,
+    "reserved_span": 1024
+  },
+  "flashed": false,
+  "hardware_following_verified": false,
+  "pushed": false
+}

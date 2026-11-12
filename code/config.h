@@ -321,6 +321,15 @@
     #error "IMG_W/IMG_H 不能超过采图缓冲 MT9V03X_W/MT9V03X_H"
 #endif
 
+// 信标近处转弯：移植自 feng0511/monotroch bc24e89 track_turn_update。
+// 单位为原始 188x120 图像的像素；只改 Run 视觉目标，不改直立 PID。
+#define BEACON_TRACK_ROW_DEFAULT       (50)
+#define BEACON_TURN_ROW_DEFAULT        (110)
+#define BEACON_LINE_KP_DEFAULT         (0.8f)
+#define BEACON_LINE_OFFSET_DEFAULT     (41.0f)
+#define BEACON_SEARCH_ERROR_DEFAULT    (60.0f)
+#define BEACON_SEARCH_FRAMES_DEFAULT   (20)
+
 // 大津阈值保护
 #define OTSU_TH_MIN             30             // 阈值下限
 #define OTSU_TH_MAX             220            // 阈值上限
