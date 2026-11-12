@@ -2,7 +2,8 @@
 #define VISION_CORE_H_
 
 #include "zf_common_headfile.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Estimation/Vision/element.h"
 
 // CPU0 与 CPU1 之间的双向信箱。

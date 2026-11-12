@@ -19,7 +19,7 @@
 !/tools/unicycle_station/**
 !/docs/**
 !/tools/attitude_r10h/host_results.json
-/code/Protocols/station_wifi_private.h
+/code/config_private.h
 /Debug/
 /Release/
 /.ads/

@@ -15,7 +15,7 @@
 ## 实现和兼容
 
 - 参数键：`enc_dir_a`、`enc_dir_b`，整数，只允许±1，菜单步长固定为2。
-- 默认来源：`ENC_DIR_A/B_DEFAULT`引用`direction_config.h`中的`FLY_ENCODER_POLARITY_A/B`，当前均为+1；Flash保存值优先。
+- 默认来源：`ENC_DIR_A/B_DEFAULT`引用`config.h`中的`FLY_ENCODER_POLARITY_A/B`，当前均为+1；Flash保存值优先。
 - 换算：`本地反馈RPM = 原始RPM × enc_dir_a/b × MOTOR_DIR_A/B`。
 - 文本和二进制接收均保留原始RPM；GetSpeed读取时统一换算，修改后不需要等待新反馈帧。-32768取反经宽位计算及饱和处理。
 - 旧Flash按名称加载，不依赖param_t内存布局。旧记录缺少两项时保留各自默认值，其他PID、零点、网络配置不重置，不自动擦写Flash。

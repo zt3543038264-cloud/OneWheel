@@ -1,9 +1,7 @@
 #ifndef STATION_WIFI_H
 #define STATION_WIFI_H
-#include "Protocols/station_wifi_config.h"
+#include "config.h"
 #include "zf_common_headfile.h"
-#define STATION_WIFI_FRAME_MAX 512u
-#define STATION_WIFI_RX_MAX 32u
 /* Boot only, before the control timer. No reconnect/init in a running loop. */
 uint8 station_wifi_init(void);
 /* Foreground only. One bounded SPI transaction, no wait for module readiness.

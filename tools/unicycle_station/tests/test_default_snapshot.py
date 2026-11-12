@@ -13,7 +13,8 @@ def test_mcu_snapshot_with_documented_forward_frame_changes(tmp_path):
     order=re.findall(r'\{\s*"(\w+)"',table)
     assert set(order)==set(values)
     expected=','.join(repr(float(values[n]['value']))+'f' for n in order)
-    c='''#include "Common/board_config.h"
+    c='''#include "config.h"
+#include "Common/param.h"
 #include "Common/param.h"
 #include <assert.h>
 #include <math.h>

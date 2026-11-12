@@ -20,12 +20,12 @@
 
 ## 车端配置（首次使用必须完成）
 
-1. 将 `code/Protocols/station_wifi_private.example.h` 复制成同目录的 `station_wifi_private.h`，填写热点名称、密码、电脑在该热点下的 IPv4 地址。该本机文件已加入 Git 忽略规则，不能公开提交凭据。
-2. 默认电脑接收端口 `STATION_WIFI_PC_PORT` 为 `1349`，模块端口 `STATION_WIFI_LOCAL_PORT` 为 `6666`。电脑与模块连接同一网络，并在路由器中为模块保留固定 DHCP 地址，避免下次分配变化。
-3. 将 [station_wifi_config.h](../../../code/Protocols/station_wifi_config.h) 中 `STATION_WIFI_ENABLED` 改成 `1`，再用 ADS 编译、烧录自己的配置。本次没有执行 ADS 构建或烧录。
+1. 将 `code/config_private.example.h` 复制成同目录的 `config_private.h`，填写热点名称、密码、电脑在该热点下的 IPv4 地址。该本机文件已加入 Git 忽略规则，不能公开提交凭据。
+2. 这两个公共端口仅在 `code/config.h` 修改，不要在私有文件重复定义。默认电脑接收端口 `STATION_WIFI_PC_PORT` 为 `1349`，模块端口 `STATION_WIFI_LOCAL_PORT` 为 `6666`。电脑与模块连接同一网络，并在路由器中为模块保留固定 DHCP 地址，避免下次分配变化。
+3. 将 [config.h](../../../code/config.h) 中 `STATION_WIFI_ENABLED` 改成 `1`，再用 ADS 编译、烧录自己的配置。配置修改后须重新编译并烧录，不能仅修改上位机设置。
 4. 上电时模块初始化和入网在控制定时器启动前执行；失败时 WiFi 无数据。检查供电、热点和配置后停车重启，不在运行中进行阻塞重连。
 
-默认开关为 `0`，因此现有串口固件行为保持不变。车端一次构建选择 UART2 或 WiFi 一条命令通路，不把两路命令拼接，也不同时接受两个上位机写参数。选择 WiFi 后，UART2 上位机通路不工作；要恢复无线串口，将开关改回 `0` 后重新构建烧录。SPI 的启动函数可能等待模块响应，不能把它移动进控制中断或运行中的重连流程。
+当前公共开关为 `1`，使用 WiFi SPI；改成 `0` 后才使用 UART2，且不再需要本机私有头文件。车端一次构建选择 UART2 或 WiFi 一条命令通路，不把两路命令拼接，也不同时接受两个上位机写参数。选择 WiFi 后，UART2 上位机通路不工作；要恢复无线串口，将开关改回 `0` 后重新构建烧录。SPI 的启动函数可能等待模块响应，不能把它移动进控制中断或运行中的重连流程。
 
 ## 上位机操作
 

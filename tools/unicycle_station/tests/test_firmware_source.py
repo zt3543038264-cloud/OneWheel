@@ -13,7 +13,7 @@ def test_mcu_protocol_host_contract(tmp_path, wifi):
     extra=["-DSTATION_WIFI_ENABLED=0"]
     if wifi:
         (tmp_path/"Protocols").mkdir()
-        (tmp_path/"Protocols/station_wifi_private.h").write_text("")
+        (tmp_path/"config_private.h").write_text('#define STATION_WIFI_SSID "host-test"\n#define STATION_WIFI_PASSWORD "host-only"\n#define STATION_WIFI_PC_IP "127.0.0.1"\n')
         stub=tmp_path/"wifi_stub.c"
         stub.write_text('#include "Protocols/station_wifi.h"\nuint8 station_wifi_init(void){return 1;}\nint station_wifi_step(const uint8 *tx,uint16 n,uint8 *rx,uint16 *got){(void)tx;(void)n;(void)rx;*got=0;return 0;}\n')
         extra=["-DSTATION_WIFI_ENABLED=1","-I",str(tmp_path),str(stub)]

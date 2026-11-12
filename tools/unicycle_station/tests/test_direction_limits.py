@@ -8,7 +8,8 @@ def test_direction_large_errors_and_existing_gates(tmp_path):
     source = r'''
 #define MT9V03X_W 188
 #define MT9V03X_H 120
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include <assert.h>
 #include <math.h>
 param_t g_param;

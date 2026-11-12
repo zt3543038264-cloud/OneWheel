@@ -1,6 +1,7 @@
 #include "HW_Drivers/Motor/Y_Motor.h"
 #include <stddef.h>
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 
 #define Y_MOTOR_SPEED_WINDOW_SAMPLES  (CTRL_DIV_SPEED / Y_MOTOR_ENCODER_PERIOD_MS)
 

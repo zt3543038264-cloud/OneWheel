@@ -1,8 +1,114 @@
-#ifndef BOARD_CONFIG_H_
-#define BOARD_CONFIG_H_
+#ifndef CONFIG_H_
+#define CONFIG_H_
 
-#include "zf_common_headfile.h"
+// 项目公共配置的唯一入口。编辑编码：UTF-8。
+// 本文件只包含宏，不包含硬件或参数类型，供驱动、中断和业务模块安全共用。
+// 默认参数仅在 Flash 无有效记录时生效；运行参数仍由 g_param / 菜单管理。
 
+// ===== 固定方向基准与编码器极性 =====
+// 2026-09-21 已确认实车基准。菜单 +1=保持此基准，-1=相对反向。
+// 这些符号属于硬件/控制适配，不能再次当作用户默认值写入参数。
+// 与 PARAM_MAGIC 的 sign2 语义绑定；未来改基准须新增存储版本和迁移。
+#define MOTOR_DIR_A_BASE      (1)
+#define MOTOR_DIR_B_BASE      (1)
+/* Raw encoder RPM polarity relative to a positive DRIVER command, not body Roll.
+ * +1: positive driver duty reports positive raw RPM; -1: reports negative RPM.
+ * Defaults preserve the old receive polarity. Verify actual CYT calibration
+ * on the board. These are DEFAULTS for Motor -> Enc A/B when Flash has no key;
+ * saved enc_dir_a/b override them independently of MOTOR_DIR. */
+#ifndef FLY_ENCODER_POLARITY_A
+#define FLY_ENCODER_POLARITY_A (1)
+#endif
+#ifndef FLY_ENCODER_POLARITY_B
+#define FLY_ENCODER_POLARITY_B (1)
+#endif
+#if (FLY_ENCODER_POLARITY_A != 1 && FLY_ENCODER_POLARITY_A != -1) || \
+    (FLY_ENCODER_POLARITY_B != 1 && FLY_ENCODER_POLARITY_B != -1)
+#error "Flywheel encoder polarity must be +1 or -1"
+#endif
+#define MOTOR_DIR_C_BASE      (-1)
+#define ENC_DIR_C_BASE        (-1)
+#define STEER_DIR_BASE        (-1)
+#define IMU_FORWARD_DIR_BASE  (-1)
+
+// R_RATE_KD_BASE is retained ONLY for legacy Flash migration. The current
+// Roll Rate controller is incremental PI and never uses a derivative gain.
+#define R_RATE_KD_BASE        (-1.0f)
+
+/* Yaw plant sign, measured on this car (2026-11-11).
+ * Positive common-mode duty (A=B=+u) produces POSITIVE yaw acceleration here.
+ * The former -1 assumed the opposite, so the rate loop was positive feedback:
+ * with y_angle_kp=0 and y_rate_kp=+10 the body spun up by itself, y_rate_kp=-3
+ * decayed 129 -> 7 deg/s, and u/gyro_z measured exactly -1.00.
+ * control.c now uses (yaw_target - yaw) as the heading error, so both yaw
+ * gains are POSITIVE user values. param_init() negates negative values that
+ * older Flash records still hold, so a stored -60/-24 becomes +60/+24. */
+#define Y_RATE_BASE           (1.0f)
+
+// ===== 中断服务核与优先级 =====
+// 中断服务核与优先级配置。
+// INT_SERVICE 决定中断由哪个核响应。两个核共用 LCF_INTVEC0_START 这一张向量表，
+// 所以 isr.c 里 IFX_INTERRUPT 的第二个参数一律是 0，改服务核只改本文件。
+// 优先级必须全局唯一，跨核也不能重号，否则会落进同一个表项。
+// CPU 服务优先级范围 1~255，DMA 服务优先级范围 0~47。
+
+// CCU60_CH0：1ms 控制中断，运行在 CPU0
+#define CCU6_0_CH0_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_0_CH0_ISR_PRIORITY 30
+
+// CCU60_CH1、CCU61_CH0、CCU61_CH1 未使用，保留宏供 zf_driver_pit 编译
+#define CCU6_0_CH1_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_0_CH1_ISR_PRIORITY 31
+#define CCU6_1_CH0_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_1_CH0_ISR_PRIORITY 32
+#define CCU6_1_CH1_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_1_CH1_ISR_PRIORITY 33
+
+// ERU 通道 0/4、1/5 未使用，保留宏供 zf_driver_exti 编译
+#define EXTI_CH0_CH4_INT_SERVICE IfxSrc_Tos_cpu0
+#define EXTI_CH0_CH4_INT_PRIO  	40
+#define EXTI_CH1_CH5_INT_SERVICE IfxSrc_Tos_cpu0
+#define EXTI_CH1_CH5_INT_PRIO  	41
+
+// ERU 通道 2：摄像头 PCLK，直接触发 DMA，不进 CPU，所以没有对应 ISR
+#define EXTI_CH2_CH6_INT_SERVICE IfxSrc_Tos_dma
+#define EXTI_CH2_CH6_INT_PRIO  	5
+
+// ERU 通道 3：摄像头场同步，运行在 CPU1
+#define EXTI_CH3_CH7_INT_SERVICE IfxSrc_Tos_cpu1
+#define EXTI_CH3_CH7_INT_PRIO  	43
+
+// DMA 通道 5：摄像头整场搬运完成，运行在 CPU1
+#define	DMA_INT_SERVICE         IfxSrc_Tos_cpu1
+#define DMA_DATA_CORE_ID        (1)                 // 预处理专用纯数字，DMA 状态放入 CPU1 DSRAM
+#define DMA_INT_PRIO  	        60
+
+// UART0 未使用，保留宏供 zf_driver_uart 编译。
+// 工程不调 debug_init()，UART0 从不初始化，所以 isr.c 里没有对应的中断服务函数。
+#define	UART0_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART0_TX_INT_PRIO       11
+#define UART0_RX_INT_PRIO       10
+#define UART0_ER_INT_PRIO       12
+
+// UART1：摄像头配置串口，与摄像头其余中断同核，运行在 CPU1
+#define	UART1_INT_SERVICE       IfxSrc_Tos_cpu1
+#define UART1_TX_INT_PRIO       13
+#define UART1_RX_INT_PRIO       14
+#define UART1_ER_INT_PRIO       15
+
+// UART2：无线转串口模块，调参与波形，运行在 CPU0
+#define	UART2_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART2_TX_INT_PRIO       16
+#define UART2_RX_INT_PRIO       17
+#define UART2_ER_INT_PRIO       18
+
+// UART3：CYT2BL3 双路无刷驱动，运行在 CPU0
+#define	UART3_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART3_TX_INT_PRIO       19
+#define UART3_RX_INT_PRIO       20
+#define UART3_ER_INT_PRIO       21
+
+// ===== 引脚、控制周期、PID、保护及功能默认值 =====
 #ifndef QCAR_DRIVER_TEXT_DUTY
 #define QCAR_DRIVER_TEXT_DUTY 1
 #endif
@@ -137,7 +243,7 @@
 #define LEAN_SLEW_DPS_DEFAULT       (18.0f)    // 压弯变化速度(°/s)
 #define LEAN_SLEW_DPS_MIN           (1.0f)
 #define LEAN_SLEW_DPS_MAX           (60.0f)
-#define LEAN_DT_S                   (0.005f)   // 压弯仍为 5 ms，与角度环 2 ms 分开
+#define LEAN_DT_S                   (0.005f)   // 压弯周期为 5 ms，独立于 CTRL_DIV_ANGLE 定义的角度环周期
 #define LEAN_SPEED_FILTER_ALPHA     (0.10f)    // 5ms 拍，约45ms一阶时间常数
 #define LEAN_SPEED_MIN_MPS          (0.05f)    // 低于此速度不主动压弯
 #define LEAN_SPEED_FULL_MPS         (0.30f)    // 线性淡入到全权重
@@ -396,7 +502,21 @@ typedef enum
 #define REMOTE_SPEED_LIMIT_MPS      RUN_SPEED_MAX_MPS
 #define REMOTE_CMD_TIMEOUT_MS       (1000u)
 
-
-#include "Common/param.h"
-
+// ===== WiFi 公共配置 =====
+// 1：WiFi SPI；0：原 UART2。电脑和车辆须连接同一局域网。
+// 本机的热点名、密码和电脑 IP 仅填写 code/config_private.h。
+#ifndef STATION_WIFI_ENABLED
+#define STATION_WIFI_ENABLED 1
 #endif
+#define STATION_WIFI_PC_PORT "1349"       // 电脑上位机监听端口
+#define STATION_WIFI_LOCAL_PORT "6666"    // 车载模块本地端口
+#define STATION_WIFI_FRAME_MAX 512u       // 单帧 SPI 发送缓冲上限
+#define STATION_WIFI_RX_MAX 32u           // 单次 SPI 接收缓冲上限
+#if STATION_WIFI_ENABLED
+#include <config_private.h>
+#if !defined(STATION_WIFI_SSID) || !defined(STATION_WIFI_PASSWORD) || !defined(STATION_WIFI_PC_IP)
+#error "Copy code/config_private.example.h to code/config_private.h and fill local WiFi settings"
+#endif
+#endif
+
+#endif /* CONFIG_H_ */

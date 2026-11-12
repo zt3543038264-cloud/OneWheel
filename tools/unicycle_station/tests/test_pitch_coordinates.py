@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[3]
 def test_pitch_euler_projection_and_real_cascade_paths(tmp_path):
     control = (ROOT / 'code/Controller/control.c').read_text(encoding='utf-8')
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/pid.h"
 #include "Common/pid.c"
 #include <assert.h>

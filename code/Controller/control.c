@@ -2,7 +2,8 @@
 #include "Controller/Planner/path_store.h"
 #include "HW_Drivers/Motor/W_Motor.h"
 #include "HW_Drivers/Motor/Y_Motor.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "HW_Drivers/IMU/imu.h"
 #include "Estimation/Attitude/attitude.h"
 #include "Protocols/vofa.h"
@@ -998,7 +999,7 @@ static float yaw_cascade_ctrl(uint8 run_angle)
         return pid_loc_calc_limited(&y_rate_pid, s_path_yaw_rate_cmd-imu.gyro_z, -headroom, headroom);
     }
     // 航向用连续角，环岛要累计 340°，这里不能换成 ±180° 包装角
-    // 误差取 目标-实际：本车正共模占空比产生正 yaw 角加速度，见 direction_config.h
+    // 误差取 目标-实际：本车正共模占空比产生正 yaw 角加速度，见 config.h
     if (run_angle) pid_loc_calc(&y_angle_pid, g_yaw_target - imu_get_angle_yaw());   // 转向外环，1ms
     // 角度环输出是角速度指令，必须限幅：大误差下不限幅会让共模占空比打满，
     // 内环失去阻尼、飞轮冲到高速，Roll 也随之失去权限。

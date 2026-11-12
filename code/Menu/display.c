@@ -1,5 +1,6 @@
 #include "Menu/display.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Controller/control.h"
 #include "Estimation/Vision/element.h"
 #include "Common/param.h"

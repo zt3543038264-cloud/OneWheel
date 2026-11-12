@@ -55,7 +55,7 @@ def test_public_lean_ranges_and_defaults_match_firmware(relative):
     params = {p['name']: p for p in profile['mock_parameters']}
     source = (ROOT/'code/Common/param.c').read_text(encoding='utf-8')
     macros = dict(re.findall(r'^#define\s+(\w+)\s+([^\r\n/]+)',
-        (ROOT/'code/Common/board_config.h').read_text(encoding='utf-8'), re.M))
+        (ROOT/'code/config.h').read_text(encoding='utf-8'), re.M))
     def number(value):
         value = value.strip().strip('()').strip()
         return number(macros[value]) if value in macros else float(value.rstrip('fFuUlL'))
@@ -79,7 +79,8 @@ def test_public_lean_ranges_and_defaults_match_firmware(relative):
 def test_real_lean_function_steady_turn_speed_slew_and_invalid_inputs(tmp_path):
     control = (ROOT/'code/Controller/control.c').read_text(encoding='utf-8')
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include <assert.h>
 #include <math.h>
 static float turn=.01f, gain=1;
@@ -192,7 +193,8 @@ def test_real_flash_load_preserves_old_tuning_and_ignores_old_lean_gain(tmp_path
     flash_defines = '\n'.join(re.findall(r'^#define PARAM_(?:FLASH_\w+|MAGIC_INDEX|COUNT_INDEX|FIRST_RECORD_INDEX|MAX_RECORDS)\s+[^\n]+', param, re.M))
     source = r'''
 #include "Common/param.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Estimation/Beacon/beacon_config.c"
 #include <assert.h>
 #include <math.h>

@@ -12,7 +12,8 @@ def test_real_imu_mapping_bias_acceleration_and_restart(tmp_path):
 def param_host_source():
     param=re.sub(r'^#include[^\n]*\n','',(ROOT/'code/Common/param.c').read_text(encoding='utf-8'),flags=re.M)
     return r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/param.h"
 #include "Estimation/Beacon/beacon_config.c"
 #include <assert.h>

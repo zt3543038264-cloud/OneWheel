@@ -5,7 +5,8 @@ from test_lean_limits import ROOT, _compile_run, _function
 def test_real_path_yaw_limits_stationary_damping_and_mode_isolation(tmp_path):
     control = (ROOT/'code/Controller/control.c').read_text(encoding='utf-8')
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/pid.c"
 #include "Controller/Planner/path_nav.h"
 #include <assert.h>

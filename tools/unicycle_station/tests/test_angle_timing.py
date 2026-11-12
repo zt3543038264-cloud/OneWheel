@@ -13,7 +13,8 @@ def test_angle_pid_physical_time_and_live_refresh(tmp_path):
     calls = re.findall(r'^\s*angle_pid_init\([^\n]+;', init, re.M)
     assert len(calls) == 3
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/pid.c"
 #include "Controller/control_angle.inc"
 #include <assert.h>
@@ -86,7 +87,8 @@ int main(void) {
 def test_actual_isr_publication_phase_and_independent_subrates(tmp_path):
     control = (ROOT/'code/Controller/control.c').read_text(encoding='utf-8')
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include <assert.h>
 #define MOTOR_JOG_NONE 0
 #define CTRL_TEST_STATUS_OK 0

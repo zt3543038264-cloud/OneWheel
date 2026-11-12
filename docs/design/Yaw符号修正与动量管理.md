@@ -6,7 +6,7 @@
 
 ## 1. 问题
 
-`direction_config.h` 的 `Y_RATE_BASE = -1` 假设"正占空比共模 → 负 Yaw 角加速度"。本车实测相反：
+`config.h` 的 `Y_RATE_BASE = -1` 假设"正占空比共模 → 负 Yaw 角加速度"。本车实测相反：
 正共模占空比让车身朝正 `gyro_z` 方向转。于是速度环变成正反馈，航向环无法收敛，表现为
 **转到某个角度后摆幅越来越大**，且航向误差无界累积（实测一度达到 840°）。
 
@@ -24,7 +24,7 @@
 
 ## 2. 符号修正
 
-- `direction_config.h`：`Y_RATE_BASE` 由 `-1.0f` 改为 `+1.0f`。
+- `config.h`：`Y_RATE_BASE` 由 `-1.0f` 改为 `+1.0f`。
 - `control.c`：Yaw 航向误差改为 `g_yaw_target - imu_get_angle_yaw()`，覆盖三处
   （正式串级、Path 分支、Yaw 单轴测试）。
 - 结果：两个 Yaw 增益都是**正值**用户值，与其余轴一致。
@@ -56,7 +56,7 @@ g_yaw_target 按 YAW_HOLD_SLEW_DPS(30°/s) 逼近 want;
 于是共模转速单向累积（实测保持 20° 时 1050 → 1330 RPM），最终撞 `FLY_SPEED_LIMIT=8000` 停机。
 差模有回收环（`RPM_A - RPM_B`），共模没有。
 
-新增（`board_config.h`，`YAW_DESAT_ENABLE` 可整体关闭）：
+新增（`config.h`，`YAW_DESAT_ENABLE` 可整体关闭）：
 
 ```c
 YAW_DESAT_RPM        (1200.0f)   // 超过该 |共模| 开始回收

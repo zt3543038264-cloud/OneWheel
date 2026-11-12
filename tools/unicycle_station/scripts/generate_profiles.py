@@ -8,7 +8,7 @@ from app.core.live_parameters import LIVE_CONTROL_PARAMETERS
 root = Path(__file__).resolve().parents[3]
 station = Path(__file__).resolve().parents[1]
 table = (root / "code/Common/param.c").read_text(encoding="utf-8")
-board = (root / "code/Common/board_config.h").read_text(encoding="utf-8")
+board = (root / "code/config.h").read_text(encoding="utf-8")
 menu = (root / "code/Menu/menu.c").read_text(encoding="utf-8")
 macros = dict(re.findall(r"^#define\s+(\w+)\s+([^\n/]+)", board, re.M))
 def numeric(value, depth=0):

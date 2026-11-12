@@ -31,7 +31,7 @@ Angle和Speed继续使用位置式PID。Angle保留原有5ms参考增益到1ms�
 
 ## 输出方向与编码器方向
 
-在`Params → Motor → Enc A / Enc B`修改左右编码器极性，参数名为`enc_dir_a/b`，各自只能为+1或-1；Motor页Save保存到Flash。`direction_config.h`中的`FLY_ENCODER_POLARITY_A/B`现在仅提供无保存记录时的默认值：
+在`Params → Motor → Enc A / Enc B`修改左右编码器极性，参数名为`enc_dir_a/b`，各自只能为+1或-1；Motor页Save保存到Flash。`config.h`中的`FLY_ENCODER_POLARITY_A/B`现在仅提供无保存记录时的默认值：
 
 - 驱动端正PWM对应正的原始RPM：该路设+1。
 - 驱动端正PWM对应负的原始RPM：该路设-1。

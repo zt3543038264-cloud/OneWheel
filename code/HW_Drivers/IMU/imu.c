@@ -1,5 +1,6 @@
 #include "HW_Drivers/IMU/imu.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/param.h"
 #include <math.h>
 #if defined(__TASKING__)

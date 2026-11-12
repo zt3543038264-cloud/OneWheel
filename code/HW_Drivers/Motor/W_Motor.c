@@ -1,6 +1,7 @@
 #include "HW_Drivers/Motor/W_Motor.h"
 
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include <string.h>
 #include <stdlib.h>
 

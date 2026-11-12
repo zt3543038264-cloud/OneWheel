@@ -2,7 +2,7 @@
 
 WiFi-SPI 接入（0.6.1）：下述 cfg/遥测字段与权限保持一致，通过固定对端 UDP 传输完整协议行。串口与 WiFi 在车端编译时选择其一；网络配置、丢包处理及接线见 [WiFi-SPI 说明](wifi-spi.md)。
 
-源码核对：2026-09-21，code/Protocols/vofa.c、vofa_task.inc、param.c、board_config.h。
+源码核对：2026-09-21，code/Protocols/vofa.c、vofa_task.inc、param.c、config.h。
 
 默认链路为 115200、8N1、ASCII、PC 无流控；MCU 模块自身的 P10_2 RTS 仍控制上行 FIFO 搬运。端口和 PC 串口配置可修改并保存。
 

@@ -2,6 +2,8 @@
 
 Read [ASC_PORT.md](ASC_PORT.md) for this vehicle, [validation](ASC_PORT_VALIDATION.md), and the retained upstream guide below. This revision uses the original reference menu, 8x16 LCD font, layered application and station protocol. Hardware pins, physical zeros, driver text protocol and local network configuration are Qcar adaptations.
 
+2026-11-12：项目公共配置统一到 [`code/config.h`](code/config.h)，包含原 board/direction/中断/WiFi 公共参数。热点名、密码和电脑目标 IP 仅填写未跟踪的 `code/config_private.h`，模板为 [`config_private.example.h`](code/config_private.example.h)。公共端口为电脑1349、模块6666。本次保留原参数数值与控制逻辑。ADS工程改为UTF-8，原GBK库按目录/文件保留编码；打开旧编辑页时请先保存自己的修改，再关闭重开。详见 [配置与编码说明](docs/guides/配置与编码说明.md)。
+
 2026-11-09：Roll角速度内环改为1ms增量式PI，独立配置左右编码器反馈极性，统一Speed回收方向及单轴测试目标。旧Rate KD固定为0，其他Flash参数继续加载。当前逻辑、验证边界和上板顺序见 [Roll方向与增量PI修订](docs/design/Roll方向与增量PI修订.md)；下方历史说明中的位置式Roll Rate和回收减号以该修订为准。
 
 左右飞轮编码器极性现在可在`Params → Motor → Enc A / Enc B`分别修改为±1，停车修改后立即生效，通过Motor页`Save`保存并在重启后恢复。它们独立于`Dir A / Dir B`，不改变PWM输出方向。操作与验收见 [Motor编码器极性菜单](docs/design/Motor编码器极性菜单.md)。
@@ -20,7 +22,7 @@ Read [ASC_PORT.md](ASC_PORT.md) for this vehicle, [validation](ASC_PORT_VALIDATI
 
 TC264D 双核 Q 型独轮车工程，包含三轴平衡、视觉循迹、路径示教与惯性航向导航、车身菜单和 Windows 上位机。
 
-> 更新日期：2026-11-10；当前源码为95项参数（含15项Beacon），本轮摄像头诊断选项不增加Flash参数。方向菜单 +1 代表当前已调好的车辆基准；详见 [方向基准整理](docs/design/方向基准整理.md)。编译默认值来自 `code/Common/board_config.h`，上电实际参数以 Flash 加载后的 `g_param` 和 MCU Schema 为准。
+> 更新日期：2026-11-10；当前源码为95项参数（含15项Beacon），本轮摄像头诊断选项不增加Flash参数。方向菜单 +1 代表当前已调好的车辆基准；详见 [方向基准整理](docs/design/方向基准整理.md)。编译默认值来自 `code/config.h`，上电实际参数以 Flash 加载后的 `g_param` 和 MCU Schema 为准。
 
 ## 文档入口
 
@@ -94,7 +96,7 @@ CPU1 不驱动电机。跨核通信使用 `vision_core.c` 的序号锁及 `__dsy
 
 Roll 为左右倾斜，A/B 差动；Pitch 为前后倾斜，C 轮驱动；Yaw 为水平转向，A/B 同向。混控先保 Roll，再把剩余 A/B 余量给 Yaw。
 
-原 `推荐IO分配.txt`、`尽量不要使用的引脚.txt` 当前已删除。接线应核对 `board_config.h`、`user/isr_config.h` 和实际设备驱动头文件；此表只列当前占用，不是其他引脚均可使用的保证。
+原 `推荐IO分配.txt`、`尽量不要使用的引脚.txt` 当前已删除。接线应核对 `config.h`、`user/isr_config.h` 和实际设备驱动头文件；此表只列当前占用，不是其他引脚均可使用的保证。
 
 ## 运行与停止
 

@@ -2,7 +2,7 @@
 #define PARAM_H_
 
 #include "zf_common_headfile.h"
-#include "Common/direction_config.h"
+#include "config.h"
 #include "Estimation/Beacon/beacon_core.h"
 
 #define PARAM_MAGIC_LEGACY      (0x51434145u)   // 旧绝对符号参数
@@ -233,7 +233,7 @@ uint8 param_get_by_name(const char *name, float *value);
 void param_init(void);
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     载入 board_config.h 中的默认参数
+// 函数简介     载入 config.h 中的默认参数
 // 参数说明     void
 // 返回参数     void
 // 使用示例     param_load_defaults();

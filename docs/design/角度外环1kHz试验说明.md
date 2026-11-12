@@ -34,6 +34,6 @@
 
 ADS 构建记录见 [1 kHz 构建记录](../../tools/attitude_r10h/build_result_1000hz.json)。本次未烧录或进行硬件测试；用户对 500 Hz 的反馈不作为当前版本验证。
 
-保留的试验 HEX 位于 `.ads/firmware_trials/500hz/` 和 `.ads/firmware_trials/1000hz/`；该目录不参与 ADS 编译。500 Hz 历史实现见 [500 Hz 试验说明](角度外环500Hz试验说明.md)。源码回退到 500 Hz 只需将 `board_config.h` 中 `CTRL_DIV_ANGLE` 改回 2，内部周期适配会跟随该宏，公开参数不用再次换算；回退后仍应重新编译。
+保留的试验 HEX 位于 `.ads/firmware_trials/500hz/` 和 `.ads/firmware_trials/1000hz/`；该目录不参与 ADS 编译。500 Hz 历史实现见 [500 Hz 试验说明](角度外环500Hz试验说明.md)。源码回退到 500 Hz 只需将 `config.h` 中 `CTRL_DIV_ANGLE` 改回 2，内部周期适配会跟随该宏，公开参数不用再次换算；回退后仍应重新编译。
 
 对照时使用相同公开参数、零点、负载和速度，完成启动静止标定后，先检查架空单轴 Angle/Speed 测试，再进行低速平衡。比较角度误差、超调、扰动恢复、静止输出抖动、声音、电流以及完整 ISR 时长和栈余量；普通遥测只能反映整体趋势，高频抖动需目标机或更高采样率测量。

@@ -6,7 +6,7 @@
 
 | 内容 | 源码 |
 |---|---|
-| 默认值 / 类型 / 范围 / Flash | code/Common/board_config.h、param.c、param.h |
+| 默认值 / 类型 / 范围 / Flash | code/config.h、param.c、param.h |
 | 控制模式 / PID / 退出 | code/Controller/control.c、control.h、pid.c |
 | 页面 / 编辑门槛 / 分页保存 | code/Menu/menu.c |
 | 视觉 / IPM / 元素 | code/Estimation/Vision/image.c、perspective.c、element.c、vision_core.c |

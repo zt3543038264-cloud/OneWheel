@@ -1,6 +1,7 @@
 #include "Controller/control.h"
 #include "Common/param.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 
 // 参数描述表
 const param_desc_t g_param_table[] =
@@ -414,7 +415,7 @@ static void param_normalize_dirs(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     载入 board_config.h 中的默认参数
+// 函数简介     载入 config.h 中的默认参数
 // 参数说明     void
 // 返回参数     void
 // 使用示例     param_load_defaults();
@@ -598,7 +599,7 @@ static uint8 param_migrate_signs(uint32 count)
 //-------------------------------------------------------------------------------------------------------------------
 /* 2026-11-11: this car's yaw plant sign is opposite to what the former
  * Y_RATE_BASE = -1 assumed, so the two yaw gains are positive user values now
- * (direction_config.h). Flash records saved under the old convention hold the
+ * (config.h). Flash records saved under the old convention hold the
  * negated values; flip them on load so an already tuned pair survives the
  * firmware change instead of becoming positive feedback. A negative yaw gain
  * is unstable under the new convention, so this normalization is always safe. */

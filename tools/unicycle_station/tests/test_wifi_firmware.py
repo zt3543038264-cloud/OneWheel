@@ -11,7 +11,7 @@ def test_spi_step_bounded_handshake_payload_and_invalid_length(tmp_path,enabled)
     gcc=shutil.which("gcc") or "D:/Tools/Dev-Cpp/MinGW64/bin/gcc.exe"
     if not Path(gcc).exists():pytest.skip("Optional GCC host compiler not installed")
     (tmp_path/"Protocols").mkdir()
-    (tmp_path/"Protocols/station_wifi_private.h").write_text('#define STATION_WIFI_SSID "host-test"\n')
+    (tmp_path/"config_private.h").write_text('#define STATION_WIFI_SSID "host-test"\n#define STATION_WIFI_PASSWORD "host-only"\n#define STATION_WIFI_PC_IP "127.0.0.1"\n')
     (tmp_path/"zf_common_headfile.h").write_text(r'''#ifndef WIFI_HOST_SHIM
 #define WIFI_HOST_SHIM
 #include <stdint.h>

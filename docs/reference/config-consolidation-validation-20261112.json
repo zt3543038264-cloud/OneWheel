@@ -1,0 +1,23 @@
+{
+  "project": "C:\\Users\\Lenovo\\Desktop\\oneWheel",
+  "configuration_macros_preserved": 321,
+  "target_build_success": true,
+  "target_build_result": "STATUS=OK\nERRORS=0\n",
+  "hex_sha256_before": "5a02ca0085c864b77a1942247c5e67183113cabec43149ca4dc6d14f10125a34",
+  "hex_sha256_after": "5a02ca0085c864b77a1942247c5e67183113cabec43149ca4dc6d14f10125a34",
+  "hex_identical": true,
+  "host_tests": {
+    "passed": 50,
+    "failed": 5,
+    "all_failures_reproduced_on_HEAD_snapshot": true,
+    "failures": [
+      "menu renderer baseline fingerprint",
+      "Path yaw sign expectation",
+      "lean function expectation",
+      "protocol UART harness volatile qualifier mismatch",
+      "protocol WiFi harness volatile qualifier mismatch"
+    ]
+  },
+  "flashed_by_agent": false,
+  "hardware_tested": false
+}

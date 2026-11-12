@@ -58,7 +58,8 @@ def test_real_gain_refresh_and_pid_outputs_match_signed_baseline(tmp_path):
     control=(ROOT/'code/Controller/control.c').read_text(encoding='utf-8')
     pid=re.sub(r'^#include[^\n]*\n','',(ROOT/'code/Common/pid.c').read_text(encoding='utf-8'),flags=re.M)
     source=r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/param.h"
 #include "Common/pid.h"
 #include <assert.h>

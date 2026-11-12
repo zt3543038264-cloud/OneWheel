@@ -46,7 +46,8 @@ int main(void){
 def test_roll_actual_cascade_and_test_signs_targets_limits_and_periods(tmp_path):
     control = (ROOT/'code/Controller/control.c').read_text(encoding='utf-8')
     source = r'''
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Common/param.h"
 #include "Common/pid.c"
 #include "Controller/control_angle.inc"

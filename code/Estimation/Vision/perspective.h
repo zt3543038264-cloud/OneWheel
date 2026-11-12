@@ -2,7 +2,8 @@
 #define PERSPECTIVE_H
 
 #include "zf_common_headfile.h"
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 
 
 //-------------------------------------------------------------------------------------------------------------------

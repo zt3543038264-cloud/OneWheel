@@ -1,2 +1,15 @@
 eclipse.preferences.version=1
-encoding/<project>=GBK
+encoding/<project>=UTF-8
+encoding//libraries=GBK
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxCbs_regdef.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxCif_reg.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxCif_regdef.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxEray_regdef.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxGtm_reg.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxGtm_regdef.h=UTF-8
+encoding//libraries/infineon_libraries/Infra/Sfr/TC26B/_Reg/IfxScu_regdef.h=UTF-8
+encoding//libraries/zf_device/zf_device_mt9v03x.c=UTF-8
+encoding//libraries/zf_device/zf_device_mt9v03x.h=UTF-8
+encoding//libraries/zf_device/zf_device_wireless_uart.c=UTF-8
+encoding//libraries/zf_device/zf_device_wireless_uart.h=UTF-8
+encoding//libraries/zf_driver/zf_driver_dma.c=UTF-8

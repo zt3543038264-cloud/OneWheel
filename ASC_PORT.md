@@ -48,7 +48,7 @@ A+保留原核心及单位矩阵：6000点静止采样，再等3000次成功更�
 
 现在使用原仓库cfg/遥测协议，不再混用旧MCAR/JustFloat滑杆。桌面ASC_Unicycle_Station是对应的源码上位机。WiFi连接时要按模块实际IP及本地配置设置UDP端口，不能直接沿用上位机示例网络。
 
-公共仓库默认STATION_WIFI_ENABLED=0，采用UART2站点，确保没有私有头文件也能构建。当前用户原有的WiFi信息保存在未跟踪的 code/Protocols/station_wifi_private.h；本地ADS配置可用STATION_WIFI_ENABLED=1启用，账号密码不提交到Git。样例为station_wifi_private.example.h。本机保留原PC接收8081、模块端口5001的配置，上位机设备设置必须匹配。
+当前公共配置集中在 `code/config.h`，`STATION_WIFI_ENABLED=1` 选择 WiFi SPI。热点名、密码和电脑目标 IP 只填写不跟踪的 `code/config_private.h`，模板为 `code/config_private.example.h`。电脑接收端口 1349、模块本地端口 6666 只在公共配置定义。若使用 UART2，将公共开关设为 0，此时无需私有头文件。
 
 参数使用参考的75项表和分组保存，新标识QCAF，避免误读之前OWB2/ASC1或另一辆参考车的记录。首次使用采用本车配置默认值，再停车保存。上位机Mock默认值同步本车配置，qcar-defaults.json明确标记为配置推导，不冒充实车回读；上游历史快照未改写。
 

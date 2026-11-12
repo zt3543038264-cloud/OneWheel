@@ -156,7 +156,8 @@ def test_run_requires_fresh_matching_source_but_beacon_not_lane_ipm(tmp_path):
 #define MT9V03X_W 188
 #define MT9V03X_H 120
 #define START_STOP 0
-#include "Common/board_config.h"
+#include "config.h"
+#include "Common/param.h"
 #include "Estimation/Vision/vision_core.h"
 #include <assert.h>
 param_t g_param;
