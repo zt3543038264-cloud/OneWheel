@@ -6,6 +6,7 @@ motor-power cutoff available. This tool does not contact or configure other apps
 import argparse
 from collections import deque
 import ipaddress
+import json
 import math
 import secrets
 import socket
@@ -48,6 +49,47 @@ class UDPTransport:
         return b''
     def close(self):
         self.sock.close()
+
+class WireRecorder:
+    """Bounded in-memory evidence; no printing/file I/O on the heartbeat path.
+
+    RX records only packets accepted by the underlying peer filter. TX records
+    an attempt and its local result, never proof of delivery or execution.
+    Saving is explicit and occurs only after the transport has been closed.
+    """
+    MAX_EVENTS = 4096
+    MAX_BYTES = 1024 * 1024
+    def __init__(self, transport, *, clock=time.monotonic):
+        self.transport, self.clock = transport, clock
+        self.events = []
+        self.bytes = self.dropped = 0
+    def record(self, kind, data=b''):
+        if len(self.events) >= self.MAX_EVENTS or self.bytes + len(data) > self.MAX_BYTES:
+            self.dropped += 1
+            return
+        self.events.append((self.clock(), kind, data))
+        self.bytes += len(data)
+    def send(self, data):
+        self.record('tx_attempt', data)
+        try:
+            self.transport.send(data)
+        except BaseException:
+            self.record('tx_error')
+            raise
+        self.record('tx_submitted')
+    def receive(self, timeout):
+        raw = self.transport.receive(timeout)
+        self.record('rx' if raw else 'rx_wait_ended', raw)
+        return raw
+    def close(self):
+        self.transport.close()
+    def save(self, stream):
+        stream.write(json.dumps({'type': 'metadata', 'format': 1,
+                                 'clock': 'host monotonic seconds',
+                                 'dropped_events': self.dropped,
+                                 'rx_scope': 'configured peer only'}) + '\n')
+        for t, kind, raw in self.events:
+            stream.write(json.dumps({'t': t, 'event': kind, 'hex': raw.hex()}) + '\n')
 
 class LineFramer:
     """Bounded serial stream framing, never scan for an embedded rsp prefix.
@@ -276,6 +318,7 @@ def run(client, *, ack_powered_bench, polarity, kp, duration_ms, limit,
 
 def build_parser():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--wire-log', help='New JSONL file; buffered until transport closes, never overwrites')
     p.add_argument('--read-timeout', type=float, default=1.0,
                    help='Read-only status/preflight wait 0.04..1.0s (default 1.0); never retries')
     p.add_argument('--host', default='192.168.0.111')
@@ -309,8 +352,16 @@ def main(argv=None, *, transport_factory=UDPTransport):
     except ValueError as e:
         p.error(str(e))
     transport, trace, result = None, [], 0
+    recorder = wire_file = None
     try:
+        # Reserve the output before any network command; never discover a bad
+        # path only after a powered trial. Exclusive creation protects old logs.
+        if args.wire_log:
+            wire_file = open(args.wire_log, 'x', encoding='utf-8')
         transport = transport_factory(args.host, args.port, args.bind, args.local_port)
+        if wire_file is not None:
+            recorder = WireRecorder(transport)
+            transport = recorder
         client = Client(transport, read_timeout=args.read_timeout)
         if args.operation == 'run':
             run(client, **params, trace=trace)
@@ -325,6 +376,16 @@ def main(argv=None, *, transport_factory=UDPTransport):
     finally:
         if transport:
             transport.close()
+        if wire_file is not None:
+            try:
+                if recorder is not None:
+                    recorder.save(wire_file)
+                wire_file.write(json.dumps({'type': 'result', 'exit_code': result, 'trace': trace}) + '\n')
+            except OSError as e:
+                print('Wire log save failed: ' + str(e), file=sys.stderr)
+                result = 2
+            finally:
+                wire_file.close()
         for event, data in trace:
             print(event, data)
         if result:

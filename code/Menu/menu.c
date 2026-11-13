@@ -2251,7 +2251,7 @@ void menu_run(void)
     key_state_enum enter_state;
     uint8 back = key_event(MENU_KEY_RETURN, 0);
     uint32 now = g_control_uptime_ms;
-    uint8 comm_busy = (uint8)(control_c_bench_running() || vofa_link_probe_active());
+    uint8 comm_busy = (uint8)(control_c_bench_running() || vofa_link_probe_active() || vofa_comm_reply_pending());
 
     update_edit_hold_period();
     enter = key_event(MENU_KEY_ENTER, 0);

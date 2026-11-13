@@ -104,6 +104,9 @@ void vofa_cmd_poll(void);
 /* Foreground read-only query: link measurement is armed/collecting. */
 uint8 vofa_link_probe_active(void);
 
+/* Foreground UI scheduling hint for incoming commands and queued replies. */
+uint8 vofa_comm_reply_pending(void);
+
 /* Foreground path Flash guard: RX quiet and no queued cfg save. */
 uint8 vofa_flash_idle(void);
 

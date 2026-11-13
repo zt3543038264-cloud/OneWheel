@@ -56,6 +56,17 @@ static uint8 s_tx_buf[VOFA_TX_SIZE];            // 上行字节环
 static volatile uint32 s_tx_head;               // 写下标，只由前台写
 static volatile uint32 s_tx_tail;               // 读下标：UART 构建由 ISR 写，WiFi 构建由前台写
 
+#if STATION_WIFI_ENABLED
+/* C-bench replies use a separate foreground-owned byte ring. Ordinary cfg
+ * replies stay in the original ring, preserving schema/parameter ordering.
+ * Full replies are admitted atomically or dropped, never truncated. */
+#define VOFA_ACK_SIZE (1024u)
+#define VOFA_ACK_MASK (VOFA_ACK_SIZE - 1u)
+static uint8 s_ack_buf[VOFA_ACK_SIZE];
+static uint32 s_ack_head, s_ack_tail;
+#endif
+static uint8 s_cfg_reply_priority;
+
 static uint8 s_rx_buf[VOFA_RX_SIZE];            // 下行字节环
 static volatile uint32 s_rx_head;               // 写下标：UART 构建由 ISR 写，WiFi 构建由前台写
 static volatile uint32 s_rx_tail;               // 读下标，只由前台写
@@ -98,6 +109,35 @@ static uint8 tx_push(const uint8 *dat, uint32 len)
     return 1;
 }
 
+/* Keep-log end offsets refer to the C-bench reply ring in WiFi builds,
+ * and to the original byte ring in UART builds. Never compare both domains. */
+static uint32 cfg_reply_end(void)
+{
+#if STATION_WIFI_ENABLED
+    return s_ack_head;
+#else
+    return s_tx_head;
+#endif
+}
+
+static uint8 cfg_reply_push(const uint8 *dat, uint32 len)
+{
+#if STATION_WIFI_ENABLED
+    if (s_cfg_reply_priority)
+    {
+        uint32 i;
+        uint32 head = s_ack_head;
+        if (len == 0u || len > STATION_WIFI_FRAME_MAX || dat[len - 1u] != '\n' ||
+            len > VOFA_ACK_SIZE - (head - s_ack_tail))
+        { s_cfg_tx_drop++; return 0; }
+        for (i = 0; i < len; ++i) s_ack_buf[(head + i) & VOFA_ACK_MASK] = dat[i];
+        s_ack_head = head + len;
+        return 1;
+    }
+#endif
+    return tx_push(dat, len);
+}
+
 #include "Protocols/vofa_keep_log.inc"
 
 #if STATION_WIFI_ENABLED
@@ -110,18 +150,30 @@ static void vofa_wifi_poll(void)
     static uint8 frame[STATION_WIFI_FRAME_MAX];
     uint8 rx[STATION_WIFI_RX_MAX];
     uint16 length = 0, received = 0, i;
-    uint32 tail = s_tx_tail;
+    uint8 priority = (uint8)(s_ack_head != s_ack_tail);
+    uint32 tail = priority ? s_ack_tail : s_tx_tail;
+    uint32 head = priority ? s_ack_head : s_tx_head;
     int sent;
-    while (tail + length != s_tx_head && length < STATION_WIFI_FRAME_MAX)
+    while (tail + length != head && length < STATION_WIFI_FRAME_MAX)
     {
-        frame[length] = s_tx_buf[(tail + length) & VOFA_TX_MASK];
+        frame[length] = priority ? s_ack_buf[(tail + length) & VOFA_ACK_MASK] :
+                                   s_tx_buf[(tail + length) & VOFA_TX_MASK];
         length++;
         if (frame[length - 1u] == '\n') break;
     }
     if (length && frame[length - 1u] != '\n') length = 0;
+    /* A command can span several 32-byte module reads. Do not insert a new
+     * telemetry DATA/flush cycle between fragments. Finish an in-flight flush
+     * normally; never discard its bytes or pretend it was delivered. */
+    if (!priority && (s_cmd_len != 0u || s_cmd_ovf) && s_rx_idle_ms < VOFA_CMD_STALE_MS)
+        length = 0;
     sent = station_wifi_step(frame, length, rx, &received);
     if (sent < 0) { s_rx_overflow = 1; s_cfg_rx_error++; return; }
-    if (sent > 0) { s_tx_tail = tail + (uint32)sent; keep_log_spi(s_tx_tail); }
+    if (sent > 0)
+    {
+        if (priority) { s_ack_tail = tail + (uint32)sent; keep_log_spi(s_ack_tail); }
+        else s_tx_tail = tail + (uint32)sent;
+    }
     if (received)
     {
         s_rx_idle_ms = 0;
@@ -471,9 +523,9 @@ static uint8 cfg_reply(uint16 seq, const char *state, const char *fields)
     char line[512];
     uint8 queued;
     int len = snprintf(line, sizeof(line), "rsp:%u,%s,%s\n", (unsigned int)seq, state, fields);
-    if (len <= 0 || len >= (int)sizeof(line)) { s_cfg_tx_drop++; keep_log_reply(seq,0,0,0,s_tx_head); return 0; }
-    queued=tx_push((const uint8 *)line, (uint32)len);
-    keep_log_reply(seq,line,(uint16)len,queued,s_tx_head);
+    if (len <= 0 || len >= (int)sizeof(line)) { s_cfg_tx_drop++; keep_log_reply(seq,0,0,0,cfg_reply_end()); return 0; }
+    queued=cfg_reply_push((const uint8 *)line, (uint32)len);
+    keep_log_reply(seq,line,(uint16)len,queued,cfg_reply_end());
     return queued;
 }
 
@@ -522,6 +574,19 @@ static uint8 cfg_status(void)
 #include "Protocols/vofa_trace.inc"
 #include "Protocols/vofa_commission.inc"
 
+/* Foreground UI hint only. No lease renewal, output or protocol mutation.
+ * RX idle is reset even for partial command fragments. A quiet period after
+ * RX lets a complete reply pass through the existing UDP flush stages. */
+uint8 vofa_comm_reply_pending(void)
+{
+#if STATION_WIFI_ENABLED
+    return (uint8)(s_ack_head != s_ack_tail ||
+                   (g_vofa_rx_bytes != 0u && s_rx_idle_ms < 200u));
+#else
+    return 0;
+#endif
+}
+
 uint8 vofa_link_probe_active(void)
 {
     return (uint8)(s_link_probe.state == 1u || s_link_probe.state == 2u);
@@ -540,6 +605,7 @@ static vofa_cmd_result_t cfg_execute(char *line)
     uint32 irq;
     int pid_index;
     uint8 allowed, live_control;
+    s_cfg_reply_priority = 0;
     fields[0] = p;
     for (; *p; p++)
     {
@@ -561,6 +627,7 @@ static vofa_cmd_result_t cfg_execute(char *line)
     seq = (uint16)seq32;
     if (strncmp(fields[0], "klog_", 5) == 0)
     { keep_log_cfg(fields,count,seq); return VOFA_CMD_APPLIED; }
+    s_cfg_reply_priority = (uint8)(strncmp(fields[0], "cbench_", 7) == 0);
     if (!strcmp(fields[0], "cbench_keep")) keep_log_begin(seq);
     if (strncmp(fields[0], "lprobe_", 7) == 0)
     { lprobe_cfg(fields,count,seq); return VOFA_CMD_APPLIED; }
@@ -954,6 +1021,10 @@ void vofa_init(void)
     #endif
 
     s_tx_head = 0; s_tx_tail = 0;
+    s_cfg_reply_priority = 0;
+#if STATION_WIFI_ENABLED
+    s_ack_head = 0; s_ack_tail = 0;
+#endif
     s_rx_head = 0; s_rx_tail = 0;
     s_rx_overflow = 0;
     s_cmd_len = 0; s_cmd_ovf = 0;
@@ -1075,6 +1146,7 @@ void vofa_cmd_poll(void)
         {
             // 长度为 0 说明是 "\r\n" 的第二个字符或空行，不算一行命令
             if (s_cmd_len > 0) cmd_submit_line();
+            s_cfg_reply_priority = 0;
             s_cmd_len = 0;
             s_cmd_ovf = 0;
             continue;
