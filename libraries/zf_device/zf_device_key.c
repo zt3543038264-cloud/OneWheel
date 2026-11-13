@@ -1,134 +1,167 @@
 /*********************************************************************************************************************
-* TC264 Opensourec Library å³ï¼ˆTC264 å¼€æºåº“ï¼‰æ˜¯ä¸€ä¸ªåŸºäºå®˜æ–¹ SDK æ¥å£çš„ç¬¬ä¸‰æ–¹å¼€æºåº“
-* Copyright (c) 2022 SEEKFREE é€é£ç§‘æŠ€
+* TC264 Opensourec Library ¼´£¨TC264 ¿ªÔ´¿â£©ÊÇÒ»¸ö»ùÓÚ¹Ù·½ SDK ½Ó¿ÚµÄµÚÈı·½¿ªÔ´¿â
+* Copyright (c) 2022 SEEKFREE Öğ·É¿Æ¼¼
 *
-* æœ¬æ–‡ä»¶æ˜¯ TC264 å¼€æºåº“çš„ä¸€éƒ¨åˆ†
+* ±¾ÎÄ¼şÊÇ TC264 ¿ªÔ´¿âµÄÒ»²¿·Ö
 *
-* TC264 å¼€æºåº“ æ˜¯å…è´¹è½¯ä»¶
-* æ‚¨å¯ä»¥æ ¹æ®è‡ªç”±è½¯ä»¶åŸºé‡‘ä¼šå‘å¸ƒçš„ GPLï¼ˆGNU General Public Licenseï¼Œå³ GNUé€šç”¨å…¬å…±è®¸å¯è¯ï¼‰çš„æ¡æ¬¾
-* å³ GPL çš„ç¬¬3ç‰ˆï¼ˆå³ GPL3.0ï¼‰æˆ–ï¼ˆæ‚¨é€‰æ‹©çš„ï¼‰ä»»ä½•åæ¥çš„ç‰ˆæœ¬ï¼Œé‡æ–°å‘å¸ƒå’Œ/æˆ–ä¿®æ”¹å®ƒ
+* TC264 ¿ªÔ´¿â ÊÇÃâ·ÑÈí¼ş
+* Äú¿ÉÒÔ¸ù¾İ×ÔÓÉÈí¼ş»ù½ğ»á·¢²¼µÄ GPL£¨GNU General Public License£¬¼´ GNUÍ¨ÓÃ¹«¹²Ğí¿ÉÖ¤£©µÄÌõ¿î
+* ¼´ GPL µÄµÚ3°æ£¨¼´ GPL3.0£©»ò£¨ÄúÑ¡ÔñµÄ£©ÈÎºÎºóÀ´µÄ°æ±¾£¬ÖØĞÂ·¢²¼ºÍ/»òĞŞ¸ÄËü
 *
-* æœ¬å¼€æºåº“çš„å‘å¸ƒæ˜¯å¸Œæœ›å®ƒèƒ½å‘æŒ¥ä½œç”¨ï¼Œä½†å¹¶æœªå¯¹å…¶ä½œä»»ä½•çš„ä¿è¯
-* ç”šè‡³æ²¡æœ‰éšå«çš„é€‚é”€æ€§æˆ–é€‚åˆç‰¹å®šç”¨é€”çš„ä¿è¯
-* æ›´å¤šç»†èŠ‚è¯·å‚è§ GPL
+* ±¾¿ªÔ´¿âµÄ·¢²¼ÊÇÏ£ÍûËüÄÜ·¢»Ó×÷ÓÃ£¬µ«²¢Î´¶ÔÆä×÷ÈÎºÎµÄ±£Ö¤
+* ÉõÖÁÃ»ÓĞÒşº¬µÄÊÊÏúĞÔ»òÊÊºÏÌØ¶¨ÓÃÍ¾µÄ±£Ö¤
+* ¸ü¶àÏ¸½ÚÇë²Î¼û GPL
 *
-* æ‚¨åº”è¯¥åœ¨æ”¶åˆ°æœ¬å¼€æºåº“çš„åŒæ—¶æ”¶åˆ°ä¸€ä»½ GPL çš„å‰¯æœ¬
-* å¦‚æœæ²¡æœ‰ï¼Œè¯·å‚é˜…<https://www.gnu.org/licenses/>
+* ÄúÓ¦¸ÃÔÚÊÕµ½±¾¿ªÔ´¿âµÄÍ¬Ê±ÊÕµ½Ò»·İ GPL µÄ¸±±¾
+* Èç¹ûÃ»ÓĞ£¬Çë²ÎÔÄ<https://www.gnu.org/licenses/>
 *
-* é¢å¤–æ³¨æ˜ï¼š
-* æœ¬å¼€æºåº“ä½¿ç”¨ GPL3.0 å¼€æºè®¸å¯è¯åè®® ä»¥ä¸Šè®¸å¯ç”³æ˜ä¸ºè¯‘æ–‡ç‰ˆæœ¬
-* è®¸å¯ç”³æ˜è‹±æ–‡ç‰ˆåœ¨ libraries/doc æ–‡ä»¶å¤¹ä¸‹çš„ GPL3_permission_statement.txt æ–‡ä»¶ä¸­
-* è®¸å¯è¯å‰¯æœ¬åœ¨ libraries æ–‡ä»¶å¤¹ä¸‹ å³è¯¥æ–‡ä»¶å¤¹ä¸‹çš„ LICENSE æ–‡ä»¶
-* æ¬¢è¿å„ä½ä½¿ç”¨å¹¶ä¼ æ’­æœ¬ç¨‹åº ä½†ä¿®æ”¹å†…å®¹æ—¶å¿…é¡»ä¿ç•™é€é£ç§‘æŠ€çš„ç‰ˆæƒå£°æ˜ï¼ˆå³æœ¬å£°æ˜ï¼‰
+* ¶îÍâ×¢Ã÷£º
+* ±¾¿ªÔ´¿âÊ¹ÓÃ GPL3.0 ¿ªÔ´Ğí¿ÉÖ¤Ğ­Òé ÒÔÉÏĞí¿ÉÉêÃ÷ÎªÒëÎÄ°æ±¾
+* Ğí¿ÉÉêÃ÷Ó¢ÎÄ°æÔÚ libraries/doc ÎÄ¼ş¼ĞÏÂµÄ GPL3_permission_statement.txt ÎÄ¼şÖĞ
+* Ğí¿ÉÖ¤¸±±¾ÔÚ libraries ÎÄ¼ş¼ĞÏÂ ¼´¸ÃÎÄ¼ş¼ĞÏÂµÄ LICENSE ÎÄ¼ş
+* »¶Ó­¸÷Î»Ê¹ÓÃ²¢´«²¥±¾³ÌĞò µ«ĞŞ¸ÄÄÚÈİÊ±±ØĞë±£ÁôÖğ·É¿Æ¼¼µÄ°æÈ¨ÉùÃ÷£¨¼´±¾ÉùÃ÷£©
 *
-* æ–‡ä»¶åç§°          zf_device_key
-* å…¬å¸åç§°          æˆéƒ½é€é£ç§‘æŠ€æœ‰é™å…¬å¸
-* ç‰ˆæœ¬ä¿¡æ¯          æŸ¥çœ‹ libraries/doc æ–‡ä»¶å¤¹å†… version æ–‡ä»¶ ç‰ˆæœ¬è¯´æ˜
-* å¼€å‘ç¯å¢ƒ          ADS v1.10.2
-* é€‚ç”¨å¹³å°          TC264D
-* åº—é“ºé“¾æ¥          https://seekfree.taobao.com/
+* ÎÄ¼şÃû³Æ          zf_device_key
+* ¹«Ë¾Ãû³Æ          ³É¶¼Öğ·É¿Æ¼¼ÓĞÏŞ¹«Ë¾
+* °æ±¾ĞÅÏ¢          ²é¿´ libraries/doc ÎÄ¼ş¼ĞÄÚ version ÎÄ¼ş °æ±¾ËµÃ÷
+* ¿ª·¢»·¾³          ADS v1.10.2
+* ÊÊÓÃÆ½Ì¨          TC264D
+* µêÆÌÁ´½Ó          https://seekfree.taobao.com/
 *
-* ä¿®æ”¹è®°å½•
-* æ—¥æœŸ              ä½œè€…                å¤‡æ³¨
+* ĞŞ¸Ä¼ÇÂ¼
+* ÈÕÆÚ              ×÷Õß                ±¸×¢
 * 2022-09-15       pudding            first version
-* 2023-04-28       pudding            å¢åŠ ä¸­æ–‡æ³¨é‡Šè¯´æ˜
+* 2023-04-28       pudding            Ôö¼ÓÖĞÎÄ×¢ÊÍËµÃ÷
 ********************************************************************************************************************/
 /*********************************************************************************************************************
-* æ¥çº¿å®šä¹‰ï¼š
+* ½ÓÏß¶¨Òå£º
 *                   ------------------------------------
-*                   æ¨¡å—ç®¡è„š            å•ç‰‡æœºç®¡è„š
-*                   // ä¸€èˆ¬æ˜¯ä¸»æ¿æŒ‰é”®å¯¹åº”çš„å¼•è„š
-*                   KEY1/S1             æŸ¥çœ‹ zf_device_key.h ä¸­ KEY_LIST[0]
-*                   KEY2/S2             æŸ¥çœ‹ zf_device_key.h ä¸­ KEY_LIST[1]
-*                   KEY3/S3             æŸ¥çœ‹ zf_device_key.h ä¸­ KEY_LIST[2]
-*                   KEY4/S4             æŸ¥çœ‹ zf_device_key.h ä¸­ KEY_LIST[3]
+*                   Ä£¿é¹Ü½Å            µ¥Æ¬»ú¹Ü½Å
+*                   // Ò»°ãÊÇÖ÷°å°´¼ü¶ÔÓ¦µÄÒı½Å
+*                   KEY1/S1             ²é¿´ zf_device_key.h ÖĞ KEY_LIST[0]
+*                   KEY2/S2             ²é¿´ zf_device_key.h ÖĞ KEY_LIST[1]
+*                   KEY3/S3             ²é¿´ zf_device_key.h ÖĞ KEY_LIST[2]
+*                   KEY4/S4             ²é¿´ zf_device_key.h ÖĞ KEY_LIST[3]
 *                   ------------------------------------
 ********************************************************************************************************************/
 
+#include "zf_common_debug.h"
+
 #include "zf_device_key.h"
-#include "zf_common_interrupt.h"
 
-static uint32 scanner_period;
-static uint32 debounce_ms[KEY_NUMBER], held_ms[KEY_NUMBER];
-static uint8 stable_pressed[KEY_NUMBER], long_reported[KEY_NUMBER];
-/* ISR åªå¢åŠ è®¡æ•°ï¼Œä¸»å¾ªç¯åœ¨çŸ­ä¸´ç•ŒåŒºå†…æ¶ˆè´¹ï¼Œé¿å…äº‹ä»¶è¢«ä¸‹ä¸€æ¬¡æ‰«æè¦†ç›–ã€‚ */
-static volatile uint8 short_pending[KEY_NUMBER], long_pending[KEY_NUMBER];
-static const gpio_pin_enum key_index[KEY_NUMBER] = KEY_LIST;
+static uint32               key_shock_count = 0;
+static uint32               key_long_count[KEY_NUMBER] = {0};
+static uint32 key_scan_period;
+static uint32               key_press_time[KEY_NUMBER];                         // °´¼üĞÅºÅ³ÖĞøÊ±³¤
+static key_state_enum       key_state[KEY_NUMBER];                              // °´¼ü×´Ì¬
 
-void key_scanner(void)
+static const gpio_pin_enum  key_index[KEY_NUMBER] = KEY_LIST;                   // °´¼üÁĞ±í
+
+//-------------------------------------------------------------------------------------------------------------------
+// º¯Êı¼ò½é     °´¼ü×´Ì¬É¨Ãè
+// ²ÎÊıËµÃ÷     void
+// ·µ»Ø²ÎÊı     void
+// Ê¹ÓÃÊ¾Àı     key_scanner();
+// ±¸×¢ĞÅÏ¢     Õâ¸öº¯Êı·ÅÔÚÖ÷Ñ­»·»òÕß PIT ÖĞ¶ÏÖĞ
+//-------------------------------------------------------------------------------------------------------------------
+void key_scanner (void)
 {
-    uint8 i;
-    if (!scanner_period) return;
-    for (i = 0; i < KEY_NUMBER; ++i) {
-        uint8 pressed = gpio_get_level(key_index[i]) != KEY_RELEASE_LEVEL;
-        if (pressed != stable_pressed[i]) {
-            debounce_ms[i] += scanner_period;
-            if (debounce_ms[i] >= KEY_MAX_SHOCK_PERIOD) {
-                stable_pressed[i] = pressed;
-                debounce_ms[i] = held_ms[i] = 0;
-                long_reported[i] = 0;
-                /* æŒ‰ä¸‹ç¨³å®šåç«‹å³å“åº”ä¸€æ¬¡ï¼Œé‡Šæ”¾åŒæ ·æ¶ˆæŠ–ï¼Œé•¿æŒ‰ä¸é‡å¤å¯¼èˆªã€‚ */
-                if (pressed && short_pending[i] < 255) ++short_pending[i];
+    uint8 i = 0;
+    for(i = 0; KEY_NUMBER > i; i ++)
+    {
+        if(KEY_RELEASE_LEVEL != gpio_get_level(key_index[i]))                   // °´¼ü°´ÏÂ
+        {
+            key_press_time[i] ++;
+            if(key_long_count[i] <= key_press_time[i])
+            {
+                key_state[i] = KEY_LONG_PRESS;
             }
-        } else {
-            debounce_ms[i] = 0;
-            if (pressed && !long_reported[i]) {
-                held_ms[i] += scanner_period;
-                if (held_ms[i] >= KEY_LONG_PRESS_PERIOD) {
-                    long_reported[i] = 1;
-                    if (long_pending[i] < 255) ++long_pending[i];
-                }
+        }
+        else                                                                    // °´¼üÊÍ·Å
+        {
+            if(KEY_SHORT_PRESS == key_state[i])
+            {
+                key_press_time[i] = 0;
+                continue;
             }
+            if((KEY_LONG_PRESS != key_state[i]) && (key_shock_count <= key_press_time[i]) && (key_long_count[i] > key_press_time[i]))
+            {
+                key_state[i] = KEY_SHORT_PRESS;
+            }
+            else
+            {
+                key_state[i] = KEY_RELEASE;
+            }
+            key_press_time[i] = 0;
         }
     }
 }
 
-key_state_enum key_get_state(key_index_enum key_n)
+//-------------------------------------------------------------------------------------------------------------------
+// º¯Êı¼ò½é     »ñÈ¡°´¼ü×´Ì¬
+// ²ÎÊıËµÃ÷     key_n           °´¼üË÷Òı
+// ·µ»Ø²ÎÊı     key_state_enum  °´¼ü×´Ì¬
+// Ê¹ÓÃÊ¾Àı     key_get_state(KEY_1);
+// ±¸×¢ĞÅÏ¢
+//-------------------------------------------------------------------------------------------------------------------
+key_state_enum key_get_state (key_index_enum key_n)
 {
-    zf_assert(key_n < KEY_NUMBER);
-    if (short_pending[key_n]) return KEY_SHORT_PRESS;
-    if (long_pending[key_n]) return KEY_LONG_PRESS;
-    return KEY_RELEASE;
+    return key_state[key_n];
 }
 
-void key_clear_state(key_index_enum key_n)
+//-------------------------------------------------------------------------------------------------------------------
+// º¯Êı¼ò½é     Çå³ıÖ¸¶¨°´¼ü×´Ì¬
+// ²ÎÊıËµÃ÷     key_n           °´¼üË÷Òı
+// ·µ»Ø²ÎÊı     void            ÎŞ
+// Ê¹ÓÃÊ¾Àı     key_clear_state(KEY_1);
+// ±¸×¢ĞÅÏ¢
+//-------------------------------------------------------------------------------------------------------------------
+void key_clear_state (key_index_enum key_n)
 {
-    uint32 mask;
-    zf_assert(key_n < KEY_NUMBER);
-    mask = interrupt_global_disable();
-    if (short_pending[key_n]) --short_pending[key_n];
-    else if (long_pending[key_n]) --long_pending[key_n];
-    interrupt_global_enable(mask);
+    key_state[key_n] = KEY_RELEASE;
 }
 
-void key_consume_state(key_index_enum key_n, key_state_enum event)
+//-------------------------------------------------------------------------------------------------------------------
+// º¯Êı¼ò½é     Çå³ıËùÓĞ°´¼ü×´Ì¬
+// ²ÎÊıËµÃ÷     void            ÎŞ
+// ·µ»Ø²ÎÊı     void            ÎŞ
+// Ê¹ÓÃÊ¾Àı     key_clear_all_state();
+// ±¸×¢ĞÅÏ¢
+//-------------------------------------------------------------------------------------------------------------------
+void key_clear_all_state (void)
 {
-    uint32 mask;
-    zf_assert(key_n < KEY_NUMBER);
-    mask = interrupt_global_disable();
-    if (event == KEY_SHORT_PRESS && short_pending[key_n]) --short_pending[key_n];
-    if (event == KEY_LONG_PRESS && long_pending[key_n]) --long_pending[key_n];
-    interrupt_global_enable(mask);
+    key_state[0] = KEY_RELEASE;
+    key_state[1] = KEY_RELEASE;
+    key_state[2] = KEY_RELEASE;
+    key_state[3] = KEY_RELEASE;
 }
 
-void key_clear_all_state(void)
+//-------------------------------------------------------------------------------------------------------------------
+// º¯Êı¼ò½é     °´¼ü³õÊ¼»¯
+// ²ÎÊıËµÃ÷     period          °´¼üÉ¨ÃèÖÜÆÚ ÒÔºÁÃëÎªµ¥Î»
+// ·µ»Ø²ÎÊı     void
+// Ê¹ÓÃÊ¾Àı     key_init(10);
+// ±¸×¢ĞÅÏ¢
+//-------------------------------------------------------------------------------------------------------------------
+void key_init (uint32 period)
 {
-    uint8 i;
-    uint32 mask = interrupt_global_disable();
-    for (i = 0; i < KEY_NUMBER; ++i) short_pending[i] = long_pending[i] = 0;
-    interrupt_global_enable(mask);
-}
-
-void key_init(uint32 period)
-{
-    uint8 i;
-    zf_assert(period > 0 && period <= KEY_MAX_SHOCK_PERIOD);
-    scanner_period = 0;
-    for (i = 0; i < KEY_NUMBER; ++i) {
-        gpio_init(key_index[i], GPI, GPIO_HIGH, GPI_PULL_UP);
-        debounce_ms[i] = held_ms[i] = 0;
-        stable_pressed[i] = long_reported[i] = 0;
-        short_pending[i] = long_pending[i] = 0;
+    zf_assert(0 < period);
+    uint8 loop_temp = 0; 
+    key_shock_count = (KEY_MAX_SHOCK_PERIOD + period - 1U) / period;
+    key_scan_period = period;
+    for(loop_temp = 0; KEY_NUMBER > loop_temp; loop_temp ++)
+    {
+        gpio_init(key_index[loop_temp], GPI, GPIO_HIGH, GPI_PULL_UP);
+        key_state[loop_temp] = KEY_RELEASE;
+        key_press_time[loop_temp] = 0;
+        key_long_count[loop_temp] = (KEY_LONG_PRESS_PERIOD + period - 1U) / period;
     }
-    scanner_period = period;
+}
+
+/* Per-key hold threshold; word-sized update is atomic on TC264. */
+uint8 key_set_long_press_period(key_index_enum key_n,uint32 milliseconds)
+{
+    if((uint8)key_n>=KEY_NUMBER || !key_scan_period || milliseconds<KEY_MAX_SHOCK_PERIOD)return 0;
+    key_long_count[key_n]=milliseconds/key_scan_period+(milliseconds%key_scan_period!=0u);
+    return 1;
 }

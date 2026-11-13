@@ -1,0 +1,850 @@
+{
+  "captured_date": "2026-09-21",
+  "source_session": "C:\\Users\\kongmeng\\Documents\\EmbeddedStation\\sessions\\20260921_175343_328900",
+  "source_sha256": "aa39e3241588a1240fdba6feebde96fb735d9eb51b0ffa619195fce0af009ded",
+  "transport": "serial",
+  "schema_sequence": 9,
+  "count": 75,
+  "confirmed_by_user": true,
+  "raw_parameters": {
+    "run_speed_straight": {
+      "type": "float",
+      "value": 1.199999,
+      "wire_value": "1.199999"
+    },
+    "run_speed_curve": {
+      "type": "float",
+      "value": 0.8000002,
+      "wire_value": "0.8000002"
+    },
+    "run_speed_cross": {
+      "type": "float",
+      "value": 0.8000002,
+      "wire_value": "0.8000002"
+    },
+    "run_speed_ring": {
+      "type": "float",
+      "value": 0.9999994,
+      "wire_value": "0.9999994"
+    },
+    "run_speed_ramp": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1"
+    },
+    "run_speed_lost": {
+      "type": "float",
+      "value": 0.2,
+      "wire_value": "0.2"
+    },
+    "run_accel_mps2": {
+      "type": "float",
+      "value": 0.5,
+      "wire_value": "0.5"
+    },
+    "run_decel_mps2": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1"
+    },
+    "direction_pixel_kp": {
+      "type": "float",
+      "value": 1.599999,
+      "wire_value": "1.599999"
+    },
+    "direction_heading_kp": {
+      "type": "float",
+      "value": 0.9999999,
+      "wire_value": "0.9999999"
+    },
+    "direction_curve_kff": {
+      "type": "float",
+      "value": 60.0,
+      "wire_value": "60"
+    },
+    "direction_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "zebra_stop_offset_m": {
+      "type": "float",
+      "value": 0.15,
+      "wire_value": "0.15"
+    },
+    "err_front_row": {
+      "type": "int",
+      "value": 67,
+      "wire_value": "67"
+    },
+    "ipm_h0": {
+      "type": "float",
+      "value": 2.532712,
+      "wire_value": "2.532712"
+    },
+    "ipm_h1": {
+      "type": "float",
+      "value": -0.1793851,
+      "wire_value": "-0.1793851"
+    },
+    "ipm_h2": {
+      "type": "float",
+      "value": -225.105,
+      "wire_value": "-225.105"
+    },
+    "ipm_h3": {
+      "type": "float",
+      "value": -3.285259e-07,
+      "wire_value": "-3.285259e-07"
+    },
+    "ipm_h4": {
+      "type": "float",
+      "value": 3.455418,
+      "wire_value": "3.455418"
+    },
+    "ipm_h5": {
+      "type": "float",
+      "value": -306.3803,
+      "wire_value": "-306.3803"
+    },
+    "ipm_h6": {
+      "type": "float",
+      "value": -3.525401e-10,
+      "wire_value": "-3.525401e-10"
+    },
+    "ipm_h7": {
+      "type": "float",
+      "value": 0.03943732,
+      "wire_value": "0.03943732"
+    },
+    "ipm_h8": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1"
+    },
+    "cam_exposure": {
+      "type": "int",
+      "value": 48,
+      "wire_value": "48"
+    },
+    "odom_counts_per_m": {
+      "type": "float",
+      "value": 11695.0,
+      "wire_value": "11695"
+    },
+    "odom_test_speed": {
+      "type": "float",
+      "value": 0.05,
+      "wire_value": "0.05"
+    },
+    "r_rcy_kp": {
+      "type": "float",
+      "value": 0.0015,
+      "wire_value": "0.0015"
+    },
+    "r_rcy_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "r_rcy_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "r_angle_kp": {
+      "type": "float",
+      "value": 36.00006,
+      "wire_value": "36.00006"
+    },
+    "r_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "r_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "r_rate_kp": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20"
+    },
+    "r_rate_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "r_rate_kd": {
+      "type": "float",
+      "value": -8.0,
+      "wire_value": "-8"
+    },
+    "p_vel_kp": {
+      "type": "float",
+      "value": 0.06,
+      "wire_value": "0.06"
+    },
+    "p_vel_ki": {
+      "type": "float",
+      "value": 0.002,
+      "wire_value": "0.002"
+    },
+    "p_vel_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "p_angle_kp": {
+      "type": "float",
+      "value": 8.999999,
+      "wire_value": "8.999999"
+    },
+    "p_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "p_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "p_rate_kp": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20"
+    },
+    "p_rate_ki": {
+      "type": "float",
+      "value": 0.6400001,
+      "wire_value": "0.6400001"
+    },
+    "p_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "y_angle_kp": {
+      "type": "float",
+      "value": 18.00003,
+      "wire_value": "18.00003"
+    },
+    "y_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "y_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "y_rate_kp": {
+      "type": "float",
+      "value": -56.0,
+      "wire_value": "-56"
+    },
+    "y_rate_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "y_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0"
+    },
+    "lean_turn_kp": {
+      "type": "float",
+      "value": 0.009999999,
+      "wire_value": "0.009999999"
+    },
+    "lean_speed_kp": {
+      "type": "float",
+      "value": 0.7,
+      "wire_value": "0.7"
+    },
+    "lean_slew_dps": {
+      "type": "float",
+      "value": 18.0,
+      "wire_value": "18"
+    },
+    "lean_max_angle": {
+      "type": "float",
+      "value": 5.999995,
+      "wire_value": "5.999995"
+    },
+    "elem_en_zebra": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1"
+    },
+    "elem_en_cross": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1"
+    },
+    "elem_en_ring": {
+      "type": "int",
+      "value": 0,
+      "wire_value": "0"
+    },
+    "elem_en_ramp": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1"
+    },
+    "ring_angle": {
+      "type": "int",
+      "value": 340,
+      "wire_value": "340"
+    },
+    "ring_s2_cnt_l": {
+      "type": "int",
+      "value": 300,
+      "wire_value": "300"
+    },
+    "ring_s2_cnt_r": {
+      "type": "int",
+      "value": 400,
+      "wire_value": "400"
+    },
+    "imu_forward_dir": {
+      "type": "int",
+      "value": -1,
+      "wire_value": "-1"
+    },
+    "roll_zero_init": {
+      "type": "float",
+      "value": -0.6,
+      "wire_value": "-0.6"
+    },
+    "pitch_zero_init": {
+      "type": "float",
+      "value": -2.999999,
+      "wire_value": "-2.999999"
+    },
+    "roll_protect": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20"
+    },
+    "pitch_protect": {
+      "type": "float",
+      "value": 50.0,
+      "wire_value": "50"
+    },
+    "motor_dir_a": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1"
+    },
+    "motor_dir_b": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1"
+    },
+    "motor_dir_c": {
+      "type": "int",
+      "value": -1,
+      "wire_value": "-1"
+    },
+    "enc_dir_c": {
+      "type": "int",
+      "value": -1,
+      "wire_value": "-1"
+    },
+    "steer_dir": {
+      "type": "int",
+      "value": -1,
+      "wire_value": "-1"
+    },
+    "jog_duty_fly": {
+      "type": "int",
+      "value": 2500,
+      "wire_value": "2500"
+    },
+    "jog_duty_drive": {
+      "type": "int",
+      "value": 800,
+      "wire_value": "800"
+    },
+    "fly_speed_limit": {
+      "type": "int",
+      "value": 8000,
+      "wire_value": "8000"
+    },
+    "fly_slew": {
+      "type": "int",
+      "value": 0,
+      "wire_value": "0"
+    }
+  },
+  "normalization_factors": {
+    "motor_dir_a": 1,
+    "motor_dir_b": 1,
+    "motor_dir_c": -1,
+    "enc_dir_c": -1,
+    "steer_dir": -1,
+    "imu_forward_dir": -1,
+    "r_rate_kd": -1,
+    "y_rate_kp": -1,
+    "y_rate_ki": -1,
+    "y_rate_kd": -1
+  },
+  "parameters": {
+    "run_speed_straight": {
+      "type": "float",
+      "value": 1.199999,
+      "wire_value": "1.199999",
+      "default_macro": "RUN_SPEED_STRAIGHT_DEFAULT"
+    },
+    "run_speed_curve": {
+      "type": "float",
+      "value": 0.8000002,
+      "wire_value": "0.8000002",
+      "default_macro": "RUN_SPEED_CURVE_DEFAULT"
+    },
+    "run_speed_cross": {
+      "type": "float",
+      "value": 0.8000002,
+      "wire_value": "0.8000002",
+      "default_macro": "RUN_SPEED_CROSS_DEFAULT"
+    },
+    "run_speed_ring": {
+      "type": "float",
+      "value": 0.9999994,
+      "wire_value": "0.9999994",
+      "default_macro": "RUN_SPEED_RING_DEFAULT"
+    },
+    "run_speed_ramp": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1",
+      "default_macro": "RUN_SPEED_RAMP_DEFAULT"
+    },
+    "run_speed_lost": {
+      "type": "float",
+      "value": 0.2,
+      "wire_value": "0.2",
+      "default_macro": "RUN_SPEED_LOST_DEFAULT"
+    },
+    "run_accel_mps2": {
+      "type": "float",
+      "value": 0.5,
+      "wire_value": "0.5",
+      "default_macro": "RUN_ACCEL_MPS2_DEFAULT"
+    },
+    "run_decel_mps2": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1",
+      "default_macro": "RUN_DECEL_MPS2_DEFAULT"
+    },
+    "direction_pixel_kp": {
+      "type": "float",
+      "value": 1.599999,
+      "wire_value": "1.599999",
+      "default_macro": "DIRECTION_PIXEL_KP_DEFAULT"
+    },
+    "direction_heading_kp": {
+      "type": "float",
+      "value": 0.9999999,
+      "wire_value": "0.9999999",
+      "default_macro": "DIRECTION_HEADING_KP_DEFAULT"
+    },
+    "direction_curve_kff": {
+      "type": "float",
+      "value": 60.0,
+      "wire_value": "60",
+      "default_macro": "DIRECTION_CURVE_KFF_DEFAULT"
+    },
+    "direction_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "DIRECTION_BALANCE_KD_DEFAULT"
+    },
+    "zebra_stop_offset_m": {
+      "type": "float",
+      "value": 0.15,
+      "wire_value": "0.15",
+      "default_macro": "ZEBRA_STOP_OFFSET_M_DEFAULT"
+    },
+    "err_front_row": {
+      "type": "int",
+      "value": 67,
+      "wire_value": "67",
+      "default_macro": "ERR_FRONT_ROW_DEFAULT"
+    },
+    "ipm_h0": {
+      "type": "float",
+      "value": 2.532712,
+      "wire_value": "2.532712",
+      "default_macro": "IPM_H0_DEFAULT"
+    },
+    "ipm_h1": {
+      "type": "float",
+      "value": -0.1793851,
+      "wire_value": "-0.1793851",
+      "default_macro": "IPM_H1_DEFAULT"
+    },
+    "ipm_h2": {
+      "type": "float",
+      "value": -225.105,
+      "wire_value": "-225.105",
+      "default_macro": "IPM_H2_DEFAULT"
+    },
+    "ipm_h3": {
+      "type": "float",
+      "value": -3.285259e-07,
+      "wire_value": "-3.285259e-07",
+      "default_macro": "IPM_H3_DEFAULT"
+    },
+    "ipm_h4": {
+      "type": "float",
+      "value": 3.455418,
+      "wire_value": "3.455418",
+      "default_macro": "IPM_H4_DEFAULT"
+    },
+    "ipm_h5": {
+      "type": "float",
+      "value": -306.3803,
+      "wire_value": "-306.3803",
+      "default_macro": "IPM_H5_DEFAULT"
+    },
+    "ipm_h6": {
+      "type": "float",
+      "value": -3.525401e-10,
+      "wire_value": "-3.525401e-10",
+      "default_macro": "IPM_H6_DEFAULT"
+    },
+    "ipm_h7": {
+      "type": "float",
+      "value": 0.03943732,
+      "wire_value": "0.03943732",
+      "default_macro": "IPM_H7_DEFAULT"
+    },
+    "ipm_h8": {
+      "type": "float",
+      "value": 1.0,
+      "wire_value": "1",
+      "default_macro": "IPM_H8_DEFAULT"
+    },
+    "cam_exposure": {
+      "type": "int",
+      "value": 48,
+      "wire_value": "48",
+      "default_macro": "CAM_EXPOSURE_DEFAULT"
+    },
+    "odom_counts_per_m": {
+      "type": "float",
+      "value": 11695.0,
+      "wire_value": "11695",
+      "default_macro": "ODOM_COUNTS_PER_M_DEFAULT"
+    },
+    "odom_test_speed": {
+      "type": "float",
+      "value": 0.05,
+      "wire_value": "0.05",
+      "default_macro": "ODOM_TEST_SPEED_DEFAULT"
+    },
+    "r_rcy_kp": {
+      "type": "float",
+      "value": 0.0015,
+      "wire_value": "0.0015",
+      "default_macro": "R_RCY_KP_DEFAULT"
+    },
+    "r_rcy_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "R_RCY_KI_DEFAULT"
+    },
+    "r_rcy_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "R_RCY_KD_DEFAULT"
+    },
+    "r_angle_kp": {
+      "type": "float",
+      "value": 36.00006,
+      "wire_value": "36.00006",
+      "default_macro": "R_ANGLE_KP_DEFAULT"
+    },
+    "r_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "R_ANGLE_KI_DEFAULT"
+    },
+    "r_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "R_ANGLE_KD_DEFAULT"
+    },
+    "r_rate_kp": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20",
+      "default_macro": "R_RATE_KP_DEFAULT"
+    },
+    "r_rate_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "R_RATE_KI_DEFAULT"
+    },
+    "r_rate_kd": {
+      "type": "float",
+      "value": 8.0,
+      "wire_value": "-8",
+      "default_macro": "R_RATE_KD_DEFAULT"
+    },
+    "p_vel_kp": {
+      "type": "float",
+      "value": 0.06,
+      "wire_value": "0.06",
+      "default_macro": "P_VEL_KP_DEFAULT"
+    },
+    "p_vel_ki": {
+      "type": "float",
+      "value": 0.002,
+      "wire_value": "0.002",
+      "default_macro": "P_VEL_KI_DEFAULT"
+    },
+    "p_vel_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "P_VEL_KD_DEFAULT"
+    },
+    "p_angle_kp": {
+      "type": "float",
+      "value": 8.999999,
+      "wire_value": "8.999999",
+      "default_macro": "P_ANGLE_KP_DEFAULT"
+    },
+    "p_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "P_ANGLE_KI_DEFAULT"
+    },
+    "p_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "P_ANGLE_KD_DEFAULT"
+    },
+    "p_rate_kp": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20",
+      "default_macro": "P_RATE_KP_DEFAULT"
+    },
+    "p_rate_ki": {
+      "type": "float",
+      "value": 0.6400001,
+      "wire_value": "0.6400001",
+      "default_macro": "P_RATE_KI_DEFAULT"
+    },
+    "p_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "P_RATE_KD_DEFAULT"
+    },
+    "y_angle_kp": {
+      "type": "float",
+      "value": 18.00003,
+      "wire_value": "18.00003",
+      "default_macro": "Y_ANGLE_KP_DEFAULT"
+    },
+    "y_angle_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "Y_ANGLE_KI_DEFAULT"
+    },
+    "y_angle_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "Y_ANGLE_KD_DEFAULT"
+    },
+    "y_rate_kp": {
+      "type": "float",
+      "value": 56.0,
+      "wire_value": "-56",
+      "default_macro": "Y_RATE_KP_DEFAULT"
+    },
+    "y_rate_ki": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "Y_RATE_KI_DEFAULT"
+    },
+    "y_rate_kd": {
+      "type": "float",
+      "value": 0.0,
+      "wire_value": "0",
+      "default_macro": "Y_RATE_KD_DEFAULT"
+    },
+    "lean_turn_kp": {
+      "type": "float",
+      "value": 0.009999999,
+      "wire_value": "0.009999999",
+      "default_macro": "LEAN_TURN_KP_DEFAULT"
+    },
+    "lean_speed_kp": {
+      "type": "float",
+      "value": 0.7,
+      "wire_value": "0.7",
+      "default_macro": "LEAN_SPEED_KP_DEFAULT"
+    },
+    "lean_slew_dps": {
+      "type": "float",
+      "value": 18.0,
+      "wire_value": "18",
+      "default_macro": "LEAN_SLEW_DPS_DEFAULT"
+    },
+    "lean_max_angle": {
+      "type": "float",
+      "value": 5.999995,
+      "wire_value": "5.999995",
+      "default_macro": "LEAN_MAX_ANGLE_DEFAULT"
+    },
+    "elem_en_zebra": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1",
+      "default_macro": "ELEM_EN_ZEBRA_DEFAULT"
+    },
+    "elem_en_cross": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1",
+      "default_macro": "ELEM_EN_CROSS_DEFAULT"
+    },
+    "elem_en_ring": {
+      "type": "int",
+      "value": 0,
+      "wire_value": "0",
+      "default_macro": "ELEM_EN_RING_DEFAULT"
+    },
+    "elem_en_ramp": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1",
+      "default_macro": "ELEM_EN_RAMP_DEFAULT"
+    },
+    "ring_angle": {
+      "type": "int",
+      "value": 340,
+      "wire_value": "340",
+      "default_macro": "RING_ANGLE_DEFAULT"
+    },
+    "ring_s2_cnt_l": {
+      "type": "int",
+      "value": 300,
+      "wire_value": "300",
+      "default_macro": "RING_S2_CNT_L_DEFAULT"
+    },
+    "ring_s2_cnt_r": {
+      "type": "int",
+      "value": 400,
+      "wire_value": "400",
+      "default_macro": "RING_S2_CNT_R_DEFAULT"
+    },
+    "imu_forward_dir": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "-1",
+      "default_macro": "IMU_FORWARD_DIR_DEFAULT"
+    },
+    "roll_zero_init": {
+      "type": "float",
+      "value": -0.6,
+      "wire_value": "-0.6",
+      "default_macro": "ROLL_ZERO_INIT_DEFAULT"
+    },
+    "pitch_zero_init": {
+      "type": "float",
+      "value": -2.999999,
+      "wire_value": "-2.999999",
+      "default_macro": "PITCH_ZERO_INIT_DEFAULT"
+    },
+    "roll_protect": {
+      "type": "float",
+      "value": 20.0,
+      "wire_value": "20",
+      "default_macro": "ROLL_PROTECT_ANGLE_DEFAULT"
+    },
+    "pitch_protect": {
+      "type": "float",
+      "value": 50.0,
+      "wire_value": "50",
+      "default_macro": "PITCH_PROTECT_ANGLE_DEFAULT"
+    },
+    "motor_dir_a": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1",
+      "default_macro": "MOTOR_DIR_A_DEFAULT"
+    },
+    "motor_dir_b": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "1",
+      "default_macro": "MOTOR_DIR_B_DEFAULT"
+    },
+    "motor_dir_c": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "-1",
+      "default_macro": "MOTOR_DIR_C_DEFAULT"
+    },
+    "enc_dir_c": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "-1",
+      "default_macro": "ENC_DIR_C_DEFAULT"
+    },
+    "steer_dir": {
+      "type": "int",
+      "value": 1,
+      "wire_value": "-1",
+      "default_macro": "STEER_DIR_DEFAULT"
+    },
+    "jog_duty_fly": {
+      "type": "int",
+      "value": 2500,
+      "wire_value": "2500",
+      "default_macro": "JOG_DUTY_FLY_DEFAULT"
+    },
+    "jog_duty_drive": {
+      "type": "int",
+      "value": 800,
+      "wire_value": "800",
+      "default_macro": "JOG_DUTY_DRIVE_DEFAULT"
+    },
+    "fly_speed_limit": {
+      "type": "int",
+      "value": 8000,
+      "wire_value": "8000",
+      "default_macro": "FLY_SPEED_LIMIT_DEFAULT"
+    },
+    "fly_slew": {
+      "type": "int",
+      "value": 0,
+      "wire_value": "0",
+      "default_macro": "FLY_SLEW_DEFAULT"
+    }
+  }
+}

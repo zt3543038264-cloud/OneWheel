@@ -11,12 +11,16 @@ import time
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--set', action='append', default=[])
 p.add_argument('--seconds', type=float, default=10)
+p.add_argument('--module-ip', default='192.168.0.119')
+p.add_argument('--wait-ready',type=float,default=0,help='Wait for supported upright Mode10 before writes')
+p.add_argument('--wait-stopped',type=float,default=0,help='Wait for physical Stop before preparing gains')
 p.add_argument('--reset-output', action='store_true')
 p.add_argument('--prepare', action='store_true', help='Set gains while stopped; never start motors')
 p.add_argument('--allow-stopped', action='store_true', help='Prepare instead if the car is stopped')
 a = p.parse_args()
 allowed = {'fly_angle_kp': (0,150), 'fly_rate_kp': (0,100),
-           'fly_rate_ki': (0,3), 'fly_vel_kp': (-2,2)}
+           'fly_rate_ki': (0,3), 'fly_vel_kp': (-2,2),
+           'fly_angle_kd': (0,10), 'fly_vel_kd': (0,1)}
 updates = []
 for item in a.set:
     name, value = item.split('=',1)
@@ -26,9 +30,10 @@ for item in a.set:
     updates.append((name,value))
 root = Path(__file__).resolve().parents[1]
 names = json.loads((root/'validation/roll-live-20261030-180750.json').read_text())['channels']
+names += [name for name in ('fly_angle_kd','fly_vel_kd') if name not in names]
 s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 s.bind(('0.0.0.0',8081));s.settimeout(.1)
-peer = ('192.168.0.119',5001)
+peer = (a.module_ip,5001)
 confirmed=False
 latest=None
 rows=[]
@@ -92,11 +97,34 @@ try:
     while time.monotonic()-last_receive>.5 and time.monotonic()<fresh_deadline:
         receive()
     if latest is None or not confirmed or time.monotonic()-last_receive>.5:raise RuntimeError('No fresh confirmed baseline')
+    if a.wait_stopped:
+        phase='waiting-stop';deadline=time.monotonic()+a.wait_stopped
+        while time.monotonic()<deadline:
+            receive()
+            if (time.monotonic()-last_receive<.3 and latest['control_mode']==0 and latest['rate_state']==0):
+                a.prepare=True;break
+        else:raise RuntimeError('Physical Stop not observed; no changes made')
+    if a.wait_ready:
+        phase='waiting';deadline=time.monotonic()+a.wait_ready;upright_since=None
+        while time.monotonic()<deadline:
+            receive()
+            center=latest['dual_roll_target_deg']-latest['fly_vel_out']
+            ready=(time.monotonic()-last_receive<.3 and latest['control_mode']==10 and
+                   latest['rate_state']==2 and latest['fault_reason']==0 and latest['imu_status']==1 and
+                   abs(latest['dual_roll_actual_deg']-center)<4 and abs(latest['dual_roll_rate_dps'])<15)
+            if ready:
+                if upright_since is None:upright_since=time.monotonic()
+                if time.monotonic()-upright_since>.3:break
+            else:upright_since=None
+        else:raise RuntimeError('No upright running baseline; no changes made')
     original=dict(latest)
     if a.allow_stopped and latest['control_mode']==0 and latest['rate_state']==0:
         a.prepare=True
     if a.prepare:
-        if latest['control_mode']!=0 or latest['rate_state']!=0:raise RuntimeError('Prepare requires stopped state')
+        stopped=(latest['control_mode']==0 and latest['rate_state']==0)
+        latched=(latest['control_mode']==10 and latest['rate_state']<0 and
+                 latest['dual_roll_pwm']==0 and latest.get('dual_pitch_pwm',0)==0)
+        if not (stopped or latched):raise RuntimeError('Prepare requires Stop or latched zero-output fault')
     elif latest['control_mode']!=10 or latest['rate_state']!=2 or latest['fault_reason']!=0:raise RuntimeError('Mode10 not running')
     phase='transition'
     if a.reset_output:

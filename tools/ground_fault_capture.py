@@ -9,7 +9,9 @@ import time
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--seconds',type=float,default=20)
+parser.add_argument('--module-ip',default='192.168.0.119')
 args=parser.parse_args()
+peer=(args.module_ip,5001)
 s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 s.bind(('0.0.0.0',8081));s.settimeout(.15)
 peer=('192.168.0.119',5001)

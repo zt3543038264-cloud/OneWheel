@@ -33,7 +33,76 @@
 * 2025-01-03       pudding            first version
 ********************************************************************************************************************/
 
+#ifdef DRIVER_SAFETY_HOST
+#include "driver_pwm_host.h"
+#else
 #include "pwm_output.h"
+#endif
+
+#include "driver_safety.h"
+static uint8_t safe_right_connected;
+static void safe_pin_low(volatile stc_GPIO_PRT_t *port,uint32_t pin)
+{
+    Cy_GPIO_Clr(port,pin);
+    Cy_GPIO_SetHSIOM(port,pin,HSIOM_SEL_GPIO);
+    Cy_GPIO_SetDrivemode(port,pin,CY_GPIO_DM_STRONG);
+}
+static void safe_right_pins_low(void)
+{
+    safe_pin_low(MOTOR_RIGHT_A_PHASE_PORT_H,MOTOR_RIGHT_A_PHASE_PIN_H);
+    safe_pin_low(MOTOR_RIGHT_A_PHASE_PORT_L,MOTOR_RIGHT_A_PHASE_PIN_L);
+    safe_pin_low(MOTOR_RIGHT_B_PHASE_PORT_H,MOTOR_RIGHT_B_PHASE_PIN_H);
+    safe_pin_low(MOTOR_RIGHT_B_PHASE_PORT_L,MOTOR_RIGHT_B_PHASE_PIN_L);
+    safe_pin_low(MOTOR_RIGHT_C_PHASE_PORT_H,MOTOR_RIGHT_C_PHASE_PIN_H);
+    safe_pin_low(MOTOR_RIGHT_C_PHASE_PORT_L,MOTOR_RIGHT_C_PHASE_PIN_L);
+    safe_right_connected=0;
+}
+void motor_output_inhibit(void)
+{
+    safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_H,MOTOR_LEFT_A_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_L,MOTOR_LEFT_A_PHASE_PIN_L);
+    safe_pin_low(MOTOR_LEFT_B_PHASE_PORT_H,MOTOR_LEFT_B_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_B_PHASE_PORT_L,MOTOR_LEFT_B_PHASE_PIN_L);
+    safe_pin_low(MOTOR_LEFT_C_PHASE_PORT_H,MOTOR_LEFT_C_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_C_PHASE_PORT_L,MOTOR_LEFT_C_PHASE_PIN_L);
+    safe_right_pins_low();
+    MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_C_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_C_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_C_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_LEFT_C_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC0.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+    MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+}
+static void safe_right_pins_restore(void)
+{
+    if(safe_right_connected) return;
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_A_PHASE_PORT_H,MOTOR_RIGHT_A_PHASE_PIN_H,MOTOR_RIGHT_A_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_A_PHASE_PORT_L,MOTOR_RIGHT_A_PHASE_PIN_L,MOTOR_RIGHT_A_PIN_HSIOM_L);
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_B_PHASE_PORT_H,MOTOR_RIGHT_B_PHASE_PIN_H,MOTOR_RIGHT_B_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_B_PHASE_PORT_L,MOTOR_RIGHT_B_PHASE_PIN_L,MOTOR_RIGHT_B_PIN_HSIOM_L);
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_C_PHASE_PORT_H,MOTOR_RIGHT_C_PHASE_PIN_H,MOTOR_RIGHT_C_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_RIGHT_C_PHASE_PORT_L,MOTOR_RIGHT_C_PHASE_PIN_L,MOTOR_RIGHT_C_PIN_HSIOM_L);
+    safe_right_connected=1;
+}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     左电机PWM通道初始化
@@ -57,22 +126,22 @@ void motor_left_output_init(uint16 timer_period, uint8 isr_state)
     
     pwm_pin_config.driveMode                     = CY_GPIO_DM_STRONG;           // 配置PWM输出引脚模式为强驱动模式
     // 初始化A相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_A_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_A_PHASE_PORT_H, MOTOR_LEFT_A_PHASE_PIN_H, &pwm_pin_config);
     // 初始化A相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_A_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_A_PHASE_PORT_L, MOTOR_LEFT_A_PHASE_PIN_L, &pwm_pin_config);
     // 初始化B相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_B_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_B_PHASE_PORT_H, MOTOR_LEFT_B_PHASE_PIN_H, &pwm_pin_config);
     // 初始化B相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_B_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_B_PHASE_PORT_L, MOTOR_LEFT_B_PHASE_PIN_L, &pwm_pin_config);
     // 初始化C相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_C_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_C_PHASE_PORT_H, MOTOR_LEFT_C_PHASE_PIN_H, &pwm_pin_config);
     // 初始化C相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_LEFT_C_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_LEFT_C_PHASE_PORT_L, MOTOR_LEFT_C_PHASE_PIN_L, &pwm_pin_config);
     /******************************配置PWM引脚******************************/
 
@@ -100,7 +169,7 @@ void motor_left_output_init(uint16 timer_period, uint8 isr_state)
         
         Cy_SysInt_InitIRQ(&tcpwm_irq_cfg);                                                  // 初始化中断配置参数
         Cy_SysInt_SetSystemIrqVector(tcpwm_irq_cfg.sysIntSrc, motor_left_update_isr);       // 配置当前中断回调函数为 motor_left_updat_isr
-        NVIC_SetPriority(tcpwm_irq_cfg.intIdx, 0u);                                         // 配置中断优先级为0 (最高优先级)
+        NVIC_SetPriority(tcpwm_irq_cfg.intIdx, 1u);                                         // 配置中断优先级为0 (最高优先级)
         NVIC_ClearPendingIRQ(tcpwm_irq_cfg.intIdx);                                         // 清除中断请求的挂起状态
         NVIC_EnableIRQ(tcpwm_irq_cfg.intIdx);                                               // 使能当前中断
     }
@@ -181,6 +250,9 @@ void motor_left_output_init(uint16 timer_period, uint8 isr_state)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_left_duty_set(uint16 a_duty, uint16 b_duty, uint16 c_duty)
 {
+    /* Version 1 bench capability: A/left is permanently inhibited. */
+    a_duty=b_duty=c_duty=0;
+
     MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register = (PWM_PRIOD_LOAD - a_duty) / 2;  // 配置A相通道比较器1的值
     MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register = (PWM_PRIOD_LOAD + a_duty) / 2;  // 配置A相通道比较器2的值
     MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register = (PWM_PRIOD_LOAD - b_duty) / 2;  // 配置B相通道比较器1的值
@@ -240,66 +312,8 @@ void motor_left_channel_set(uint8 a_channel, uint8 b_channel, uint8 c_channel)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_left_phase_check(uint16 delay_time)
 {
-    uint16 check_period;
-    
-    uint16 interval_time = 50;
-    
-    // 响一声  A相上桥 → B相下桥
-    check_period = 36000;                       // 2.222khz
-    
-    motor_left_output_init(check_period, 0);
-    
-    motor_left_channel_set(1,1,0);
-    
-    motor_left_duty_set(check_period / 50, 0, 0);
-    
-    system_delay_ms(interval_time);
-    
-    motor_left_duty_set(0, 0, 0);
-    
-    system_delay_ms(delay_time);
-    
-    // 响二声  B相上桥 → C相下桥
-    check_period = 35000;                       // 2.285khz
-    
-    motor_left_output_init(check_period, 0);
-    
-    motor_left_channel_set(0,1,1);
-    
-    for(int i = 0; i < 2; i ++)
-    {
-        motor_left_duty_set(0, check_period / 50, 0);
-    
-        system_delay_ms(interval_time);
-        
-        motor_left_duty_set(0, 0, 0);
-        
-        system_delay_ms(interval_time);
-    }
-    
-    system_delay_ms(delay_time);
-    
-    // 响三声  C相上桥 → A相下桥
-    check_period = 34000;                       // 2.352khz
-    
-    motor_left_output_init(check_period, 0);
-    
-    motor_left_channel_set(1,0,1);
-    
-    for(int i = 0; i < 3; i ++)
-    {
-        motor_left_duty_set(0, 0, check_period / 50);
-        
-        system_delay_ms(interval_time);
-        
-        motor_left_duty_set(0, 0, 0);
-        
-        system_delay_ms(interval_time);
-    }
-    
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_LEFT_A_PHASE_TCPWM_TIMER);
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_LEFT_B_PHASE_TCPWM_TIMER);
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_LEFT_C_PHASE_TCPWM_TIMER);
+    (void)delay_time;
+    driver_safety_disarm(DRIVER_SAFE_MANUAL);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -324,22 +338,22 @@ void motor_right_output_init(uint16 timer_period, uint8 isr_state)
     
     pwm_pin_config.driveMode                     = CY_GPIO_DM_STRONG;           // 配置PWM输出引脚模式为强驱动模式
     // 初始化A相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_A_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_A_PHASE_PORT_H, MOTOR_RIGHT_A_PHASE_PIN_H, &pwm_pin_config);
     // 初始化A相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_A_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_A_PHASE_PORT_L, MOTOR_RIGHT_A_PHASE_PIN_L, &pwm_pin_config);
     // 初始化B相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_B_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_B_PHASE_PORT_H, MOTOR_RIGHT_B_PHASE_PIN_H, &pwm_pin_config);
     // 初始化B相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_B_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_B_PHASE_PORT_L, MOTOR_RIGHT_B_PHASE_PIN_L, &pwm_pin_config);
     // 初始化C相上桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_C_PIN_HSIOM_H;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_C_PHASE_PORT_H, MOTOR_RIGHT_C_PHASE_PIN_H, &pwm_pin_config);
     // 初始化C相下桥引脚
-    pwm_pin_config.hsiom                         = MOTOR_RIGHT_C_PIN_HSIOM_L;
+    pwm_pin_config.hsiom                         = HSIOM_SEL_GPIO;
     Cy_GPIO_Pin_Init(MOTOR_RIGHT_C_PHASE_PORT_L, MOTOR_RIGHT_C_PHASE_PIN_L, &pwm_pin_config);
     /******************************配置PWM引脚******************************/
 
@@ -367,7 +381,7 @@ void motor_right_output_init(uint16 timer_period, uint8 isr_state)
         
         Cy_SysInt_InitIRQ(&tcpwm_irq_cfg);                                                  // 初始化中断配置参数
         Cy_SysInt_SetSystemIrqVector(tcpwm_irq_cfg.sysIntSrc, motor_right_update_isr);      // 配置当前中断回调函数为 motor_right_updat_isr
-        NVIC_SetPriority(tcpwm_irq_cfg.intIdx, 0u);                                         // 配置中断优先级为0 (最高优先级)
+        NVIC_SetPriority(tcpwm_irq_cfg.intIdx, 1u);                                         // 配置中断优先级为0 (最高优先级)
         NVIC_ClearPendingIRQ(tcpwm_irq_cfg.intIdx);                                         // 清除中断请求的挂起状态
         NVIC_EnableIRQ(tcpwm_irq_cfg.intIdx);                                               // 使能当前中断
     }
@@ -447,6 +461,13 @@ void motor_right_output_init(uint16 timer_period, uint8 isr_state)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_right_duty_set(uint16 a_duty, uint16 b_duty, uint16 c_duty)
 {
+    uint32_t irq=__get_PRIMASK();
+    __disable_irq();
+    if(!driver_safety_output_allowed(1)) {
+        a_duty=b_duty=c_duty=0;
+        if(safe_right_connected) safe_right_pins_low();
+    }
+
     MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register = (PWM_PRIOD_LOAD - a_duty) / 2;  // 配置A相通道比较器1的值
     MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register = (PWM_PRIOD_LOAD + a_duty) / 2;  // 配置A相通道比较器2的值
     MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register = (PWM_PRIOD_LOAD - b_duty) / 2;  // 配置B相通道比较器1的值
@@ -456,6 +477,9 @@ void motor_right_duty_set(uint16 a_duty, uint16 b_duty, uint16 c_duty)
     MOTOR_RIGHT_A_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置A相通道交换使能
     MOTOR_RIGHT_B_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置B相通道交换使能
     MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置C相通道交换使能
+    if(driver_safety_output_allowed(1)) safe_right_pins_restore();
+    __set_PRIMASK(irq);
+
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -506,68 +530,8 @@ void motor_right_channel_set(uint8 a_channel, uint8 b_channel, uint8 c_channel)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_right_phase_check(uint16 delay_time)
 {
-    uint16 check_period;
-    
-    uint16 interval_time = 50;
-    
-    // 响一声  A相上桥→B相下桥
-    check_period = 36000;               // 2.222khz
-      
-    motor_right_output_init(check_period, 0);      
-    
-    motor_right_channel_set(1,1,0);
-    
-    motor_right_duty_set(check_period / 50, 0, 0);
-    
-    system_delay_ms(interval_time);
-    
-    motor_right_duty_set(0, 0, 0);
-    
-    system_delay_ms(delay_time);
-    
-    // 响二声  B相上桥→C相下桥
-    check_period = 35000;               // 2.285khz
-    
-    motor_right_output_init(check_period, 0);
-    
-    motor_right_channel_set(0,1,1);
-    
-    for(int i = 0; i < 2; i ++)
-    {    
-        motor_right_duty_set(0, check_period / 50, 0);
-    
-        system_delay_ms(interval_time);
-    
-        motor_right_duty_set(0, 0, 0);
-        
-        system_delay_ms(interval_time);
-    }
-    
-    system_delay_ms(delay_time);
-    
-    
-    // 响三声  C相上桥→A相下桥
-    check_period = 34000;               // 2.352khz
-    
-    motor_right_output_init(check_period, 0);
-    
-    motor_right_channel_set(1,0,1);
-    
-    for(int i = 0; i < 3; i ++)
-    {    
-        motor_right_duty_set(0, 0, check_period / 50);
-        
-        system_delay_ms(interval_time);
-        
-        motor_right_duty_set(0, 0, 0);
-        
-        system_delay_ms(interval_time);
-    }
-    system_delay_ms(delay_time);
-    
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_RIGHT_A_PHASE_TCPWM_TIMER);
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_RIGHT_B_PHASE_TCPWM_TIMER);
-    Cy_Tcpwm_Pwm_DeInit(MOTOR_RIGHT_C_PHASE_TCPWM_TIMER);
+    (void)delay_time;
+    driver_safety_disarm(DRIVER_SAFE_MANUAL);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

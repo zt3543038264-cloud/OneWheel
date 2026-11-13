@@ -1,0 +1,49 @@
+Keep packet evidence (2026-11-11)
+
+Purpose
+Record evidence without changing control gains, output gates, ACK deadlines,
+or the MCU's 200 ms lease. This change does not authorize powered testing.
+No hardware run is required to install or inspect the instrumentation.
+
+Host capture
+Existing c_bench_cli.py run commands now automatically reserve a wire JSONL
+alongside the CSV: example.csv -> example.wire.jsonl. --wire-log can override
+the destination. Existing evidence is never overwritten.
+The log records tx_attempt/tx_sent (timestamps bracket the send call), cfg_seq,
+session, keep_seq, exact command/reply bytes as hex and readable ASCII, peer,
+matched replies, validated keeps, timeouts, and filtering reasons linked by
+rx_id. NON_RSP telemetry and obsolete sequence replies are observable too.
+Recording is buffered in bounded RAM; writing happens after the run/STOP
+attempt, outside the heartbeat loop. Metadata marks any dropped log events.
+Terminal stdout/stderr order is not the packet timeline; use JSONL timestamps.
+
+MCU capture
+The new MCU firmware retains the latest 64 parsed keep records in RAM, without
+Flash writes. Each record contains cfg_seq/session/keep_seq, raw 64-bit STM
+ticks at parser dispatch, reply queueing, and SPI submission, controller result,
+queue outcome, reply length and an FNV-1a fingerprint of the full reply bytes.
+Result: 1=accepted, 2=controller rejected, 3=format/arity rejected.
+Queue outcome: 0=no captured reply, 1=queued, 2=format/queue failure.
+SPI submission means bytes passed to the WiFi module, NOT radio/UDP delivery.
+Parser dispatch means a complete valid-sequence cfg line, NOT radio ingress.
+Resetting/restarting clears RAM evidence; ring overwrite is reported explicitly.
+The MCU instrumentation must be present before a run to capture that run.
+It cannot reconstruct MCU evidence for an earlier firmware/run.
+
+Read-only comparison, after STOP (do not run another test just to use this):
+From the project root, when existing captured data is available:
+python tools/c_bench_trace.py --host 192.168.0.112 --port 5001 --local-port 8081 --host-log example.wire.jsonl --output keep_comparison_01.json
+
+The collector can send klog_status/klog_get ONLY. No start, keep, stop, set,
+save, or automatic retry is implemented. The MCU rejects retrieval while busy.
+Missing retrieval replies are marked unknown rather than inferred packet loss.
+Comparison separates host send, MCU parser receipt, controller rejection,
+reply queue failure, SPI submission, host raw reception, and host validation.
+It checks reply bytes against the MCU length/hash. FNV-1a is not authentication.
+Host and MCU clocks are separate. Only intervals within the same clock are
+calculated; no one-way network latency is inferred by subtracting these clocks.
+
+Limits
+The link may still lose/delay UDP packets. This instrumentation does not make
+the link qualified for motor output. No new target firmware has been flashed
+automatically. Maintain physical power isolation during later data collection.

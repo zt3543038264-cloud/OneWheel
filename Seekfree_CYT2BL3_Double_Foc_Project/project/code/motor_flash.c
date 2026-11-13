@@ -34,6 +34,8 @@
 ********************************************************************************************************************/
 
 #include "motor_flash.h"
+#include "driver_safety.h"
+uint8_t motor_calibration_valid;
 
 
 
@@ -46,21 +48,28 @@
 //-------------------------------------------------------------------------------------------------------------------
 void motor_flash_read(void)
 {
+    uint32 i;
+    motor_calibration_valid=0;
+    /* A partial bus-fault read must not reuse an old valid magic word. */
+    for(i=0;i<SAVE_FLASH_LENGTH;++i) flash_union_buffer[i].uint32_type=UINT32_MAX;
     flash_read_page_to_buffer(MOTOR_FLASH_SECTOR, MOTOR_FLASH_PAGE, SAVE_FLASH_LENGTH);         // 读取 flash 页
 
-    if(flash_union_buffer[SAVE_FLASH_LENGTH - 1].uint32_type != 0x4068)
-    {
-        motor_flash_write();
-    }
-    else
-    {
-         motor_left.zero_location                    =    flash_union_buffer[0].uint32_type ;  
-         motor_left.rotation_direction               =    flash_union_buffer[1].uint32_type ;  
-         motor_left.pole_pairs                       =    flash_union_buffer[2].uint32_type ;  
-         motor_right.zero_location                   =    flash_union_buffer[3].uint32_type ;  
-         motor_right.rotation_direction              =    flash_union_buffer[4].uint32_type ;  
-         motor_right.pole_pairs                      =    flash_union_buffer[5].uint32_type ;  
-    }
+    motor_calibration_valid=0;
+    /* Read only: never overwrite an unknown/invalid calibration with defaults. */
+    if(flash_union_buffer[SAVE_FLASH_LENGTH-1].uint32_type!=0x4068 ||
+       flash_union_buffer[0].uint32_type>=ENCODER_PRECISION ||
+       flash_union_buffer[3].uint32_type>=ENCODER_PRECISION ||
+       (flash_union_buffer[1].uint32_type!=1 && flash_union_buffer[1].uint32_type!=UINT32_MAX) ||
+       (flash_union_buffer[4].uint32_type!=1 && flash_union_buffer[4].uint32_type!=UINT32_MAX) ||
+       flash_union_buffer[2].uint32_type==0 || flash_union_buffer[2].uint32_type>64 ||
+       flash_union_buffer[5].uint32_type==0 || flash_union_buffer[5].uint32_type>64) return;
+    motor_left.zero_location=flash_union_buffer[0].uint32_type;
+    motor_left.rotation_direction=flash_union_buffer[1].uint32_type==1 ? 1 : -1;
+    motor_left.pole_pairs=flash_union_buffer[2].uint32_type;
+    motor_right.zero_location=flash_union_buffer[3].uint32_type;
+    motor_right.rotation_direction=flash_union_buffer[4].uint32_type==1 ? 1 : -1;
+    motor_right.pole_pairs=flash_union_buffer[5].uint32_type;
+    motor_calibration_valid=1;
 
 }
 
@@ -73,18 +82,8 @@ void motor_flash_read(void)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_flash_write(void)
 {
-    flash_union_buffer[0].uint32_type  = (uint32)motor_left.zero_location                ;  
-    flash_union_buffer[1].uint32_type  = (uint32)motor_left.rotation_direction           ;  
-    flash_union_buffer[2].uint32_type  = (uint32)motor_left.pole_pairs                   ;  
-    flash_union_buffer[3].uint32_type  = (uint32)motor_right.zero_location               ;  
-    flash_union_buffer[4].uint32_type  = (uint32)motor_right.rotation_direction          ;  
-    flash_union_buffer[5].uint32_type  = (uint32)motor_right.pole_pairs                  ;  
-    
-    flash_union_buffer[SAVE_FLASH_LENGTH - 1].uint32_type = 0x4068;                             // flash 校验数据 若读取flash时校验位错误 则向flash写入默认参数
-    
-    flash_erase_page(MOTOR_FLASH_SECTOR, MOTOR_FLASH_PAGE);                                     // 擦除 flash 页
-
-    flash_write_page_from_buffer(MOTOR_FLASH_SECTOR, MOTOR_FLASH_PAGE, SAVE_FLASH_LENGTH);      // 写入 flash 页
+    /* Calibration writes are deliberately unavailable in commissioning firmware. */
+    driver_safety_disarm(DRIVER_SAFE_MANUAL);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

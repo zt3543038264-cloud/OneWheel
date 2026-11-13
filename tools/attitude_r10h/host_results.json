@@ -1,0 +1,20 @@
+{
+  "hardware_tested": false,
+  "results": [
+    {
+      "test": "api_contract",
+      "exit_code": 0,
+      "output": "PASS: init/update/output availability, null, invalid mean and stale output"
+    },
+    {
+      "test": "core_regression",
+      "exit_code": 0,
+      "output": "preserve 0.100 dps: 0.9997 1.0000 0.9997 deg\npreserve 0.500 dps: 4.9986 5.0000 4.9987 deg\npreserve 90.000 dps: 899.7570 900.0071 899.7579 deg\nvibration window static: bias 0.040002 dps; A/B/C yaw 0.1800 0.1802 0.1800\nphysical slow pitch: A/B/C 0.99929 1.00050 0.99928 deg; mistaken static 0\nPASS: slow yaw, fast yaw, tilted gravity initialization, noisy static bias and invalid samples"
+    },
+    {
+      "test": "strong_vibration",
+      "exit_code": 0,
+      "output": "strong vibration yaw 0.000 dps: final 0.54684, last20s -0.00388, bias 0.040066, static 1\nstrong vibration yaw 0.100 dps: final 6.00033, last20s 2.00194, bias 0.000000, static 0\nstrong vibration yaw 0.500 dps: final 29.99957, last20s 10.00081, bias 0.000000, static 0"
+    }
+  ]
+}

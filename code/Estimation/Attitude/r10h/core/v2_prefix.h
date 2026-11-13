@@ -1,0 +1,31 @@
+/* Separate link symbols and static states; original algorithms unchanged. */
+#define compare_result v2_compare_result
+#define compare_core_init v2_compare_core_init
+#define compare_core_step v2_compare_core_step
+#define compare_core_set_clock v2_compare_core_set_clock
+#define uni_att v2_uni_att
+#define uni_diag v2_uni_diag
+#define uni_init v2_uni_init
+#define uni_update v2_uni_update
+#define uni_update_rate v2_uni_update_rate
+#define uni_converged v2_uni_converged
+#define uni_diverged v2_uni_diverged
+#define g_imufilter_1000hz v2_g_imufilter_1000hz
+#define g_imudata_500hz v2_g_imudata_500hz
+#define g_imudata_250hz v2_g_imudata_250hz
+#define g_imu_shock_flag v2_g_imu_shock_flag
+#define g_imu_acc_norm_g v2_g_imu_acc_norm_g
+#define IMUFilter_Init v2_IMUFilter_Init
+#define IMUFilter_Update v2_IMUFilter_Update
+#define improved_init v2_improved_init
+#define improved_update v2_improved_update
+#define MahonyAhrs_Init v2_MahonyAhrs_Init
+#define MahonyAhrs_Update v2_MahonyAhrs_Update
+#define MahonyAhrs_GetQuaternion v2_MahonyAhrs_GetQuaternion
+#define MahonyAhrs_GetEuler v2_MahonyAhrs_GetEuler
+#define MahonyAhrs_GetEulerDegrees v2_MahonyAhrs_GetEulerDegrees
+#define MahonyAhrs_SetGains v2_MahonyAhrs_SetGains
+#define MahonyAhrs_ResetQuaternion v2_MahonyAhrs_ResetQuaternion
+#define MahonyAhrs_ResetBias v2_MahonyAhrs_ResetBias
+
+#define compare_bias_diag v2_compare_bias_diag

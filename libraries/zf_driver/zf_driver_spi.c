@@ -1,38 +1,39 @@
+#include "IfxStm.h"
 /*********************************************************************************************************************
-* TC264 Opensourec Library å³ï¼ˆTC264 å¼€æºåº“ï¼‰æ˜¯ä¸€ä¸ªåŸºäºå®˜æ–¹ SDK æ¥å£çš„ç¬¬ä¸‰æ–¹å¼€æºåº“
-* Copyright (c) 2022 SEEKFREE é€é£ç§‘æŠ€
+* TC264 Opensourec Library ¼´£¨TC264 ¿ªÔ´¿â£©ÊÇÒ»¸ö»ùÓÚ¹Ù·½ SDK ½Ó¿ÚµÄµÚÈı·½¿ªÔ´¿â
+* Copyright (c) 2022 SEEKFREE Öğ·É¿Æ¼¼
 *
-* æœ¬æ–‡ä»¶æ˜¯ TC264 å¼€æºåº“çš„ä¸€éƒ¨åˆ†
+* ±¾ÎÄ¼şÊÇ TC264 ¿ªÔ´¿âµÄÒ»²¿·Ö
 *
-* TC264 å¼€æºåº“ æ˜¯å…è´¹è½¯ä»¶
-* æ‚¨å¯ä»¥æ ¹æ®è‡ªç”±è½¯ä»¶åŸºé‡‘ä¼šå‘å¸ƒçš„ GPLï¼ˆGNU General Public Licenseï¼Œå³ GNUé€šç”¨å…¬å…±è®¸å¯è¯ï¼‰çš„æ¡æ¬¾
-* å³ GPL çš„ç¬¬3ç‰ˆï¼ˆå³ GPL3.0ï¼‰æˆ–ï¼ˆæ‚¨é€‰æ‹©çš„ï¼‰ä»»ä½•åæ¥çš„ç‰ˆæœ¬ï¼Œé‡æ–°å‘å¸ƒå’Œ/æˆ–ä¿®æ”¹å®ƒ
+* TC264 ¿ªÔ´¿â ÊÇÃâ·ÑÈí¼ş
+* Äú¿ÉÒÔ¸ù¾İ×ÔÓÉÈí¼ş»ù½ğ»á·¢²¼µÄ GPL£¨GNU General Public License£¬¼´ GNUÍ¨ÓÃ¹«¹²Ğí¿ÉÖ¤£©µÄÌõ¿î
+* ¼´ GPL µÄµÚ3°æ£¨¼´ GPL3.0£©»ò£¨ÄúÑ¡ÔñµÄ£©ÈÎºÎºóÀ´µÄ°æ±¾£¬ÖØĞÂ·¢²¼ºÍ/»òĞŞ¸ÄËü
 *
-* æœ¬å¼€æºåº“çš„å‘å¸ƒæ˜¯å¸Œæœ›å®ƒèƒ½å‘æŒ¥ä½œç”¨ï¼Œä½†å¹¶æœªå¯¹å…¶ä½œä»»ä½•çš„ä¿è¯
-* ç”šè‡³æ²¡æœ‰éšå«çš„é€‚é”€æ€§æˆ–é€‚åˆç‰¹å®šç”¨é€”çš„ä¿è¯
-* æ›´å¤šç»†èŠ‚è¯·å‚è§ GPL
+* ±¾¿ªÔ´¿âµÄ·¢²¼ÊÇÏ£ÍûËüÄÜ·¢»Ó×÷ÓÃ£¬µ«²¢Î´¶ÔÆä×÷ÈÎºÎµÄ±£Ö¤
+* ÉõÖÁÃ»ÓĞÒşº¬µÄÊÊÏúĞÔ»òÊÊºÏÌØ¶¨ÓÃÍ¾µÄ±£Ö¤
+* ¸ü¶àÏ¸½ÚÇë²Î¼û GPL
 *
-* æ‚¨åº”è¯¥åœ¨æ”¶åˆ°æœ¬å¼€æºåº“çš„åŒæ—¶æ”¶åˆ°ä¸€ä»½ GPL çš„å‰¯æœ¬
-* å¦‚æœæ²¡æœ‰ï¼Œè¯·å‚é˜…<https://www.gnu.org/licenses/>
+* ÄúÓ¦¸ÃÔÚÊÕµ½±¾¿ªÔ´¿âµÄÍ¬Ê±ÊÕµ½Ò»·İ GPL µÄ¸±±¾
+* Èç¹ûÃ»ÓĞ£¬Çë²ÎÔÄ<https://www.gnu.org/licenses/>
 *
-* é¢å¤–æ³¨æ˜ï¼š
-* æœ¬å¼€æºåº“ä½¿ç”¨ GPL3.0 å¼€æºè®¸å¯è¯åè®® ä»¥ä¸Šè®¸å¯ç”³æ˜ä¸ºè¯‘æ–‡ç‰ˆæœ¬
-* è®¸å¯ç”³æ˜è‹±æ–‡ç‰ˆåœ¨ libraries/doc æ–‡ä»¶å¤¹ä¸‹çš„ GPL3_permission_statement.txt æ–‡ä»¶ä¸­
-* è®¸å¯è¯å‰¯æœ¬åœ¨ libraries æ–‡ä»¶å¤¹ä¸‹ å³è¯¥æ–‡ä»¶å¤¹ä¸‹çš„ LICENSE æ–‡ä»¶
-* æ¬¢è¿å„ä½ä½¿ç”¨å¹¶ä¼ æ’­æœ¬ç¨‹åº ä½†ä¿®æ”¹å†…å®¹æ—¶å¿…é¡»ä¿ç•™é€é£ç§‘æŠ€çš„ç‰ˆæƒå£°æ˜ï¼ˆå³æœ¬å£°æ˜ï¼‰
+* ¶îÍâ×¢Ã÷£º
+* ±¾¿ªÔ´¿âÊ¹ÓÃ GPL3.0 ¿ªÔ´Ğí¿ÉÖ¤Ğ­Òé ÒÔÉÏĞí¿ÉÉêÃ÷ÎªÒëÎÄ°æ±¾
+* Ğí¿ÉÉêÃ÷Ó¢ÎÄ°æÔÚ libraries/doc ÎÄ¼ş¼ĞÏÂµÄ GPL3_permission_statement.txt ÎÄ¼şÖĞ
+* Ğí¿ÉÖ¤¸±±¾ÔÚ libraries ÎÄ¼ş¼ĞÏÂ ¼´¸ÃÎÄ¼ş¼ĞÏÂµÄ LICENSE ÎÄ¼ş
+* »¶Ó­¸÷Î»Ê¹ÓÃ²¢´«²¥±¾³ÌĞò µ«ĞŞ¸ÄÄÚÈİÊ±±ØĞë±£ÁôÖğ·É¿Æ¼¼µÄ°æÈ¨ÉùÃ÷£¨¼´±¾ÉùÃ÷£©
 *
-* æ–‡ä»¶åç§°          zf_driver_spi
-* å…¬å¸åç§°          æˆéƒ½é€é£ç§‘æŠ€æœ‰é™å…¬å¸
-* ç‰ˆæœ¬ä¿¡æ¯          æŸ¥çœ‹ libraries/doc æ–‡ä»¶å¤¹å†… version æ–‡ä»¶ ç‰ˆæœ¬è¯´æ˜
-* å¼€å‘ç¯å¢ƒ          ADS v1.10.2
-* é€‚ç”¨å¹³å°          TC264D
-* åº—é“ºé“¾æ¥          https://seekfree.taobao.com/
+* ÎÄ¼şÃû³Æ          zf_driver_spi
+* ¹«Ë¾Ãû³Æ          ³É¶¼Öğ·É¿Æ¼¼ÓĞÏŞ¹«Ë¾
+* °æ±¾ĞÅÏ¢          ²é¿´ libraries/doc ÎÄ¼ş¼ĞÄÚ version ÎÄ¼ş °æ±¾ËµÃ÷
+* ¿ª·¢»·¾³          ADS v1.10.2
+* ÊÊÓÃÆ½Ì¨          TC264D
+* µêÆÌÁ´½Ó          https://seekfree.taobao.com/
 *
-* ä¿®æ”¹è®°å½•
-* æ—¥æœŸ              ä½œè€…                å¤‡æ³¨
+* ĞŞ¸Ä¼ÇÂ¼
+* ÈÕÆÚ              ×÷Õß                ±¸×¢
 * 2022-09-15       pudding            first version
-* 2023-04-28       pudding            ä¿®å¤å¤šä¸ªSPIåŒæ—¶ä½¿ç”¨å¯èƒ½äº§ç”Ÿå†²çªçš„é—®é¢˜
-* 2025-02-07       pudding            ä¿®å¤16ä½é€šè®¯çš„å¼‚å¸¸é”™ä½é—®é¢˜
+* 2023-04-28       pudding            ĞŞ¸´¶à¸öSPIÍ¬Ê±Ê¹ÓÃ¿ÉÄÜ²úÉú³åÍ»µÄÎÊÌâ
+* 2025-02-07       pudding            ĞŞ¸´16Î»Í¨Ñ¶µÄÒì³£´íÎ»ÎÊÌâ
 ********************************************************************************************************************/
 
 #include "IFXQSPI_REGDEF.h"
@@ -42,7 +43,6 @@
 #include "zf_driver_gpio.h"
 #include "zf_driver_delay.h"
 #include "zf_driver_spi.h"
-#include "IfxStm.h"
 
 #define MAX_BAUD    50000000
 Ifx_QSPI_BACON      bacon[4];
@@ -197,16 +197,16 @@ void spi_mux (spi_index_enum spi_n, spi_sck_pin_enum sck_pin, spi_mosi_pin_enum 
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPIæ¸…é™¤æ¥æ”¶ç¼“å­˜åŒºæ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_clear_fifo(SPI_1);
-// å¤‡æ³¨ä¿¡æ¯       å†…éƒ¨è°ƒç”¨ï¼Œç”¨æˆ·æ— éœ€å…³å¿ƒ
+// º¯Êı¼ò½é       SPIÇå³ı½ÓÊÕ»º´æÇøÊı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_clear_fifo(SPI_1);
+// ±¸×¢ĞÅÏ¢       ÄÚ²¿µ÷ÓÃ£¬ÓÃ»§ÎŞĞè¹ØĞÄ
 //-------------------------------------------------------------------------------------------------------------------
 static void spi_clear_fifo (Ifx_QSPI *moudle)
 {
     uint32 fifo_num;
-    // å°†ä¹‹å‰fifoä¸­çš„æ•°æ®å…¨è¯»è¯»å–å‡ºæ¥
+    // ½«Ö®Ç°fifoÖĞµÄÊı¾İÈ«¶Á¶ÁÈ¡³öÀ´
     fifo_num = moudle->STATUS.B.RXFIFOLEVEL;
     while(fifo_num --)
     {
@@ -216,799 +216,762 @@ static void spi_clear_fifo (Ifx_QSPI *moudle)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å†™ 8bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       data            æ•°æ®
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_8bit(SPI_1, 0x11);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚĞ´ 8bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       data            Êı¾İ
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_8bit(SPI_1, 0x11);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_8bit (spi_index_enum spi_n, const uint8 data)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, data);                    // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, data);                    // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å†™ 8bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_8bit_array(SPI_1, data, 64);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚĞ´ 8bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_8bit_array(SPI_1, data, 64);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_8bit_array (spi_index_enum spi_n, const uint8 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
     do
     {
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, *data ++);                    // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, *data ++);                    // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å†™ 16bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       data            æ•°æ®
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_16bit(SPI_1, 0x1101);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚĞ´ 16bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       data            Êı¾İ
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_16bit(SPI_1, 0x1101);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_16bit (spi_index_enum spi_n, const uint16 data)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((data & 0xFF00) >> 8)); // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((data & 0xFF00) >> 8)); // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(data & 0x00FF));  // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(data & 0x00FF));  // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å†™ 16bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_16bit_array(SPI_1, data, 64);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚĞ´ 16bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_16bit_array(SPI_1, data, 64);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_16bit_array (spi_index_enum spi_n, const uint16 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
     do
     {
 
-        IfxQspi_writeTransmitFifo(moudle, (uint8)((*data & 0xFF00) >> 8));  // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)((*data & 0xFF00) >> 8));  // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-        if(len == 1)                                                // æœ€åä¸€ä¸ªæ•°æ®
+        if(len == 1)                                                // ×îºóÒ»¸öÊı¾İ
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, (uint8)(*data++ & 0x00FF));       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)(*data++ & 0x00FF));       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å‘ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨å†™ 8bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       data            æ•°æ®
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹        spi_write_8bit_register(SPI_1, 0x11, 0x01);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚÏò´«¸ĞÆ÷µÄ¼Ä´æÆ÷Ğ´ 8bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       data            Êı¾İ
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı        spi_write_8bit_register(SPI_1, 0x11, 0x01);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_8bit_register (spi_index_enum spi_n, const uint8 register_name, const uint8 data)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeTransmitFifo(moudle, register_name);           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, register_name);           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, data);                    // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, data);                    // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å‘ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨å†™ 8bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_8bit_registers(SPI_1, 0x11, data, 32);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚÏò´«¸ĞÆ÷µÄ¼Ä´æÆ÷Ğ´ 8bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_8bit_registers(SPI_1, 0x11, data, 32);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_8bit_registers (spi_index_enum spi_n, const uint8 register_name, const uint8 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);        // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);        // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, register_name);           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, register_name);           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
     do
     {
-        if(len == 1)                                            // æœ€åä¸€ä¸ªæ•°æ®
+        if(len == 1)                                            // ×îºóÒ»¸öÊı¾İ
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, *data ++);            // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, *data ++);            // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
 
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å‘ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨å†™ 16bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       data            æ•°æ®
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_16bit_register(SPI_1, 0x1011, 0x0101);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚÏò´«¸ĞÆ÷µÄ¼Ä´æÆ÷Ğ´ 16bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       data            Êı¾İ
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_16bit_register(SPI_1, 0x1011, 0x0101);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_16bit_register (spi_index_enum spi_n, const uint16 register_name, const uint16 data)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));  // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));  // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));         // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));         // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((data & 0xFF00) >> 8));           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((data & 0xFF00) >> 8));           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(data & 0x00FF));  // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(data & 0x00FF));  // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£å‘ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨å†™ 16bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_write_16bit_registers(SPI_1, 0x1011, data, 32);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿ÚÏò´«¸ĞÆ÷µÄ¼Ä´æÆ÷Ğ´ 16bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_write_16bit_registers(SPI_1, 0x1011, data, 32);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_write_16bit_registers (spi_index_enum spi_n, const uint16 register_name, const uint16 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));  // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));  // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));         // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));         // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // ç­‰å¾…å‘é€å®Œæ¯•
+    while(moudle->STATUS.B.TXFIFOLEVEL != 0);                   // µÈ´ı·¢ËÍÍê±Ï
 
     do
     {
-        IfxQspi_writeTransmitFifo(moudle, (uint8)((*data & 0xFF00) >> 8));      // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)((*data & 0xFF00) >> 8));      // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
 
-        if(len == 1)                                            // æœ€åä¸€ä¸ªæ•°æ®
+        if(len == 1)                                            // ×îºóÒ»¸öÊı¾İ
         {
-           IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);           // å‘é€æ•°æ®åCSæ‹‰é«˜
+           IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);           // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, (uint8)(*data ++ & 0x00FF));          // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)(*data ++ & 0x00FF));          // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+        while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
 
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£è¯» 8bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// è¿”å›å‚æ•°       uint8           æ•°æ®
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_8bit(SPI_1);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú¶Á 8bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ·µ»Ø²ÎÊı       uint8           Êı¾İ
+// Ê¹ÓÃÊ¾Àı       spi_read_8bit(SPI_1);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 uint8 spi_read_8bit (spi_index_enum spi_n)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    spi_clear_fifo(moudle);                                     // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                     // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 
-    return (uint8)IfxQspi_readReceiveFifo(moudle);              // è¿”å›æ¥æ”¶åˆ°çš„æ•°æ®
+    return (uint8)IfxQspi_readReceiveFifo(moudle);              // ·µ»Ø½ÓÊÕµ½µÄÊı¾İ
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£è¯» 8bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             å‘é€ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_8bit_array(SPI_1, data, 64);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú¶Á 8bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             ·¢ËÍ»º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_read_8bit_array(SPI_1, data, 64);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_read_8bit_array (spi_index_enum spi_n, uint8 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                     // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                     // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
-        if(len == 1)                                            // æœ€åä¸€ä¸ªæ•°æ®
+        if(len == 1)                                            // ×îºóÒ»¸öÊı¾İ
         {
-           IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);           // å‘é€æ•°æ®åCSæ‹‰é«˜
+           IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);           // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, 0);                   // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                   // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data++ = (uint8)IfxQspi_readReceiveFifo(moudle);       // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+        *data++ = (uint8)IfxQspi_readReceiveFifo(moudle);       // ±£´æ½ÓÊÕµ½µÄÊı¾İ
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£è¯» 16bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// è¿”å›å‚æ•°       uint16          æ•°æ®
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_16bit(SPI_1);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú¶Á 16bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ·µ»Ø²ÎÊı       uint16          Êı¾İ
+// Ê¹ÓÃÊ¾Àı       spi_read_16bit(SPI_1);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 uint16 spi_read_16bit (spi_index_enum spi_n)
 {
     uint16 data = 0;
 
-    volatile Ifx_QSPI *moudle;                                  // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                  // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);          // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);// ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                     // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                     // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-    data = (uint16)IfxQspi_readReceiveFifo(moudle);             // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+    data = (uint16)IfxQspi_readReceiveFifo(moudle);             // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);  // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-    data = ((data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));             // æ‹Ÿåˆæ¥æ”¶åˆ°çš„æ•°æ®
+    data = ((data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));             // ÄâºÏ½ÓÊÕµ½µÄÊı¾İ
 
-    while(moudle->STATUS.B.PT1F == 0);                          // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                          // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                         // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                         // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 
-    return data;                                                // è¿”å›æ¥æ”¶åˆ°çš„æ•°æ®
+    return data;                                                // ·µ»Ø½ÓÊÕµ½µÄÊı¾İ
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£è¯» 16bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             å‘é€ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_16bit_array(SPI_1, data, 64);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú¶Á 16bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             ·¢ËÍ»º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_read_16bit_array(SPI_1, data, 64);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_read_16bit_array (spi_index_enum spi_n, uint16 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
-        IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data = (uint16)IfxQspi_readReceiveFifo(moudle);            // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+        *data = (uint16)IfxQspi_readReceiveFifo(moudle);            // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data = ((*data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));            // æ‹Ÿåˆæ¥æ”¶åˆ°çš„æ•°æ®
+        *data = ((*data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));            // ÄâºÏ½ÓÊÕµ½µÄÊı¾İ
 
         data ++;
 
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£ä»ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨è¯» 8bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// è¿”å›å‚æ•°       uint8           æ•°æ®
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_8bit_register(SPI_1, 0x11);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú´Ó´«¸ĞÆ÷µÄ¼Ä´æÆ÷¶Á 8bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ·µ»Ø²ÎÊı       uint8           Êı¾İ
+// Ê¹ÓÃÊ¾Àı       spi_read_8bit_register(SPI_1, 0x11);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 uint8 spi_read_8bit_register (spi_index_enum spi_n, const uint8 register_name)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, register_name);               // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, register_name);               // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 
-    return (uint8)IfxQspi_readReceiveFifo(moudle);                  // è¿”å›æ¥æ”¶åˆ°çš„æ•°æ®
+    return (uint8)IfxQspi_readReceiveFifo(moudle);                  // ·µ»Ø½ÓÊÕµ½µÄÊı¾İ
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£ä»ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨è¯» 8bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             å‘é€ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_8bit_registers(SPI_1, 0x11, data, 32);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú´Ó´«¸ĞÆ÷µÄ¼Ä´æÆ÷¶Á 8bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             ·¢ËÍ»º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_read_8bit_registers(SPI_1, 0x11, data, 32);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_read_8bit_registers (spi_index_enum spi_n, const uint8 register_name, uint8 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, register_name);               // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, register_name);               // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data ++ = (uint8)IfxQspi_readReceiveFifo(moudle);          // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+        *data ++ = (uint8)IfxQspi_readReceiveFifo(moudle);          // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£ä»ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨è¯» 16bit æ•°æ®
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// è¿”å›å‚æ•°       uint16          æ•°æ®
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_16bit_register(SPI_1, 0x1011);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú´Ó´«¸ĞÆ÷µÄ¼Ä´æÆ÷¶Á 16bit Êı¾İ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ·µ»Ø²ÎÊı       uint16          Êı¾İ
+// Ê¹ÓÃÊ¾Àı       spi_read_16bit_register(SPI_1, 0x1011);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 uint16 spi_read_16bit_register (spi_index_enum spi_n, const uint16 register_name)
 {
     uint16 data = 0;
 
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));      // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));      // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•   é¦–æ¬¡å‘é€æ•°æ® æ­¤æ—¶æ¥æ”¶ç¼“å†²åŒºæ— æ•°æ®
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï   Ê×´Î·¢ËÍÊı¾İ ´ËÊ±½ÓÊÕ»º³åÇøÎŞÊı¾İ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));             // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));             // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 1);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•   å†æ¬¡å‘é€æ•°æ® æ­¤æ—¶æ¥æ”¶ç¼“å†²åŒºæœ‰1ä¸ªæ•°æ®
+    while(moudle->STATUS.B.RXFIFOLEVEL == 1);                       // µÈ´ı½ÓÊÕÍê±Ï   ÔÙ´Î·¢ËÍÊı¾İ ´ËÊ±½ÓÊÕ»º³åÇøÓĞ1¸öÊı¾İ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï
 
-    data |= (uint8)IfxQspi_readReceiveFifo(moudle);                 // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+    data |= (uint8)IfxQspi_readReceiveFifo(moudle);                 // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
-    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // å‘é€æ•°æ®åCSæ‹‰é«˜
+    IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);      // ·¢ËÍÊı¾İºóCSÀ­¸ß
 
-    IfxQspi_writeTransmitFifo(moudle, 0);                           // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, 0);                           // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï
 
-    data = ((data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle)); // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+    data = ((data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle)); // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 
     return data;
 }
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI æ¥å£ä»ä¼ æ„Ÿå™¨çš„å¯„å­˜å™¨è¯» 16bit æ•°ç»„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       register_name   å¯„å­˜å™¨åœ°å€
-// å‚æ•°è¯´æ˜       *data           æ•°æ®å­˜æ”¾ç¼“å†²åŒº
-// å‚æ•°è¯´æ˜       len             å‘é€ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_read_16bit_registers(SPI_1, 0x1101, data, 32);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI ½Ó¿Ú´Ó´«¸ĞÆ÷µÄ¼Ä´æÆ÷¶Á 16bit Êı×é
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       register_name   ¼Ä´æÆ÷µØÖ·
+// ²ÎÊıËµÃ÷       *data           Êı¾İ´æ·Å»º³åÇø
+// ²ÎÊıËµÃ÷       len             ·¢ËÍ»º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_read_16bit_registers(SPI_1, 0x1101, data, 32);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_read_16bit_registers (spi_index_enum spi_n, const uint16 register_name, uint16 *data, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));      // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)((register_name & 0xFF00) >> 8));      // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•   é¦–æ¬¡å‘é€æ•°æ® æ­¤æ—¶æ¥æ”¶ç¼“å†²åŒºæ— æ•°æ®
+    while(moudle->STATUS.B.RXFIFOLEVEL == 0);                       // µÈ´ı½ÓÊÕÍê±Ï   Ê×´Î·¢ËÍÊı¾İ ´ËÊ±½ÓÊÕ»º³åÇøÎŞÊı¾İ
 
-    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));             // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+    IfxQspi_writeTransmitFifo(moudle, (uint8)(register_name & 0x00FF));             // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-    while(moudle->STATUS.B.RXFIFOLEVEL == 1);                       // ç­‰å¾…æ¥æ”¶å®Œæ¯•   å†æ¬¡å‘é€æ•°æ® æ­¤æ—¶æ¥æ”¶ç¼“å†²åŒºæœ‰1ä¸ªæ•°æ®
+    while(moudle->STATUS.B.RXFIFOLEVEL == 1);                       // µÈ´ı½ÓÊÕÍê±Ï   ÔÙ´Î·¢ËÍÊı¾İ ´ËÊ±½ÓÊÕ»º³åÇøÓĞ1¸öÊı¾İ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
-        IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data |= (uint8)IfxQspi_readReceiveFifo(moudle);            // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+        *data |= (uint8)IfxQspi_readReceiveFifo(moudle);            // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, 0);                       // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, 0);                       // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
-        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // ç­‰å¾…æ¥æ”¶å®Œæ¯•
+        while(moudle->STATUS.B.RXFIFOLEVEL == 0);                   // µÈ´ı½ÓÊÕÍê±Ï
 
-        *data = ((*data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));             // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+        *data = ((*data << 8) | (uint16)IfxQspi_readReceiveFifo(moudle));             // ±£´æ½ÓÊÕµ½µÄÊı¾İ
 
         data ++;
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI 8bit æ•°æ®ä¼ è¾“ å‘é€ä¸æ¥æ”¶æ•°æ®æ˜¯åŒæ—¶è¿›è¡Œçš„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       write_buffer    å‘é€çš„æ•°æ®ç¼“å†²åŒºåœ°å€
-// å‚æ•°è¯´æ˜       read_buffer     å‘é€æ•°æ®æ—¶æ¥æ”¶åˆ°çš„æ•°æ®çš„å­˜å‚¨åœ°å€(ä¸éœ€è¦æ¥æ”¶åˆ™ä¼  NULL)
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_transfer_8bit(SPI_1, buf, buf, 1);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI 8bit Êı¾İ´«Êä ·¢ËÍÓë½ÓÊÕÊı¾İÊÇÍ¬Ê±½øĞĞµÄ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       write_buffer    ·¢ËÍµÄÊı¾İ»º³åÇøµØÖ·
+// ²ÎÊıËµÃ÷       read_buffer     ·¢ËÍÊı¾İÊ±½ÓÊÕµ½µÄÊı¾İµÄ´æ´¢µØÖ·(²»ĞèÒª½ÓÊÕÔò´« NULL)
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_transfer_8bit(SPI_1, buf, buf, 1);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
-/* STM deadline bounds RX/TX/end-of-frame waits; unrelated SPI APIs retain
- * their existing behaviour. Drain every received byte even for write-only IO. */
-uint8 spi_transfer_8bit_timeout(spi_index_enum spi_n, const uint8 *write_buffer,
-                               uint8 *read_buffer, uint32 len, uint32 timeout_ms)
-{
-    volatile Ifx_QSPI *module = IfxQspi_getAddress((IfxQspi_Index)spi_n);
-    uint32 started, timeout_ticks, i;
-    if (!len) return 0;
-    if (!timeout_ms || timeout_ms > 1000u) return 1;
-    timeout_ticks = (uint32)(IfxStm_getFrequency(&MODULE_STM0) / 1000.0f) * timeout_ms;
-    if (!timeout_ticks) return 1;
-    started = IfxStm_getLower(&MODULE_STM0);
-    spi_clear_fifo(module);
-    IfxQspi_clearAllEventFlags(module);
-    IfxQspi_writeBasicConfigurationBeginStream(module, bacon[spi_n].U);
-    for (i=0; i<len; ++i) {
-        uint8 tx = write_buffer ? write_buffer[i] : 0;
-        uint8 rx;
-        if (i+1 == len) IfxQspi_writeBasicConfigurationEndStream(module, bacon[spi_n].U);
-        IfxQspi_writeTransmitFifo(module, tx);
-        while (module->STATUS.B.RXFIFOLEVEL == 0) {
-            if ((uint32)(IfxStm_getLower(&MODULE_STM0)-started) >= timeout_ticks) goto timeout;
-        }
-        rx = (uint8)IfxQspi_readReceiveFifo(module);
-        if (read_buffer) read_buffer[i] = rx;
-    }
-    while (module->STATUS.B.PT1F == 0) {
-        if ((uint32)(IfxStm_getLower(&MODULE_STM0)-started) >= timeout_ticks) goto timeout;
-    }
-    IfxQspi_clearAllEventFlags(module);
-    return 0;
-timeout:
-    spi_clear_fifo(module);
-    IfxQspi_clearAllEventFlags(module);
-    return 1;
-}
-
 void spi_transfer_8bit (spi_index_enum spi_n, const uint8 *write_buffer, uint8 *read_buffer, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);              // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, *write_buffer ++);                        // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, *write_buffer ++);                        // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
         if(read_buffer != NULL)
         {
-            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // ç­‰å¾…æ¥æ”¶å®Œæ¯•
-            *read_buffer ++ = (uint8)IfxQspi_readReceiveFifo(moudle);               // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // µÈ´ı½ÓÊÕÍê±Ï
+            *read_buffer ++ = (uint8)IfxQspi_readReceiveFifo(moudle);               // ±£´æ½ÓÊÕµ½µÄÊı¾İ
         }
         else
         {
-            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
         }
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// å‡½æ•°ç®€ä»‹       SPI 16bit æ•°æ®ä¼ è¾“ å‘é€ä¸æ¥æ”¶æ•°æ®æ˜¯åŒæ—¶è¿›è¡Œçš„
-// å‚æ•°è¯´æ˜       spi_n           SPI æ¨¡å—å· å‚ç…§ zf_driver_spi.h å†… spi_index_enum æšä¸¾ä½“å®šä¹‰
-// å‚æ•°è¯´æ˜       write_buffer    å‘é€çš„æ•°æ®ç¼“å†²åŒºåœ°å€
-// å‚æ•°è¯´æ˜       read_buffer     å‘é€æ•°æ®æ—¶æ¥æ”¶åˆ°çš„æ•°æ®çš„å­˜å‚¨åœ°å€(ä¸éœ€è¦æ¥æ”¶åˆ™ä¼  NULL)
-// å‚æ•°è¯´æ˜       len             ç¼“å†²åŒºé•¿åº¦
-// è¿”å›å‚æ•°       void
-// ä½¿ç”¨ç¤ºä¾‹       spi_transfer_16bit(SPI_1, buf, buf, 1);
-// å¤‡æ³¨ä¿¡æ¯
+// º¯Êı¼ò½é       SPI 16bit Êı¾İ´«Êä ·¢ËÍÓë½ÓÊÕÊı¾İÊÇÍ¬Ê±½øĞĞµÄ
+// ²ÎÊıËµÃ÷       spi_n           SPI Ä£¿éºÅ ²ÎÕÕ zf_driver_spi.h ÄÚ spi_index_enum Ã¶¾ÙÌå¶¨Òå
+// ²ÎÊıËµÃ÷       write_buffer    ·¢ËÍµÄÊı¾İ»º³åÇøµØÖ·
+// ²ÎÊıËµÃ÷       read_buffer     ·¢ËÍÊı¾İÊ±½ÓÊÕµ½µÄÊı¾İµÄ´æ´¢µØÖ·(²»ĞèÒª½ÓÊÕÔò´« NULL)
+// ²ÎÊıËµÃ÷       len             »º³åÇø³¤¶È
+// ·µ»Ø²ÎÊı       void
+// Ê¹ÓÃÊ¾Àı       spi_transfer_16bit(SPI_1, buf, buf, 1);
+// ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_transfer_16bit (spi_index_enum spi_n, const uint16 *write_buffer, uint16 *read_buffer, uint32 len)
 {
-    volatile Ifx_QSPI *moudle;                                      // å®šä¹‰SPIæ¨¡å—å¯¹è±¡
+    volatile Ifx_QSPI *moudle;                                      // ¶¨ÒåSPIÄ£¿é¶ÔÏó
 
-    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // è·å–æ¨¡å—åœ°å€
+    moudle = IfxQspi_getAddress((IfxQspi_Index)spi_n);              // »ñÈ¡Ä£¿éµØÖ·
 
-    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // å‘é€æ•°æ®åCSç»§ç»­ä¿æŒä¸ºä½
+    IfxQspi_writeBasicConfigurationBeginStream(moudle, bacon[spi_n].U);    // ·¢ËÍÊı¾İºóCS¼ÌĞø±£³ÖÎªµÍ
 
-    spi_clear_fifo(moudle);                                         // æ¸…é™¤æ¥æ”¶ç¼“å­˜åŒº
+    spi_clear_fifo(moudle);                                         // Çå³ı½ÓÊÕ»º´æÇø
 
     do
     {
-        IfxQspi_writeTransmitFifo(moudle, (uint8)((*write_buffer & 0xFF00) >> 8));        // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)((*write_buffer & 0xFF00) >> 8));        // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
         if(read_buffer != NULL)
         {
-            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // ç­‰å¾…æ¥æ”¶å®Œæ¯•
-            *read_buffer = ((uint16)IfxQspi_readReceiveFifo(moudle) & 0x00FF);          // ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // µÈ´ı½ÓÊÕÍê±Ï
+            *read_buffer = ((uint16)IfxQspi_readReceiveFifo(moudle) & 0x00FF);          // ±£´æ½ÓÊÕµ½µÄÊı¾İ
         }
         else
         {
-            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
         }
 
         if(len == 1)
         {
-            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);                  // å‘é€æ•°æ®åCSæ‹‰é«˜
+            IfxQspi_writeBasicConfigurationEndStream(moudle, bacon[spi_n].U);                  // ·¢ËÍÊı¾İºóCSÀ­¸ß
         }
 
-        IfxQspi_writeTransmitFifo(moudle, (uint8)(*write_buffer & 0x00FF));             // å°†å‘é€çš„æ•°æ®å†™å…¥ç¼“å†²åŒº
+        IfxQspi_writeTransmitFifo(moudle, (uint8)(*write_buffer & 0x00FF));             // ½«·¢ËÍµÄÊı¾İĞ´Èë»º³åÇø
 
         if(read_buffer != NULL)
         {
-            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // ç­‰å¾…æ¥æ”¶å®Œæ¯•
-            *read_buffer = (*read_buffer << 8) | (uint16)IfxQspi_readReceiveFifo(moudle);// ä¿å­˜æ¥æ”¶åˆ°çš„æ•°æ®
+            while(moudle->STATUS.B.RXFIFOLEVEL == 0);               // µÈ´ı½ÓÊÕÍê±Ï
+            *read_buffer = (*read_buffer << 8) | (uint16)IfxQspi_readReceiveFifo(moudle);// ±£´æ½ÓÊÕµ½µÄÊı¾İ
         }
         else
         {
-            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // ç­‰å¾…å‘é€å®Œæ¯•
+            while(moudle->STATUS.B.TXFIFOLEVEL != 0);               // µÈ´ı·¢ËÍÍê±Ï
         }
 
         write_buffer ++;
         read_buffer ++;
     }while(-- len);
 
-    while(moudle->STATUS.B.PT1F == 0);                              // ç­‰å¾…ç»“æŸæ ‡å¿—ä½
+    while(moudle->STATUS.B.PT1F == 0);                              // µÈ´ı½áÊø±êÖ¾Î»
 
-    IfxQspi_clearAllEventFlags(moudle);                             // æ¸…é™¤å‘é€ç»“æŸæ ‡å¿—ä½
+    IfxQspi_clearAllEventFlags(moudle);                             // Çå³ı·¢ËÍ½áÊø±êÖ¾Î»
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-//  å‡½æ•°ç®€ä»‹      SPIåˆå§‹åŒ–
-//  å‚æ•°è¯´æ˜      spi_n           é€‰æ‹©SPIæ¨¡å—(SPI_1-SPI_4)
-//  å‚æ•°è¯´æ˜      mode            SPIæ¨¡å¼ 0ï¼šCPOL=0 CPHA=0    1ï¼šCPOL=0 CPHA=1   2ï¼šCPOL=1 CPHA=0   3ï¼šCPOL=1 CPHA=1  // å…·ä½“ç»†èŠ‚å¯è‡ªè¡ŒæŸ¥é˜…èµ„æ–™
-//  å‚æ•°è¯´æ˜      baud            è®¾ç½®SPIçš„æ³¢ç‰¹ç‡
-//  å‚æ•°è¯´æ˜      cs_pin          é€‰æ‹©SPIç‰‡é€‰å¼•è„š
-//  å‚æ•°è¯´æ˜      sck_pin         é€‰æ‹©SPIæ—¶é’Ÿå¼•è„š
-//  å‚æ•°è¯´æ˜      mosi_pin        é€‰æ‹©SPI MOSIå¼•è„š
-//  å‚æ•°è¯´æ˜      miso_pin        é€‰æ‹©SPI MISOå¼•è„š
-//  è¿”å›å‚æ•°      void
-//  ä½¿ç”¨ç¤ºä¾‹      spi_init(SPI_2, SPI_MODE0, 1*1000*1000, SPI2_SCLK_P15_3, SPI2_MOSI_P15_5, SPI2_MISO_P15_4, SPI2_CS0_P15_2); // ç¡¬ä»¶SPIåˆå§‹åŒ–  æ¨¡å¼0 æ³¢ç‰¹ç‡ä¸º1Mhz
-//  å¤‡æ³¨ä¿¡æ¯
+//  º¯Êı¼ò½é      SPI³õÊ¼»¯
+//  ²ÎÊıËµÃ÷      spi_n           Ñ¡ÔñSPIÄ£¿é(SPI_1-SPI_4)
+//  ²ÎÊıËµÃ÷      mode            SPIÄ£Ê½ 0£ºCPOL=0 CPHA=0    1£ºCPOL=0 CPHA=1   2£ºCPOL=1 CPHA=0   3£ºCPOL=1 CPHA=1  // ¾ßÌåÏ¸½Ú¿É×ÔĞĞ²éÔÄ×ÊÁÏ
+//  ²ÎÊıËµÃ÷      baud            ÉèÖÃSPIµÄ²¨ÌØÂÊ
+//  ²ÎÊıËµÃ÷      cs_pin          Ñ¡ÔñSPIÆ¬Ñ¡Òı½Å
+//  ²ÎÊıËµÃ÷      sck_pin         Ñ¡ÔñSPIÊ±ÖÓÒı½Å
+//  ²ÎÊıËµÃ÷      mosi_pin        Ñ¡ÔñSPI MOSIÒı½Å
+//  ²ÎÊıËµÃ÷      miso_pin        Ñ¡ÔñSPI MISOÒı½Å
+//  ·µ»Ø²ÎÊı      void
+//  Ê¹ÓÃÊ¾Àı      spi_init(SPI_2, SPI_MODE0, 1*1000*1000, SPI2_SCLK_P15_3, SPI2_MOSI_P15_5, SPI2_MISO_P15_4, SPI2_CS0_P15_2); // Ó²¼şSPI³õÊ¼»¯  Ä£Ê½0 ²¨ÌØÂÊÎª1Mhz
+//  ±¸×¢ĞÅÏ¢
 //-------------------------------------------------------------------------------------------------------------------
 void spi_init (spi_index_enum spi_n, spi_mode_enum mode, uint32 baud, spi_sck_pin_enum sck_pin, spi_mosi_pin_enum mosi_pin, spi_miso_pin_enum miso_pin, spi_cs_pin_enum cs_pin)
 {
@@ -1020,8 +983,8 @@ void spi_init (spi_index_enum spi_n, spi_mode_enum mode, uint32 baud, spi_sck_pi
     IfxQspi_SpiMaster_ChannelConfig MasterChConfig;
     volatile Ifx_QSPI *moudle;
 
-    // æ£€æŸ¥å¼•è„šæ˜¯å¦æ­£ç¡®
-    // å¦‚æœä»æ­¤å¤„è¿›å…¥æ–­è¨€ï¼Œåˆ™è¯´æ˜åˆå§‹åŒ–SPIæ—¶ï¼Œæ¨¡å—å·å’Œå¼•è„šå¹¶ä¸æ˜¯åŒä¸€æ¨¡å—
+    // ¼ì²éÒı½ÅÊÇ·ñÕıÈ·
+    // Èç¹û´Ó´Ë´¦½øÈë¶ÏÑÔ£¬ÔòËµÃ÷³õÊ¼»¯SPIÊ±£¬Ä£¿éºÅºÍÒı½Å²¢²»ÊÇÍ¬Ò»Ä£¿é
     zf_assert(spi_n == (sck_pin / 100));
     zf_assert(spi_n == (mosi_pin / 100));
     zf_assert(spi_n == (miso_pin / 100));
@@ -1111,3 +1074,40 @@ void spi_init (spi_index_enum spi_n, spi_mode_enum mode, uint32 baud, spi_sck_pi
     bacon[spi_n].B.CS      = cs_pin%102/6-3;
 }
 
+
+
+/* Preserved new-branch bounded runtime IMU transfer. */
+uint8 spi_transfer_8bit_timeout(spi_index_enum spi_n, const uint8 *write_buffer,
+                               uint8 *read_buffer, uint32 len, uint32 timeout_ms)
+{
+    volatile Ifx_QSPI *module = IfxQspi_getAddress((IfxQspi_Index)spi_n);
+    uint32 started, timeout_ticks, i;
+    if (!len) return 0;
+    if (!timeout_ms || timeout_ms > 1000u) return 1;
+    timeout_ticks = (uint32)(IfxStm_getFrequency(&MODULE_STM0) / 1000.0f) * timeout_ms;
+    if (!timeout_ticks) return 1;
+    started = IfxStm_getLower(&MODULE_STM0);
+    spi_clear_fifo(module);
+    IfxQspi_clearAllEventFlags(module);
+    IfxQspi_writeBasicConfigurationBeginStream(module, bacon[spi_n].U);
+    for (i=0; i<len; ++i) {
+        uint8 tx = write_buffer ? write_buffer[i] : 0;
+        uint8 rx;
+        if (i+1 == len) IfxQspi_writeBasicConfigurationEndStream(module, bacon[spi_n].U);
+        IfxQspi_writeTransmitFifo(module, tx);
+        while (module->STATUS.B.RXFIFOLEVEL == 0) {
+            if ((uint32)(IfxStm_getLower(&MODULE_STM0)-started) >= timeout_ticks) goto timeout;
+        }
+        rx = (uint8)IfxQspi_readReceiveFifo(module);
+        if (read_buffer) read_buffer[i] = rx;
+    }
+    while (module->STATUS.B.PT1F == 0) {
+        if ((uint32)(IfxStm_getLower(&MODULE_STM0)-started) >= timeout_ticks) goto timeout;
+    }
+    IfxQspi_clearAllEventFlags(module);
+    return 0;
+timeout:
+    spi_clear_fifo(module);
+    IfxQspi_clearAllEventFlags(module);
+    return 1;
+}

@@ -1,39 +1,66 @@
-/*********************************************************************************************************************
-* TC264 Opensourec Library 即（TC264 开源库）是一个基于官方 SDK 接口的第三方开源库
-* Copyright (c) 2022 SEEKFREE 逐飞科技
-*
-* 本文件是 TC264 开源库的一部分
-*
-* TC264 开源库 是免费软件
-* 您可以根据自由软件基金会发布的 GPL（GNU General Public License，即 GNU通用公共许可证）的条款
-* 即 GPL 的第3版（即 GPL3.0）或（您选择的）任何后来的版本，重新发布和/或修改它
-*
-* 本开源库的发布是希望它能发挥作用，但并未对其作任何的保证
-* 甚至没有隐含的适销性或适合特定用途的保证
-* 更多细节请参见 GPL
-*
-* 您应该在收到本开源库的同时收到一份 GPL 的副本
-* 如果没有，请参阅<https://www.gnu.org/licenses/>
-*
-* 额外注明：
-* 本开源库使用 GPL3.0 开源许可证协议 以上许可申明为译文版本
-* 许可申明英文版在 libraries/doc 文件夹下的 GPL3_permission_statement.txt 文件中
-* 许可证副本在 libraries 文件夹下 即该文件夹下的 LICENSE 文件
-* 欢迎各位使用并传播本程序 但修改内容时必须保留逐飞科技的版权声明（即本声明）
-*
-* 文件名称          isr_config
-* 公司名称          成都逐飞科技有限公司
-* 版本信息          查看 libraries/doc 文件夹内 version 文件 版本说明
-* 开发环境          ADS v1.8.0
-* 适用平台          TC264D
-* 店铺链接          https://seekfree.taobao.com/
-*
-* 修改记录
-* 日期              作者                备注
-* 2022-09-15       pudding            first version
-********************************************************************************************************************/
+#ifndef _isr_config_h
+#define _isr_config_h
 
-#ifndef ONEWHEEL_ISR_CONFIG_H
-#define ONEWHEEL_ISR_CONFIG_H
-#include "config.h"
+// 中断服务核与优先级配置。
+// INT_SERVICE 决定中断由哪个核响应。两个核共用 LCF_INTVEC0_START 这一张向量表，
+// 所以 isr.c 里 IFX_INTERRUPT 的第二个参数一律是 0，改服务核只改本文件。
+// 优先级必须全局唯一，跨核也不能重号，否则会落进同一个表项。
+// CPU 服务优先级范围 1~255，DMA 服务优先级范围 0~47。
+
+// CCU60_CH0：1ms 控制中断，运行在 CPU0
+#define CCU6_0_CH0_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_0_CH0_ISR_PRIORITY 30
+
+// CCU60_CH1、CCU61_CH0、CCU61_CH1 未使用，保留宏供 zf_driver_pit 编译
+#define CCU6_0_CH1_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_0_CH1_ISR_PRIORITY 31
+#define CCU6_1_CH0_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_1_CH0_ISR_PRIORITY 32
+#define CCU6_1_CH1_INT_SERVICE	IfxSrc_Tos_cpu0
+#define CCU6_1_CH1_ISR_PRIORITY 33
+
+// ERU 通道 0/4、1/5 未使用，保留宏供 zf_driver_exti 编译
+#define EXTI_CH0_CH4_INT_SERVICE IfxSrc_Tos_cpu0
+#define EXTI_CH0_CH4_INT_PRIO  	40
+#define EXTI_CH1_CH5_INT_SERVICE IfxSrc_Tos_cpu0
+#define EXTI_CH1_CH5_INT_PRIO  	41
+
+// ERU 通道 2：摄像头 PCLK，直接触发 DMA，不进 CPU，所以没有对应 ISR
+#define EXTI_CH2_CH6_INT_SERVICE IfxSrc_Tos_dma
+#define EXTI_CH2_CH6_INT_PRIO  	5
+
+// ERU 通道 3：摄像头场同步，运行在 CPU1
+#define EXTI_CH3_CH7_INT_SERVICE IfxSrc_Tos_cpu1
+#define EXTI_CH3_CH7_INT_PRIO  	43
+
+// DMA 通道 5：摄像头整场搬运完成，运行在 CPU1
+#define	DMA_INT_SERVICE         IfxSrc_Tos_cpu1
+#define DMA_DATA_CORE_ID        (1)                 // 预处理专用纯数字，DMA 状态放入 CPU1 DSRAM
+#define DMA_INT_PRIO  	        60
+
+// UART0 未使用，保留宏供 zf_driver_uart 编译。
+// 工程不调 debug_init()，UART0 从不初始化，所以 isr.c 里没有对应的中断服务函数。
+#define	UART0_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART0_TX_INT_PRIO       11
+#define UART0_RX_INT_PRIO       10
+#define UART0_ER_INT_PRIO       12
+
+// UART1：摄像头配置串口，与摄像头其余中断同核，运行在 CPU1
+#define	UART1_INT_SERVICE       IfxSrc_Tos_cpu1
+#define UART1_TX_INT_PRIO       13
+#define UART1_RX_INT_PRIO       14
+#define UART1_ER_INT_PRIO       15
+
+// UART2：无线转串口模块，调参与波形，运行在 CPU0
+#define	UART2_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART2_TX_INT_PRIO       16
+#define UART2_RX_INT_PRIO       17
+#define UART2_ER_INT_PRIO       18
+
+// UART3：CYT2BL3 双路无刷驱动，运行在 CPU0
+#define	UART3_INT_SERVICE       IfxSrc_Tos_cpu0
+#define UART3_TX_INT_PRIO       19
+#define UART3_RX_INT_PRIO       20
+#define UART3_ER_INT_PRIO       21
+
 #endif

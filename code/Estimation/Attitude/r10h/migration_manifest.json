@@ -1,0 +1,49 @@
+{
+  "upstream_path": "D:\\项目\\姿态解算\\660RB_Aplus_r10h_Portable",
+  "date": "2026-10-04",
+  "calibration": "identity; original specimen is not assumed to match this vehicle",
+  "candidate_math_byte_identical": [
+    "core\\candidate\\ahrs_types.h",
+    "core\\candidate\\compare_core.h",
+    "core\\candidate\\improved_ahrs.h",
+    "core\\candidate\\improved_ahrs.inc",
+    "core\\candidate\\IMU_Filtter.h",
+    "core\\candidate\\IMU_Filtter.inc",
+    "core\\candidate\\MahonyAhrs.h",
+    "core\\candidate\\MahonyAhrs.inc",
+    "core\\candidate\\r10_compare_core.inc",
+    "core\\candidate\\unicycle_ahrs.h",
+    "core\\candidate\\unicycle_ahrs.inc"
+  ],
+  "changes": [
+    "core/v3_calibration.h replaced with upstream identity template; C_MOTION_KP retained",
+    "six C entry files wrapped with TASKING CPU0 section directives",
+    "facade header/source use relative includes; math unchanged"
+  ],
+  "files_sha256": {
+    "README.md": "ff4be25f188fd3f433d00e888e56eef7c47aeb2def4e98f7d8b0606d9e567c8c",
+    "source_origin.json": "5f8b6de894b826af6379079545ca8d02fb1c361c20e5d37351bb2599f16577c4",
+    "UPSTREAM_SHA256SUMS.json": "99cba48346cb0e9cd06dc06cf4f1fd3ae651251ed7feeb6039c75aaecdc29165",
+    "core\\v2_compare_core.c": "7eb21e00d1e3db1db972b849e910ba1b6962da305d5e794ff4488e3134138230",
+    "core\\v2_improved_ahrs.c": "b279cc983ffb194b25ab0fe61a4f2a5970235dfc1dde70d7008ed48589781179",
+    "core\\v2_IMU_Filtter.c": "33b0bc8ad78233d0882ff7daed4ac41e1836fcb20cc9be927bcdc69e1e6c6ffb",
+    "core\\v2_MahonyAhrs.c": "92f2a9cbd83660e99fd8a92e00f8033a5dc3903e972182157b66169a86361371",
+    "core\\v2_prefix.h": "c696ac559d61c9805e9a62835ff73d16a53f5722223be2c5e6f40085e22135e8",
+    "core\\v2_unicycle_ahrs.c": "83a435d1f638133428493d0ed8f0e785007d537244fed9544e7b90297a876539",
+    "core\\v3_calibration.h": "bb27b02cdcb0615bbe035449c3d80c95aa84bca2388a0400a4eb942491f7d591",
+    "include\\r10h_attitude.h": "4347070315938c2e79fc08a2eeb2a152cb38f0924ac072f482266dcb5b64e5f4",
+    "LICENSES\\GPL-3.0.txt": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "src\\r10h_attitude.c": "8a9c16d76c69b1f5ac53ec5d2ec970da942a09a5769ac9945f4380b9a794b17f",
+    "core\\candidate\\ahrs_types.h": "b6a2a906cb13b21e93ff5855c3640b100b329b626d5ad4bfccf0b2752158833e",
+    "core\\candidate\\compare_core.h": "b9f295a7db5242909825e718c2d9ac1799bb231142d4b384f6b9fe7239a0d60c",
+    "core\\candidate\\improved_ahrs.h": "d0309a299b993cd6de309f4222e9e5b7ce1237f6f7621b4b1dc3cdd53e1d9da3",
+    "core\\candidate\\improved_ahrs.inc": "e89e4a4b95b5be836331a36cb02400ea04c7082684df7a9aaae0883eec163500",
+    "core\\candidate\\IMU_Filtter.h": "3f297db0c4a2f2559ced09698a1c642ee4d2841c0a6a485b85074d42cdb4401f",
+    "core\\candidate\\IMU_Filtter.inc": "70ddf6e994df1862c02330ace6fc06103686b4d9a33a14cc0831eae7a4030335",
+    "core\\candidate\\MahonyAhrs.h": "05ee7348cc5f16722fea2b3809d8793ddb8cab9165503de70d36e84b6cb29095",
+    "core\\candidate\\MahonyAhrs.inc": "930505c7fb6697da12f0c11807996915fa6154285f8ba91419166e44c1dc17d3",
+    "core\\candidate\\r10_compare_core.inc": "6535d0b37e7e2f9282e28833761d031d011f83c6c8ad3432c35f16c926bb11c8",
+    "core\\candidate\\unicycle_ahrs.h": "84544eeee20ae15989647031cfed565427a69adb0f4c8488c24fd4331fa805a7",
+    "core\\candidate\\unicycle_ahrs.inc": "fcd675c4295567876cc974752a7dd1a0354a74a9a84794d233b7be063695b5d5"
+  }
+}

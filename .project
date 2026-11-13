@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>OneWheelUpright</name>
+	<name>Qcar</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -37,4 +37,10 @@
 		<nature>com.infineon.aurix.buildsystem.aurixnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<filteredResources>
+		<filter>
+			<id>1788624000000</id><name></name><type>30</type>
+			<matcher><id>org.eclipse.core.resources.regexFilterMatcher</id><arguments>tools|\.ads|\.metadata|\.agents|chip_backup|\.tmp_memtool_help</arguments></matcher>
+		</filter>
+	</filteredResources>
 </projectDescription>

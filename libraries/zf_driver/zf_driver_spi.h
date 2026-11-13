@@ -1,37 +1,37 @@
 /*********************************************************************************************************************
-* TC264 Opensourec Library å³ï¼ˆTC264 å¼€æºåº“ï¼‰æ˜¯ä¸€ä¸ªåŸºäºå®˜æ–¹ SDK æ¥å£çš„ç¬¬ä¸‰æ–¹å¼€æºåº“
-* Copyright (c) 2022 SEEKFREE é€é£ç§‘æŠ€
+* TC264 Opensourec Library ¼´£¨TC264 ¿ªÔ´¿â£©ÊÇÒ»¸ö»ùÓÚ¹Ù·½ SDK ½Ó¿ÚµÄµÚÈı·½¿ªÔ´¿â
+* Copyright (c) 2022 SEEKFREE Öğ·É¿Æ¼¼
 *
-* æœ¬æ–‡ä»¶æ˜¯ TC264 å¼€æºåº“çš„ä¸€éƒ¨åˆ†
+* ±¾ÎÄ¼şÊÇ TC264 ¿ªÔ´¿âµÄÒ»²¿·Ö
 *
-* TC264 å¼€æºåº“ æ˜¯å…è´¹è½¯ä»¶
-* æ‚¨å¯ä»¥æ ¹æ®è‡ªç”±è½¯ä»¶åŸºé‡‘ä¼šå‘å¸ƒçš„ GPLï¼ˆGNU General Public Licenseï¼Œå³ GNUé€šç”¨å…¬å…±è®¸å¯è¯ï¼‰çš„æ¡æ¬¾
-* å³ GPL çš„ç¬¬3ç‰ˆï¼ˆå³ GPL3.0ï¼‰æˆ–ï¼ˆæ‚¨é€‰æ‹©çš„ï¼‰ä»»ä½•åæ¥çš„ç‰ˆæœ¬ï¼Œé‡æ–°å‘å¸ƒå’Œ/æˆ–ä¿®æ”¹å®ƒ
+* TC264 ¿ªÔ´¿â ÊÇÃâ·ÑÈí¼ş
+* Äú¿ÉÒÔ¸ù¾İ×ÔÓÉÈí¼ş»ù½ğ»á·¢²¼µÄ GPL£¨GNU General Public License£¬¼´ GNUÍ¨ÓÃ¹«¹²Ğí¿ÉÖ¤£©µÄÌõ¿î
+* ¼´ GPL µÄµÚ3°æ£¨¼´ GPL3.0£©»ò£¨ÄúÑ¡ÔñµÄ£©ÈÎºÎºóÀ´µÄ°æ±¾£¬ÖØĞÂ·¢²¼ºÍ/»òĞŞ¸ÄËü
 *
-* æœ¬å¼€æºåº“çš„å‘å¸ƒæ˜¯å¸Œæœ›å®ƒèƒ½å‘æŒ¥ä½œç”¨ï¼Œä½†å¹¶æœªå¯¹å…¶ä½œä»»ä½•çš„ä¿è¯
-* ç”šè‡³æ²¡æœ‰éšå«çš„é€‚é”€æ€§æˆ–é€‚åˆç‰¹å®šç”¨é€”çš„ä¿è¯
-* æ›´å¤šç»†èŠ‚è¯·å‚è§ GPL
+* ±¾¿ªÔ´¿âµÄ·¢²¼ÊÇÏ£ÍûËüÄÜ·¢»Ó×÷ÓÃ£¬µ«²¢Î´¶ÔÆä×÷ÈÎºÎµÄ±£Ö¤
+* ÉõÖÁÃ»ÓĞÒşº¬µÄÊÊÏúĞÔ»òÊÊºÏÌØ¶¨ÓÃÍ¾µÄ±£Ö¤
+* ¸ü¶àÏ¸½ÚÇë²Î¼û GPL
 *
-* æ‚¨åº”è¯¥åœ¨æ”¶åˆ°æœ¬å¼€æºåº“çš„åŒæ—¶æ”¶åˆ°ä¸€ä»½ GPL çš„å‰¯æœ¬
-* å¦‚æœæ²¡æœ‰ï¼Œè¯·å‚é˜…<https://www.gnu.org/licenses/>
+* ÄúÓ¦¸ÃÔÚÊÕµ½±¾¿ªÔ´¿âµÄÍ¬Ê±ÊÕµ½Ò»·İ GPL µÄ¸±±¾
+* Èç¹ûÃ»ÓĞ£¬Çë²ÎÔÄ<https://www.gnu.org/licenses/>
 *
-* é¢å¤–æ³¨æ˜ï¼š
-* æœ¬å¼€æºåº“ä½¿ç”¨ GPL3.0 å¼€æºè®¸å¯è¯åè®® ä»¥ä¸Šè®¸å¯ç”³æ˜ä¸ºè¯‘æ–‡ç‰ˆæœ¬
-* è®¸å¯ç”³æ˜è‹±æ–‡ç‰ˆåœ¨ libraries/doc æ–‡ä»¶å¤¹ä¸‹çš„ GPL3_permission_statement.txt æ–‡ä»¶ä¸­
-* è®¸å¯è¯å‰¯æœ¬åœ¨ libraries æ–‡ä»¶å¤¹ä¸‹ å³è¯¥æ–‡ä»¶å¤¹ä¸‹çš„ LICENSE æ–‡ä»¶
-* æ¬¢è¿å„ä½ä½¿ç”¨å¹¶ä¼ æ’­æœ¬ç¨‹åº ä½†ä¿®æ”¹å†…å®¹æ—¶å¿…é¡»ä¿ç•™é€é£ç§‘æŠ€çš„ç‰ˆæƒå£°æ˜ï¼ˆå³æœ¬å£°æ˜ï¼‰
+* ¶îÍâ×¢Ã÷£º
+* ±¾¿ªÔ´¿âÊ¹ÓÃ GPL3.0 ¿ªÔ´Ğí¿ÉÖ¤Ğ­Òé ÒÔÉÏĞí¿ÉÉêÃ÷ÎªÒëÎÄ°æ±¾
+* Ğí¿ÉÉêÃ÷Ó¢ÎÄ°æÔÚ libraries/doc ÎÄ¼ş¼ĞÏÂµÄ GPL3_permission_statement.txt ÎÄ¼şÖĞ
+* Ğí¿ÉÖ¤¸±±¾ÔÚ libraries ÎÄ¼ş¼ĞÏÂ ¼´¸ÃÎÄ¼ş¼ĞÏÂµÄ LICENSE ÎÄ¼ş
+* »¶Ó­¸÷Î»Ê¹ÓÃ²¢´«²¥±¾³ÌĞò µ«ĞŞ¸ÄÄÚÈİÊ±±ØĞë±£ÁôÖğ·É¿Æ¼¼µÄ°æÈ¨ÉùÃ÷£¨¼´±¾ÉùÃ÷£©
 *
-* æ–‡ä»¶åç§°          zf_driver_spi
-* å…¬å¸åç§°          æˆéƒ½é€é£ç§‘æŠ€æœ‰é™å…¬å¸
-* ç‰ˆæœ¬ä¿¡æ¯          æŸ¥çœ‹ libraries/doc æ–‡ä»¶å¤¹å†… version æ–‡ä»¶ ç‰ˆæœ¬è¯´æ˜
-* å¼€å‘ç¯å¢ƒ          ADS v1.10.2
-* é€‚ç”¨å¹³å°          TC264D
-* åº—é“ºé“¾æ¥          https://seekfree.taobao.com/
+* ÎÄ¼şÃû³Æ          zf_driver_spi
+* ¹«Ë¾Ãû³Æ          ³É¶¼Öğ·É¿Æ¼¼ÓĞÏŞ¹«Ë¾
+* °æ±¾ĞÅÏ¢          ²é¿´ libraries/doc ÎÄ¼ş¼ĞÄÚ version ÎÄ¼ş °æ±¾ËµÃ÷
+* ¿ª·¢»·¾³          ADS v1.10.2
+* ÊÊÓÃÆ½Ì¨          TC264D
+* µêÆÌÁ´½Ó          https://seekfree.taobao.com/
 *
-* ä¿®æ”¹è®°å½•
-* æ—¥æœŸ              ä½œè€…                å¤‡æ³¨
+* ĞŞ¸Ä¼ÇÂ¼
+* ÈÕÆÚ              ×÷Õß                ±¸×¢
 * 2022-09-15       pudding            first version
-* 2023-04-28       pudding            ä¿®å¤å¤šä¸ªSPIåŒæ—¶ä½¿ç”¨å¯èƒ½äº§ç”Ÿå†²çªçš„é—®é¢˜
+* 2023-04-28       pudding            ĞŞ¸´¶à¸öSPIÍ¬Ê±Ê¹ÓÃ¿ÉÄÜ²úÉú³åÍ»µÄÎÊÌâ
 ********************************************************************************************************************/
 
 #ifndef _zf_driver_spi_h_
@@ -39,7 +39,7 @@
 
 #include "zf_common_typedef.h"
 
-typedef enum        // SPIæ¨¡å—å·
+typedef enum        // SPIÄ£¿éºÅ
 {
     SPI_0,
     SPI_1,
@@ -47,7 +47,7 @@ typedef enum        // SPIæ¨¡å—å·
     SPI_3,
 }spi_index_enum;
 
-typedef enum        // æšä¸¾ SPI æ¨¡å¼ æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
+typedef enum        // Ã¶¾Ù SPI Ä£Ê½ ´ËÃ¶¾Ù¶¨Òå²»ÔÊĞíÓÃ»§ĞŞ¸Ä
 {
     SPI_MODE0,
     SPI_MODE1,
@@ -55,42 +55,42 @@ typedef enum        // æšä¸¾ SPI æ¨¡å¼ æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
     SPI_MODE3,
 }spi_mode_enum;
 
-typedef enum                                                                                                                // æšä¸¾SPI CLKå¼•è„š æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
+typedef enum                                                                                                                // Ã¶¾ÙSPI CLKÒı½Å ´ËÃ¶¾Ù¶¨Òå²»ÔÊĞíÓÃ»§ĞŞ¸Ä
 {
-    SPI0_SCLK_P20_11 = 0*102+0*6 , SPI0_SCLK_P20_13,                                                                        // SPI0 CLK å¼•è„šå¯é€‰èŒƒå›´
+    SPI0_SCLK_P20_11 = 0*102+0*6 , SPI0_SCLK_P20_13,                                                                        // SPI0 CLK Òı½Å¿ÉÑ¡·¶Î§
 
-    SPI1_SCLK_P10_2  = 1*102+0*6 , SPI1_SCLK_P11_6,                                                                         // SPI1 CLK å¼•è„šå¯é€‰èŒƒå›´
+    SPI1_SCLK_P10_2  = 1*102+0*6 , SPI1_SCLK_P11_6,                                                                         // SPI1 CLK Òı½Å¿ÉÑ¡·¶Î§
 
-    SPI2_SCLK_P13_0  = 2*102+0*6 , SPI2_SCLK_P13_1, SPI2_SCLK_P15_3, SPI2_SCLK_P15_6, SPI2_SCLK_P15_8,                      // SPI2 CLK å¼•è„šå¯é€‰èŒƒå›´
+    SPI2_SCLK_P13_0  = 2*102+0*6 , SPI2_SCLK_P13_1, SPI2_SCLK_P15_3, SPI2_SCLK_P15_6, SPI2_SCLK_P15_8,                      // SPI2 CLK Òı½Å¿ÉÑ¡·¶Î§
 
-    SPI3_SCLK_P02_7  = 3*102+0*6 , SPI3_SCLK_P22_0, SPI3_SCLK_P22_1, SPI3_SCLK_P22_3, SPI3_SCLK_P33_11,                     // SPI3 CLK å¼•è„šå¯é€‰èŒƒå›´
+    SPI3_SCLK_P02_7  = 3*102+0*6 , SPI3_SCLK_P22_0, SPI3_SCLK_P22_1, SPI3_SCLK_P22_3, SPI3_SCLK_P33_11,                     // SPI3 CLK Òı½Å¿ÉÑ¡·¶Î§
 }spi_sck_pin_enum;
 
-typedef enum                                                                                                                // æšä¸¾SPI MOSIå¼•è„š æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
+typedef enum                                                                                                                // Ã¶¾ÙSPI MOSIÒı½Å ´ËÃ¶¾Ù¶¨Òå²»ÔÊĞíÓÃ»§ĞŞ¸Ä
 {
-    SPI0_MOSI_P20_12 = 0*102+1*6 , SPI0_MOSI_P20_14,                                                                        // SPI0 MOSIå¼•è„šå¯é€‰èŒƒå›´
+    SPI0_MOSI_P20_12 = 0*102+1*6 , SPI0_MOSI_P20_14,                                                                        // SPI0 MOSIÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI1_MOSI_P10_1  = 1*102+1*6 , SPI1_MOSI_P10_3, SPI1_MOSI_P11_9,                                                        // SPI1 MOSIå¼•è„šå¯é€‰èŒƒå›´
+    SPI1_MOSI_P10_1  = 1*102+1*6 , SPI1_MOSI_P10_3, SPI1_MOSI_P11_9,                                                        // SPI1 MOSIÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI2_MOSI_P13_3  = 2*102+1*6 , SPI2_MOSI_P15_5, SPI2_MOSI_P15_6,                                                        // SPI2 MOSIå¼•è„šå¯é€‰èŒƒå›´
+    SPI2_MOSI_P13_3  = 2*102+1*6 , SPI2_MOSI_P15_5, SPI2_MOSI_P15_6,                                                        // SPI2 MOSIÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI3_MOSI_P02_6  = 3*102+1*6 , SPI3_MOSI_P10_6, SPI3_MOSI_P22_0, SPI3_MOSI_P22_3, SPI3_MOSI_P33_12,                     // SPI3 MOSIå¼•è„šå¯é€‰èŒƒå›´
+    SPI3_MOSI_P02_6  = 3*102+1*6 , SPI3_MOSI_P10_6, SPI3_MOSI_P22_0, SPI3_MOSI_P22_3, SPI3_MOSI_P33_12,                     // SPI3 MOSIÒı½Å¿ÉÑ¡·¶Î§
 }spi_mosi_pin_enum;
 
-typedef enum                                                                                                                // æšä¸¾SPI MISOå¼•è„š æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
+typedef enum                                                                                                                // Ã¶¾ÙSPI MISOÒı½Å ´ËÃ¶¾Ù¶¨Òå²»ÔÊĞíÓÃ»§ĞŞ¸Ä
 {
-    SPI0_MISO_P20_12 = 0*102+2*6 ,                                                                                          // SPI0 MISOå¼•è„šå¯é€‰èŒƒå›´
+    SPI0_MISO_P20_12 = 0*102+2*6 ,                                                                                          // SPI0 MISOÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI1_MISO_P10_1  = 1*102+2*6 , SPI1_MISO_P11_3,                                                                         // SPI1 MISOå¼•è„šå¯é€‰èŒƒå›´
+    SPI1_MISO_P10_1  = 1*102+2*6 , SPI1_MISO_P11_3,                                                                         // SPI1 MISOÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI2_MISO_P15_2  = 2*102+2*6 , SPI2_MISO_P15_4, SPI2_MISO_P15_7, SPI2_MISO_P21_2, SPI2_MISO_P21_3,                      // SPI2 MISOå¼•è„šå¯é€‰èŒƒå›´
+    SPI2_MISO_P15_2  = 2*102+2*6 , SPI2_MISO_P15_4, SPI2_MISO_P15_7, SPI2_MISO_P21_2, SPI2_MISO_P21_3,                      // SPI2 MISOÒı½Å¿ÉÑ¡·¶Î§
 
-    SPI3_MISO_P02_5  = 3*102+2*6 , SPI3_MISO_P22_1, SPI3_MISO_P21_2, SPI3_MISO_P21_3, SPI3_MISO_P33_13,                     // SPI3 MISOå¼•è„šå¯é€‰èŒƒå›´
+    SPI3_MISO_P02_5  = 3*102+2*6 , SPI3_MISO_P22_1, SPI3_MISO_P21_2, SPI3_MISO_P21_3, SPI3_MISO_P33_13,                     // SPI3 MISOÒı½Å¿ÉÑ¡·¶Î§
 }spi_miso_pin_enum;
 
-typedef enum                                        // æšä¸¾SPI CSå¼•è„š æ­¤æšä¸¾å®šä¹‰ä¸å…è®¸ç”¨æˆ·ä¿®æ”¹
+typedef enum                                        // Ã¶¾ÙSPI CSÒı½Å ´ËÃ¶¾Ù¶¨Òå²»ÔÊĞíÓÃ»§ĞŞ¸Ä
 {
-    SPI0_CS0_P20_8   = 0*102+3*6 ,                  // SPI0 CS0 å¼•è„šå¯é€‰èŒƒå›´
+    SPI0_CS0_P20_8   = 0*102+3*6 ,                  // SPI0 CS0 Òı½Å¿ÉÑ¡·¶Î§
     SPI0_CS1_P20_9   = 0*102+4*6 ,
     SPI0_CS2_P20_13  = 0*102+5*6 ,
     SPI0_CS3_P11_10  = 0*102+6*6 ,
@@ -139,7 +139,7 @@ typedef enum                                        // æšä¸¾SPI CSå¼•è„š æ­¤æš
     SPI_CS_NULL,
 }spi_cs_pin_enum;
 
-//====================================================SPI åŸºç¡€å‡½æ•°====================================================
+//====================================================SPI »ù´¡º¯Êı====================================================
 void        spi_write_8bit                  (spi_index_enum spi_n, const uint8 data);
 void        spi_write_8bit_array            (spi_index_enum spi_n, const uint8 *data, uint32 len);
 
@@ -164,14 +164,14 @@ void        spi_read_8bit_registers         (spi_index_enum spi_n, const uint8 r
 uint16      spi_read_16bit_register         (spi_index_enum spi_n, const uint16 register_name);
 void        spi_read_16bit_registers        (spi_index_enum spi_n, const uint16 register_name, uint16 *data, uint32 len);
 
-/* Bounded transfer for optional peripherals. 0 success, 1 timeout. */
-uint8 spi_transfer_8bit_timeout(spi_index_enum spi_n, const uint8 *write_buffer,
-                               uint8 *read_buffer, uint32 len, uint32 timeout_ms);
-
 void        spi_transfer_8bit               (spi_index_enum spi_n, const uint8 *write_buffer, uint8 *read_buffer, uint32 len);
 void        spi_transfer_16bit              (spi_index_enum spi_n, const uint16 *write_buffer, uint16 *read_buffer, uint32 len);
 
 void        spi_init                        (spi_index_enum spi_n, spi_mode_enum mode, uint32 baud, spi_sck_pin_enum sck_pin, spi_mosi_pin_enum mosi_pin, spi_miso_pin_enum miso_pin, spi_cs_pin_enum cs_pin);
-//====================================================SPI åŸºç¡€å‡½æ•°====================================================
+//====================================================SPI »ù´¡º¯Êı====================================================
+
+/* new-branch runtime IMU SPI transfer; 0=success, 1=timeout/error. */
+uint8 spi_transfer_8bit_timeout(spi_index_enum spi_n, const uint8 *write_buffer,
+                               uint8 *read_buffer, uint32 len, uint32 timeout_ms);
 
 #endif

@@ -1,0 +1,146 @@
+[
+  {
+    "file": "core/v2_compare_core.c",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_compare_core.c",
+    "sha256": "e04b40c95e9b7515cdc2ea49c706de56ceadae8d5d89a979b2c14e513d7b164b",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v2_IMU_Filtter.c",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_IMU_Filtter.c",
+    "sha256": "dbf1cd4da933fe8659c2ce3a4e5729fa9c4c3422ef8f456963a47de09cdb896a",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v2_MahonyAhrs.c",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_MahonyAhrs.c",
+    "sha256": "10fab5425deb1a579232aac8d1e766668a2e356ea7b60a76756e75e7e521a5f7",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v2_unicycle_ahrs.c",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_unicycle_ahrs.c",
+    "sha256": "829f5e2d7d2752f7a56b741f792bbbc3075dea9b9e99a39aae7555479a561504",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v2_improved_ahrs.c",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_improved_ahrs.c",
+    "sha256": "539540a18e2911c054ecb6cb11d24a25ddf9f025157d17ed141b93b99a0a9fc7",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v2_prefix.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v2_prefix.h",
+    "sha256": "c696ac559d61c9805e9a62835ff73d16a53f5722223be2c5e6f40085e22135e8",
+    "byte_identical": true
+  },
+  {
+    "file": "core/v3_calibration.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\v3_calibration.h",
+    "sha256": "6ce301569500c62a66ff50a2d64698cf9a42e8f3a4e8dea6123183acd0ca9af5",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/ahrs_types.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\ahrs_types.h",
+    "sha256": "b6a2a906cb13b21e93ff5855c3640b100b329b626d5ad4bfccf0b2752158833e",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/compare_core.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\compare_core.h",
+    "sha256": "b9f295a7db5242909825e718c2d9ac1799bb231142d4b384f6b9fe7239a0d60c",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/r10_compare_core.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\r10_compare_core.inc",
+    "sha256": "6535d0b37e7e2f9282e28833761d031d011f83c6c8ad3432c35f16c926bb11c8",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/MahonyAhrs.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\MahonyAhrs.h",
+    "sha256": "05ee7348cc5f16722fea2b3809d8793ddb8cab9165503de70d36e84b6cb29095",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/MahonyAhrs.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\MahonyAhrs.inc",
+    "sha256": "930505c7fb6697da12f0c11807996915fa6154285f8ba91419166e44c1dc17d3",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/IMU_Filtter.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\IMU_Filtter.h",
+    "sha256": "3f297db0c4a2f2559ced09698a1c642ee4d2841c0a6a485b85074d42cdb4401f",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/IMU_Filtter.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\IMU_Filtter.inc",
+    "sha256": "70ddf6e994df1862c02330ace6fc06103686b4d9a33a14cc0831eae7a4030335",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/unicycle_ahrs.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\unicycle_ahrs.h",
+    "sha256": "84544eeee20ae15989647031cfed565427a69adb0f4c8488c24fd4331fa805a7",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/unicycle_ahrs.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\unicycle_ahrs.inc",
+    "sha256": "fcd675c4295567876cc974752a7dd1a0354a74a9a84794d233b7be063695b5d5",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/improved_ahrs.h",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\improved_ahrs.h",
+    "sha256": "d0309a299b993cd6de309f4222e9e5b7ce1237f6f7621b4b1dc3cdd53e1d9da3",
+    "byte_identical": true
+  },
+  {
+    "file": "core/candidate/improved_ahrs.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\candidate\\improved_ahrs.inc",
+    "sha256": "e89e4a4b95b5be836331a36cb02400ea04c7082684df7a9aaae0883eec163500",
+    "byte_identical": true
+  },
+  {
+    "file": "LICENSES/GPL-3.0.txt",
+    "source": "D:\\资料\\普佬开源\\CYT4BB7_Air-f4154ef268ea76a724440773f4af5d4d370d6ce4\\CYT4BB7_Air-f4154ef268ea76a724440773f4af5d4d370d6ce4\\LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "byte_identical": true
+  },
+  {
+    "file": "docs/原始验收报告.md",
+    "source": "D:\\项目\\姿态解算\\660RB_Aplus优化与回归验收_20261004.md",
+    "sha256": "6a74b3466bbb22d651888d04e4554f2c39d3428e2c49cfdd0d695f5ad0aeb734",
+    "byte_identical": true
+  },
+  {
+    "file": "docs/acceptance_decision.json",
+    "source": "D:\\项目\\姿态解算\\r10h_release_candidate\\acceptance_decision.json",
+    "sha256": "c48ad649513a63c4778d6a775709f3aa5194e3f50da885eaaaba11c8bb638488",
+    "byte_identical": true
+  },
+  {
+    "file": "reference_tc264/dual_ahrs.inc",
+    "source": "D:\\TC264_Test_1\\code\\attitude_compare\\dual_ahrs.inc",
+    "sha256": "8682dcab131275a06a086ce931f98e7dcde3503a71c03bed6fd51bdf54e33b16",
+    "byte_identical": true
+  },
+  {
+    "file": "reference_tc264/zf_device_imu660rb.c",
+    "source": "D:\\TC264_Test_1\\Libraries\\zf_device\\zf_device_imu660rb.c",
+    "sha256": "80b20bb55fafdad19a7126c20b8bc6b20747da4694eaf888891b4c38514b9d81",
+    "byte_identical": true
+  },
+  {
+    "file": "reference_tc264/zf_device_imu660rb.h",
+    "source": "D:\\TC264_Test_1\\Libraries\\zf_device\\zf_device_imu660rb.h",
+    "sha256": "3467a85bf625c916fbc6e102d397d057c58a711f96c631350a6a93696397c7c2",
+    "byte_identical": true
+  }
+]

@@ -45,14 +45,16 @@ typedef struct
     IfxDma_Dma_Channel channel;             // DMA通道句柄
 }DMA_LINK;
 
-#if(0 == DMA_INT_SERVICE)
+#if(0 == DMA_DATA_CORE_ID)
 #pragma section all "cpu0_dsram"
 IFX_ALIGN(256) DMA_LINK dma_link_list;
 
-#elif(1 == DMA_INT_SERVICE)
+#elif(1 == DMA_DATA_CORE_ID)
 #pragma section all "cpu1_dsram"
 IFX_ALIGN(256) DMA_LINK dma_link_list;
 
+#else
+#error "DMA_DATA_CORE_ID must be 0 or 1"
 #endif
 #pragma section all restore
 //-------------------------------------------------------------------------------------------------------------------
@@ -166,7 +168,7 @@ uint8 dma_init (IfxDma_ChannelId dma_ch, uint8 *source_addr, uint8 *destination_
         }
     }
 
-    IfxDma_Dma_getSrcPointer(&dma_link_list.channel)->B.CLRR = 1;
+    IfxDma_Dma_getSrcPointer(&dmaChn)->B.CLRR = 1;
 
     return list_num;
 }

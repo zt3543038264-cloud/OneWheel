@@ -1,267 +1,164 @@
-/*********************************************************************************************************************
-* TC264 Opensourec Library 即（TC264 开源库）是一个基于官方 SDK 接口的第三方开源库
-* Copyright (c) 2022 SEEKFREE 逐飞科技
-*
-* 本文件是 TC264 开源库的一部分
-*
-* TC264 开源库 是免费软件
-* 您可以根据自由软件基金会发布的 GPL（GNU General Public License，即 GNU通用公共许可证）的条款
-* 即 GPL 的第3版（即 GPL3.0）或（您选择的）任何后来的版本，重新发布和/或修改它
-*
-* 本开源库的发布是希望它能发挥作用，但并未对其作任何的保证
-* 甚至没有隐含的适销性或适合特定用途的保证
-* 更多细节请参见 GPL
-*
-* 您应该在收到本开源库的同时收到一份 GPL 的副本
-* 如果没有，请参阅<https://www.gnu.org/licenses/>
-*
-* 额外注明：
-* 本开源库使用 GPL3.0 开源许可证协议 以上许可申明为译文版本
-* 许可申明英文版在 libraries/doc 文件夹下的 GPL3_permission_statement.txt 文件中
-* 许可证副本在 libraries 文件夹下 即该文件夹下的 LICENSE 文件
-* 欢迎各位使用并传播本程序 但修改内容时必须保留逐飞科技的版权声明（即本声明）
-*
-* 文件名称          isr
-* 公司名称          成都逐飞科技有限公司
-* 版本信息          查看 libraries/doc 文件夹内 version 文件 版本说明
-* 开发环境          ADS v1.10.2
-* 适用平台          TC264D
-* 店铺链接          https://seekfree.taobao.com/
-*
-* 修改记录
-* 日期              作者                备注
-* 2022-09-15       pudding            first version
-********************************************************************************************************************/
-
 #include "isr_config.h"
 #include "isr.h"
-#include "wheel_encoder.h"
+#include "HW_Drivers/Motor/W_Motor.h"
+#include "Controller/control.h"
 
-// 对于TC系列默认是不支持中断嵌套的，希望支持中断嵌套需要在中断内使用 interrupt_global_enable(0); 来开启中断嵌套
-// 简单点说实际上进入中断后TC系列的硬件自动调用了 interrupt_global_disable(); 来拒绝响应任何的中断，因此需要我们自己手动调用 interrupt_global_enable(0); 来开启中断的响应。
-
-// **************************** PIT中断函数 ****************************
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     执行 1ms 控制周期
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 CCU60_CH0 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(cc60_pit_ch0_isr, 0, CCU6_0_CH0_ISR_PRIORITY)
 {
     interrupt_global_enable(0);
     pit_clear_flag(CCU60_CH0);
-    uint32 speed_snapshot_irq=interrupt_global_disable();
-    flywheel_speed_feedback_left = motor_value.receive_left_speed_data;
-    flywheel_speed_feedback_right = motor_value.receive_right_speed_data;
-    flywheel_speed_feedback_sequence = small_driver_speed_frames;
-    flywheel_speed_feedback_age_ms = small_driver_feedback_age_ms;
-    flywheel_speed_feedback_fresh = small_driver_feedback_fresh;
-    interrupt_global_enable(speed_snapshot_irq);
-    balance_control_tick_1ms();
+
+    control_loop();
 }
 
-IFX_INTERRUPT(cc60_pit_ch1_isr, 0, CCU6_0_CH1_ISR_PRIORITY)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    pit_clear_flag(CCU60_CH1);
-    imu_update();
-
-
-
-
-}
-
-IFX_INTERRUPT(cc61_pit_ch0_isr, 0, CCU6_1_CH0_ISR_PRIORITY)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    pit_clear_flag(CCU61_CH0);
-
-
-
-
-}
-
-IFX_INTERRUPT(cc61_pit_ch1_isr, 0, CCU6_1_CH1_ISR_PRIORITY)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    pit_clear_flag(CCU61_CH1);
-    wheel_encoder_tick_1ms();
-    small_driver_tick_1ms();
-    key_scanner();
-
-
-
-
-}
-// **************************** PIT中断函数 ****************************
-
-
-// **************************** 外部中断函数 ****************************
-IFX_INTERRUPT(exti_ch0_ch4_isr, 0, EXTI_CH0_CH4_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    if(exti_flag_get(ERU_CH0_REQ0_P15_4))           // 通道0中断
-    {
-        exti_flag_clear(ERU_CH0_REQ0_P15_4);
-
-        /* Unused application callback removed. */ 	//			660RC 模块 INT 更新中断
-    }
-
-    if(exti_flag_get(ERU_CH4_REQ13_P15_5))          // 通道4中断
-    {
-        exti_flag_clear(ERU_CH4_REQ13_P15_5);
-
-
-
-
-    }
-}
-
-IFX_INTERRUPT(exti_ch1_ch5_isr, 0, EXTI_CH1_CH5_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-    if(exti_flag_get(ERU_CH1_REQ10_P14_3))          // 通道1中断
-    {
-        exti_flag_clear(ERU_CH1_REQ10_P14_3);
-
-        /* Unused application callback removed. */                  // ToF 模块 INT 更新中断
-
-    }
-
-    if(exti_flag_get(ERU_CH5_REQ1_P15_8))           // 通道5中断
-    {
-        exti_flag_clear(ERU_CH5_REQ1_P15_8);
-
-
-    }
-}
-
-// 由于摄像头pclk引脚默认占用了 2通道，用于触发DMA，因此这里不再定义中断函数
-// IFX_INTERRUPT(exti_ch2_ch6_isr, 0, EXTI_CH2_CH6_INT_PRIO)
-// {
-//  interrupt_global_enable(0);                     // 开启中断嵌套
-//  if(exti_flag_get(ERU_CH2_REQ7_P00_4))           // 通道2中断
-//  {
-//      exti_flag_clear(ERU_CH2_REQ7_P00_4);
-//  }
-//  if(exti_flag_get(ERU_CH6_REQ9_P20_0))           // 通道6中断
-//  {
-//      exti_flag_clear(ERU_CH6_REQ9_P20_0);
-//  }
-// }
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理摄像头场同步，通知采集下一场
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 EXTI_CH3_CH7 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(exti_ch3_ch7_isr, 0, EXTI_CH3_CH7_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    if(exti_flag_get(ERU_CH3_REQ6_P02_0))           // 通道3中断
+    interrupt_global_enable(0);
+    if (exti_flag_get(ERU_CH3_REQ6_P02_0))
     {
         exti_flag_clear(ERU_CH3_REQ6_P02_0);
-        /* Unused application callback removed. */                     // 摄像头触发采集统一回调函数
-    }
-    if(exti_flag_get(ERU_CH7_REQ16_P15_1))          // 通道7中断
-    {
-        exti_flag_clear(ERU_CH7_REQ16_P15_1);
-
-
-
-
+        camera_vsync_handler();
     }
 }
-// **************************** 外部中断函数 ****************************
 
-
-// **************************** DMA中断函数 ****************************
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理摄像头整场 DMA 搬运完成，置位 mt9v03x_finish_flag
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 DMA_CH5 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(dma_ch5_isr, 0, DMA_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    /* Unused application callback removed. */                           // 摄像头采集完成统一回调函数
-}
-// **************************** DMA中断函数 ****************************
-
-
-// **************************** 串口中断函数 ****************************
-// 串口0默认作为调试串口
-IFX_INTERRUPT(uart0_tx_isr, 0, UART0_TX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-
-
-}
-IFX_INTERRUPT(uart0_rx_isr, 0, UART0_RX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-#if DEBUG_UART_USE_INTERRUPT                        // 如果开启 debug 串口中断
-        debug_interrupr_handler();                  // 调用 debug 串口接收处理函数 数据会被 debug 环形缓冲区读取
-#endif                                              // 如果修改了 DEBUG_UART_INDEX 那这段代码需要放到对应的串口中断去
+    interrupt_global_enable(0);
+    camera_dma_handler();
 }
 
-
-// 串口1默认连接到摄像头配置串口
-IFX_INTERRUPT(uart1_tx_isr, 0, UART1_TX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-
-
-
-}
-IFX_INTERRUPT(uart1_rx_isr, 0, UART1_RX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    /* Unused application callback removed. */                          // 摄像头参数配置统一回调函数
-}
-
-// 串口2默认连接到无线转串口模块
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理无线转串口模块发送中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART2_TX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart2_tx_isr, 0, UART2_TX_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-
-
+    interrupt_global_enable(0);
 }
 
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     把无线转串口模块收到的调参命令字节送进模块自己的环形缓冲
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART2_RX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    if (QCAR_DRIVER_UART == UART_2) uart_control_callback();
+    // **不能** interrupt_global_enable()：本中断要一口气跑完，不许被抢占。
+    // 无线模块驱动写的是逐飞的 fifo_struct，它不可重入，靠一个非原子的 execution 标志做互斥。
+    // 1ms 控制中断(优先级 30)比本中断(17)高，一旦这里开了嵌套，它就能打断
+    // fifo_write_buffer() 的中途，而它自己的 vofa_tick1ms() 正在读同一个 FIFO。
+    // 两边非原子地改 head/size，记账一旦错到 length <= size 恒不成立，
+    // 之后每一次写都被跳过 —— 收字节这条路彻底死掉且不会恢复。
+    // 实车表现就是"无线命令一开始好用，某一刻起再也不接受"。
+    // 本函数只把硬件 FIFO(16 字节)搬进软件环，几微秒，不影响 1ms 节拍。
 
-
-
-}
-// 串口3默认连接到GPS定位模块
-IFX_INTERRUPT(uart3_tx_isr, 0, UART3_TX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-
-
-
-}
-
-IFX_INTERRUPT(uart3_rx_isr, 0, UART3_RX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    if (QCAR_DRIVER_UART == UART_3) uart_control_callback();
-
-
-
-
+    // 这里不能先调 IfxAsclin_Asc_isrReceive()：设备回调直接读取硬件 FIFO。
+    // 回调一次排空当前 FIFO，避免连续字节到达时只取走首字节。
+    wireless_module_uart_handler();
 }
 
-// 串口通讯错误中断
-IFX_INTERRUPT(uart0_er_isr, 0, UART0_ER_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    IfxAsclin_Asc_isrError(&uart0_handle);
-}
-IFX_INTERRUPT(uart1_er_isr, 0, UART1_ER_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    IfxAsclin_Asc_isrError(&uart1_handle);
-}
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理无线转串口模块错误中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART2_ER 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart2_er_isr, 0, UART2_ER_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
+    interrupt_global_enable(0);
     IfxAsclin_Asc_isrError(&uart2_handle);
 }
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理摄像头配置串口发送中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART1_TX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart1_tx_isr, 0, UART1_TX_INT_PRIO)
+{
+    interrupt_global_enable(0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理摄像头配置串口回传
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART1_RX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart1_rx_isr, 0, UART1_RX_INT_PRIO)
+{
+    interrupt_global_enable(0);
+    camera_uart_handler();
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理摄像头配置串口错误中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART1_ER 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart1_er_isr, 0, UART1_ER_INT_PRIO)
+{
+    interrupt_global_enable(0);
+    IfxAsclin_Asc_isrError(&uart1_handle);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理 UART3 发送中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART3_TX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart3_tx_isr, 0, UART3_TX_INT_PRIO)
+{
+    interrupt_global_enable(0);
+    W_Motor_TxHandler();
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     解析 CYT2BL3 无刷驱动的转速回传帧
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART3_RX 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart3_rx_isr, 0, UART3_RX_INT_PRIO)
+{
+    // 同 uart2_rx_isr：不开嵌套。W_Motor_RxHandler() 要原子地更新
+    // w_motor_rx_buffer / w_motor_rx_length / w_motor_speed_*，
+    // 被 1ms 中断(优先级 30 > 本中断 20)从中间打断会拆散一帧的组包状态
+    W_Motor_RxHandler();
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     处理 UART3 错误中断
+// 参数说明     void
+// 返回参数     void
+// 使用示例     由 UART3_ER 中断向量调用
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart3_er_isr, 0, UART3_ER_INT_PRIO)
 {
-    interrupt_global_enable(0);                     // 开启中断嵌套
+    interrupt_global_enable(0);
     IfxAsclin_Asc_isrError(&uart3_handle);
 }

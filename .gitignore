@@ -1,31 +1,35 @@
-# 默认忽略全部文件
 *
-# 允许 Git 进入子目录，否则下面的白名单规则不会生效
 !*/
-# 保留源代码
 !*.c
 !*.h
+!*.inc
 !*.py
-!*.c.in
-# 保留 Markdown 文档
 !*.md
-# 保留本文件
+!*.c.in
 !.gitignore
-
-# 构建产物与 IDE 状态目录始终忽略
-/Debug/
-/Release/
-/Build/
-/.ads/
-
-# Required ADS project/linker metadata and vendor configuration archive
 !/.project
 !/.cproject
 !/*.lsl
 !/libraries/zf_device/zf_device_config.a
-
 !/.settings/com.infineon.aurix.buildsystem.prefs
 !/.settings/org.eclipse.core.resources.prefs
+!/code/Estimation/Attitude/r10h/*.json
+!/code/Estimation/Attitude/r10h/LICENSES/*.txt
+!/tools/ads/BuildStartup.java
+!/tools/unicycle_station/**
+!/docs/**
+!/tools/attitude_r10h/host_results.json
+/code/Protocols/station_wifi_private.h
+/Debug/
+/Release/
+/.ads/
+/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/dist/
+**/build/
 
-# Firmware-produced host compatibility fixtures (tiny JustFloat datagrams).
-!/tools/qcar_monitor_update/tests/fixtures/qcar_*.bin
+**/*.egg-info/
+**/artifacts/
+**/sessions/

@@ -1,0 +1,474 @@
+{
+  "source": "https://github.com/Kongmengwuwei/ASC_SummerTraining_Unicycle",
+  "commit": "0eed51b8fd0f4e72ab92f737642ab1900f60cbd3",
+  "port_base": "dcb63e3",
+  "scope": "full reference application layering, Menu/Display 8x16, Params/Run/RunTest/Path, protocol, dual-core single-ISR control, A+ r10h",
+  "private_network_header_excluded": true,
+  "files": [
+    {
+      "path": "code/Common/board_config.h",
+      "reference_sha256_lf": "2a7ad7bb7f8048cf7adb8c82fa020d3dae58494e8056e0d83723c6a3b79d27d7",
+      "target_sha256_lf": "0b38001ea5483e807cf6049d29fdd7ba26afb2a03dcac117fdca2638e2c14a98",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Common/direction_config.h",
+      "reference_sha256_lf": "6b1dc69a0207c588b07d04fd78da036d5ac53157f59b54464f01241cc148a9df",
+      "target_sha256_lf": "6b1dc69a0207c588b07d04fd78da036d5ac53157f59b54464f01241cc148a9df",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Common/param.c",
+      "reference_sha256_lf": "0f439516292eb428dabec29d3da84f5e6acc8e0e180011b04e348d2d27d5e155",
+      "target_sha256_lf": "0f439516292eb428dabec29d3da84f5e6acc8e0e180011b04e348d2d27d5e155",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Common/param.h",
+      "reference_sha256_lf": "2a49d0a275b69a4c254a446eaac25775f526e64dca76bc20d24b63b6c0a602a2",
+      "target_sha256_lf": "31e36049e2b026f830b4856dedee0ad64b5170190c2d33dd66995d2fc19b7b47",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Common/pid.c",
+      "reference_sha256_lf": "1a39f645163f49767b77218efd4e8557d8a4a209ba82f25eb21643c75c44a59b",
+      "target_sha256_lf": "1a39f645163f49767b77218efd4e8557d8a4a209ba82f25eb21643c75c44a59b",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Common/pid.h",
+      "reference_sha256_lf": "a4af8d81f0a94abc624d4a8873752c1d2dff2e034866d16143c33f4aa2e55ccb",
+      "target_sha256_lf": "a4af8d81f0a94abc624d4a8873752c1d2dff2e034866d16143c33f4aa2e55ccb",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/control.c",
+      "reference_sha256_lf": "cb7559a067c2b91df6f3b4553b58bd84d8ce1f8346f3a94d71711b67f57cb2b5",
+      "target_sha256_lf": "cb7559a067c2b91df6f3b4553b58bd84d8ce1f8346f3a94d71711b67f57cb2b5",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/control.h",
+      "reference_sha256_lf": "499e0edf0e30035a222c8ac1b1c8a04b9e6cf2ca19a32e29ff128e4c6e0ae0b3",
+      "target_sha256_lf": "499e0edf0e30035a222c8ac1b1c8a04b9e6cf2ca19a32e29ff128e4c6e0ae0b3",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/control_angle.inc",
+      "reference_sha256_lf": "670188beccef52ad638d9ca9b3c9dbd3281d77be06d11b9796a0d402adc623cd",
+      "target_sha256_lf": "670188beccef52ad638d9ca9b3c9dbd3281d77be06d11b9796a0d402adc623cd",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/Planner/path_nav.c",
+      "reference_sha256_lf": "bf607f2afbfc6b4c2d7d60700ed2c6dc4daefee15e9b185a7c7302acba020c53",
+      "target_sha256_lf": "bf607f2afbfc6b4c2d7d60700ed2c6dc4daefee15e9b185a7c7302acba020c53",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/Planner/path_nav.h",
+      "reference_sha256_lf": "7f69e1c13f11e13c5430cfc1feba40f9d1ff8b113cb477a72780ce6231a2e594",
+      "target_sha256_lf": "7f69e1c13f11e13c5430cfc1feba40f9d1ff8b113cb477a72780ce6231a2e594",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/Planner/path_store.c",
+      "reference_sha256_lf": "5641d2918ae02a28bf52bf538ccfe040a98b26c407a3ebb8cd8868018b3356be",
+      "target_sha256_lf": "5641d2918ae02a28bf52bf538ccfe040a98b26c407a3ebb8cd8868018b3356be",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Controller/Planner/path_store.h",
+      "reference_sha256_lf": "4d158eaea926f845d06fc6672161835f6b1a0aa0bd427532877fb99e004311af",
+      "target_sha256_lf": "4d158eaea926f845d06fc6672161835f6b1a0aa0bd427532877fb99e004311af",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/attitude.c",
+      "reference_sha256_lf": "68ee1a6f684fe6ce4d2771892f46c61c93a32477a03e178d9c7f903edfdd4caf",
+      "target_sha256_lf": "68ee1a6f684fe6ce4d2771892f46c61c93a32477a03e178d9c7f903edfdd4caf",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/attitude.h",
+      "reference_sha256_lf": "d6e28bb2e5857000114c484ee497b09b53b42e306048c2593b0ed19f56643c18",
+      "target_sha256_lf": "d6e28bb2e5857000114c484ee497b09b53b42e306048c2593b0ed19f56643c18",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/ahrs_types.h",
+      "reference_sha256_lf": "b6a2a906cb13b21e93ff5855c3640b100b329b626d5ad4bfccf0b2752158833e",
+      "target_sha256_lf": "b6a2a906cb13b21e93ff5855c3640b100b329b626d5ad4bfccf0b2752158833e",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/compare_core.h",
+      "reference_sha256_lf": "b9f295a7db5242909825e718c2d9ac1799bb231142d4b384f6b9fe7239a0d60c",
+      "target_sha256_lf": "b9f295a7db5242909825e718c2d9ac1799bb231142d4b384f6b9fe7239a0d60c",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/improved_ahrs.h",
+      "reference_sha256_lf": "d0309a299b993cd6de309f4222e9e5b7ce1237f6f7621b4b1dc3cdd53e1d9da3",
+      "target_sha256_lf": "d0309a299b993cd6de309f4222e9e5b7ce1237f6f7621b4b1dc3cdd53e1d9da3",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/improved_ahrs.inc",
+      "reference_sha256_lf": "61ecccaeb08d7fa4da7a5f2e2b2491ad5a3ee9a8b1afbfbf5c2408731e3eb275",
+      "target_sha256_lf": "61ecccaeb08d7fa4da7a5f2e2b2491ad5a3ee9a8b1afbfbf5c2408731e3eb275",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/IMU_Filtter.h",
+      "reference_sha256_lf": "21f0f5b669117ad76f34d315cc72681b9ad3b46320bf6e3165695000192c7cb5",
+      "target_sha256_lf": "21f0f5b669117ad76f34d315cc72681b9ad3b46320bf6e3165695000192c7cb5",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/IMU_Filtter.inc",
+      "reference_sha256_lf": "d83a312f008a182e4a0f684fe0a965909fe3b8a859f6412fcda0276df38e759f",
+      "target_sha256_lf": "d83a312f008a182e4a0f684fe0a965909fe3b8a859f6412fcda0276df38e759f",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/MahonyAhrs.h",
+      "reference_sha256_lf": "7d2b12e05e91c94ca33676fe86218e728e0acd9ab7bf2520de87750346fdcbe6",
+      "target_sha256_lf": "7d2b12e05e91c94ca33676fe86218e728e0acd9ab7bf2520de87750346fdcbe6",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/MahonyAhrs.inc",
+      "reference_sha256_lf": "991e422af032ed9d9c1f36fdb0055949540c7ff8cd77399f51b40b0ae4b7be21",
+      "target_sha256_lf": "991e422af032ed9d9c1f36fdb0055949540c7ff8cd77399f51b40b0ae4b7be21",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/r10_compare_core.inc",
+      "reference_sha256_lf": "ec597c3d97b5d216139b15ace0c5787c8df5bbcca4f3e31e2d3098807cfa3f60",
+      "target_sha256_lf": "ec597c3d97b5d216139b15ace0c5787c8df5bbcca4f3e31e2d3098807cfa3f60",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/unicycle_ahrs.h",
+      "reference_sha256_lf": "84544eeee20ae15989647031cfed565427a69adb0f4c8488c24fd4331fa805a7",
+      "target_sha256_lf": "84544eeee20ae15989647031cfed565427a69adb0f4c8488c24fd4331fa805a7",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/candidate/unicycle_ahrs.inc",
+      "reference_sha256_lf": "3d374d4a2f28ed1f05bf6289bcd619f2ebffd5a83696d6d6d83a2242f34492ab",
+      "target_sha256_lf": "3d374d4a2f28ed1f05bf6289bcd619f2ebffd5a83696d6d6d83a2242f34492ab",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_compare_core.c",
+      "reference_sha256_lf": "ee77c2764f851be96e1e0214ccbeb2e73bbc6d88e21c989395fdfe15c7dde01f",
+      "target_sha256_lf": "ee77c2764f851be96e1e0214ccbeb2e73bbc6d88e21c989395fdfe15c7dde01f",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_improved_ahrs.c",
+      "reference_sha256_lf": "59bba75087ddccf5c2c9e28a0c19e437de97b9f4c48d9ac1f8ba764d3886ee86",
+      "target_sha256_lf": "59bba75087ddccf5c2c9e28a0c19e437de97b9f4c48d9ac1f8ba764d3886ee86",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_IMU_Filtter.c",
+      "reference_sha256_lf": "080edd90c72d345869d13de25f0ba64bdbb6afc6b893276ef432f958f40f4616",
+      "target_sha256_lf": "080edd90c72d345869d13de25f0ba64bdbb6afc6b893276ef432f958f40f4616",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_MahonyAhrs.c",
+      "reference_sha256_lf": "739b0fd9049a160b77af7b111419c52b390b96e0bc39bf9c4696d2707bd3c149",
+      "target_sha256_lf": "739b0fd9049a160b77af7b111419c52b390b96e0bc39bf9c4696d2707bd3c149",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_prefix.h",
+      "reference_sha256_lf": "2a8f23477f5bed19bdb5e6cfab268b79fc6263644afe030445538c8f26ede0a0",
+      "target_sha256_lf": "2a8f23477f5bed19bdb5e6cfab268b79fc6263644afe030445538c8f26ede0a0",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v2_unicycle_ahrs.c",
+      "reference_sha256_lf": "07b2b15dd5347c2022bfaa7f3eafcc2d646be1fbb248320e4f1abda901b1f38e",
+      "target_sha256_lf": "07b2b15dd5347c2022bfaa7f3eafcc2d646be1fbb248320e4f1abda901b1f38e",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/core/v3_calibration.h",
+      "reference_sha256_lf": "8bac4f5b615912edbc8c06216be99189115d8526e16d59cc31b295e87fc913a6",
+      "target_sha256_lf": "8bac4f5b615912edbc8c06216be99189115d8526e16d59cc31b295e87fc913a6",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/include/r10h_attitude.h",
+      "reference_sha256_lf": "d4be1dc779f51a350271f9369c17aab9b976e906e85d72d4db11d72f4f1955d2",
+      "target_sha256_lf": "d4be1dc779f51a350271f9369c17aab9b976e906e85d72d4db11d72f4f1955d2",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/LICENSES/GPL-3.0.txt",
+      "reference_sha256_lf": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "target_sha256_lf": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/migration_manifest.json",
+      "reference_sha256_lf": "5f700e9d3040ee295f7acc36e7c1730696a819b36ab85b4116a8d8fbbf3fbc7f",
+      "target_sha256_lf": "5f700e9d3040ee295f7acc36e7c1730696a819b36ab85b4116a8d8fbbf3fbc7f",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/README.md",
+      "reference_sha256_lf": "0c3980cc0dd830e55a8ca90baf57f89ddfff2fca80c3c6dfbfb385e4a61566c7",
+      "target_sha256_lf": "0c3980cc0dd830e55a8ca90baf57f89ddfff2fca80c3c6dfbfb385e4a61566c7",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/source_origin.json",
+      "reference_sha256_lf": "8c4aa8dd14b2eea5693af92ddde85eaab282eececdceeaec3c90846d0240e980",
+      "target_sha256_lf": "8c4aa8dd14b2eea5693af92ddde85eaab282eececdceeaec3c90846d0240e980",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/src/r10h_attitude.c",
+      "reference_sha256_lf": "52694e511f2a2bb10cb27a4696691cc56d28dbecbd34b88cc6b960d70edbfdb5",
+      "target_sha256_lf": "52694e511f2a2bb10cb27a4696691cc56d28dbecbd34b88cc6b960d70edbfdb5",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Attitude/r10h/UPSTREAM_SHA256SUMS.json",
+      "reference_sha256_lf": "ed348fd1ec011cfc4e6c717e334c8c44b1cede0695c78231596a4137d4e57ab3",
+      "target_sha256_lf": "ed348fd1ec011cfc4e6c717e334c8c44b1cede0695c78231596a4137d4e57ab3",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/element.c",
+      "reference_sha256_lf": "cbf12f6735759f4ed0c6b7d70686653fefc873ddb3d1278a6174e5845bd37c7b",
+      "target_sha256_lf": "cbf12f6735759f4ed0c6b7d70686653fefc873ddb3d1278a6174e5845bd37c7b",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/element.h",
+      "reference_sha256_lf": "57f553c6a44b88ed1db254b0811b4da408002d6be24b2bfff42af48b007c6ec8",
+      "target_sha256_lf": "57f553c6a44b88ed1db254b0811b4da408002d6be24b2bfff42af48b007c6ec8",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/image.c",
+      "reference_sha256_lf": "4dd4b4deed262e72548b5e5d234a047a4f6a76e55f8230dfc288273b8834721e",
+      "target_sha256_lf": "4dd4b4deed262e72548b5e5d234a047a4f6a76e55f8230dfc288273b8834721e",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/image.h",
+      "reference_sha256_lf": "9adb3ce67c4afd45d84a38ba07e2be65c6a4bd523a5b4a9785b1d83646e4efa1",
+      "target_sha256_lf": "9adb3ce67c4afd45d84a38ba07e2be65c6a4bd523a5b4a9785b1d83646e4efa1",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/perspective.c",
+      "reference_sha256_lf": "d5b9e04f6c717ad8aeb9faee485419c2d348d6faf97643162120c95e1da37e1f",
+      "target_sha256_lf": "d5b9e04f6c717ad8aeb9faee485419c2d348d6faf97643162120c95e1da37e1f",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/perspective.h",
+      "reference_sha256_lf": "c98d0f3ba65569a2f6c689bd258a7f204b9606608cfb6ee9f02a465c37d78340",
+      "target_sha256_lf": "c98d0f3ba65569a2f6c689bd258a7f204b9606608cfb6ee9f02a465c37d78340",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Estimation/Vision/vision_core.c",
+      "reference_sha256_lf": "f066b78830bfa0d88c2b588c8c0f08d398f15a127d13a62c9de598de24d5c389",
+      "target_sha256_lf": "6154d63c5dcd01f3ab40c88b171cb531d8ffcee8b6b7c5702b88d128383afae7",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Estimation/Vision/vision_core.h",
+      "reference_sha256_lf": "e19fbcd50f8c7dfc495447ff1ce27ea7f61fbfd22004f0fd06fac1da80ac77b1",
+      "target_sha256_lf": "e19fbcd50f8c7dfc495447ff1ce27ea7f61fbfd22004f0fd06fac1da80ac77b1",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/HW_Drivers/IMU/imu.c",
+      "reference_sha256_lf": "cbe2289a4779aed16a1a5760126e0e9b04f85da15e9b3aa3cbfd29b4491cbe8a",
+      "target_sha256_lf": "3cbd5121aecf6ba54680aa6cfc493eddf3fbdfba6d795741c8bee868084feadb",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/IMU/imu.h",
+      "reference_sha256_lf": "c11ffd2a552e01b540c888b38c8d07a85e045cba54bf076f38ba02fddd468cfb",
+      "target_sha256_lf": "eed3afa8d3e2ee2d2a1054078830042a68cabfa1b5ff1a23f7e4f8bdf700ce00",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/IMU/imu_r10h.inc",
+      "reference_sha256_lf": "c29483346a252eef1060d416e9902f98ac8f9652dc49d39e5d440106f34c891e",
+      "target_sha256_lf": "aa4e898201cff96e2a0cc5416d17d7bfea7c6b28c33f9f8713cd9f1ebc8cf342",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/IMU/imu_spi.inc",
+      "reference_sha256_lf": "2452426018074b0a9ab4e3ec836379ba2b883298a05aac9caf560a368602a6c8",
+      "target_sha256_lf": "b1c158108bbf3098a4f9d24704a5106259f58c4cede563a27c83764f68c658bf",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/Motor/W_Motor.c",
+      "reference_sha256_lf": "2092a1a109584d4b90f2ab2bbadcd5649e82fdd59e0bc55abded17214ba5c31a",
+      "target_sha256_lf": "2f9ba3e7ffd11c9c6a1264d9ca86e11d7e661671aee37105690856ddce476b22",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/Motor/W_Motor.h",
+      "reference_sha256_lf": "8aa6526d64498c633babbd571e52c3171ba4addd1e87943317a0df04e0987e04",
+      "target_sha256_lf": "198c8f2aa7e5514d97c7bc7862f4c86af9196dd58310526be7b3bf128f085b3e",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/Motor/Y_Motor.c",
+      "reference_sha256_lf": "c8e550b1d183e24309e16cb596804efb220de6790a78c437ad50f5b74dd2850d",
+      "target_sha256_lf": "97b95ea1702489fc6c16d593d0a3f12d028c89e8508ac1918c0ef26759bf943d",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/HW_Drivers/Motor/Y_Motor.h",
+      "reference_sha256_lf": "ad5c6336ef574da4e7c96bacaf096cc9a957633a7c74ce914806f9548cacebf5",
+      "target_sha256_lf": "ad5c6336ef574da4e7c96bacaf096cc9a957633a7c74ce914806f9548cacebf5",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Menu/display.c",
+      "reference_sha256_lf": "3d43fcf486d5b0319dda5176a64049a555f6eeff3b43fa7e08cfdb68a4263cf8",
+      "target_sha256_lf": "3d43fcf486d5b0319dda5176a64049a555f6eeff3b43fa7e08cfdb68a4263cf8",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Menu/display.h",
+      "reference_sha256_lf": "46149d0486da28b34a81db1973bb96e502ee9e5da67501e29c5b01a9fb733844",
+      "target_sha256_lf": "46149d0486da28b34a81db1973bb96e502ee9e5da67501e29c5b01a9fb733844",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Menu/menu.c",
+      "reference_sha256_lf": "4863511cb6b696671add5d33fe93ff34e01f2ea4fcf5142f47eb4ab24cd89522",
+      "target_sha256_lf": "9be42e74e9a214b91ad65af66703b9a73a9d2f5c5646082c94e88eb94d393248",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Menu/menu.h",
+      "reference_sha256_lf": "fbe8ba0918aefbb5271971121507841a97e1d73666ae52e2ba8a38584f8e876b",
+      "target_sha256_lf": "fbe8ba0918aefbb5271971121507841a97e1d73666ae52e2ba8a38584f8e876b",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Menu/menu_path.inc",
+      "reference_sha256_lf": "84b16a25aa4f93aac6a2824d15c441b4c5027964472c38f5eed523c0537e92db",
+      "target_sha256_lf": "3fcb9f2b56f4b71ec33b85771737ad9f8b69adf6db09f8a48dbb7276d75eed8f",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Protocols/station_wifi.c",
+      "reference_sha256_lf": "0f55f44a48f75b6dbfa3ba1748261b9700a1d61519849b253420bff7b4af0d19",
+      "target_sha256_lf": "0f55f44a48f75b6dbfa3ba1748261b9700a1d61519849b253420bff7b4af0d19",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Protocols/station_wifi.h",
+      "reference_sha256_lf": "4c2cadd0c394f1b03e6acb9d0e26e4158c1ac84186e33940aa347de9133812aa",
+      "target_sha256_lf": "4c2cadd0c394f1b03e6acb9d0e26e4158c1ac84186e33940aa347de9133812aa",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Protocols/station_wifi_config.h",
+      "reference_sha256_lf": "3acbf1877d6ebef1704894c3232409279e8c1ce379f0eee54d9d871cd4833b72",
+      "target_sha256_lf": "d62ade0863f0d27f1d12a4578f023b393b2140f479573923e09fb7ef5446e4f5",
+      "unchanged_lf": false
+    },
+    {
+      "path": "code/Protocols/vofa.c",
+      "reference_sha256_lf": "405dad2810bcac941610c2f55d61937699986555fcdb7a139fd82306d5971c58",
+      "target_sha256_lf": "405dad2810bcac941610c2f55d61937699986555fcdb7a139fd82306d5971c58",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Protocols/vofa.h",
+      "reference_sha256_lf": "fc6bd852c6e61e70c44a573500ead6916ca64c601166936acbbd2a24012a15a5",
+      "target_sha256_lf": "fc6bd852c6e61e70c44a573500ead6916ca64c601166936acbbd2a24012a15a5",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Protocols/vofa_path.inc",
+      "reference_sha256_lf": "48daa7ab91dd3d55da37b72faf0f338746b70d4ed3d29cf5a3075df5dea3c710",
+      "target_sha256_lf": "48daa7ab91dd3d55da37b72faf0f338746b70d4ed3d29cf5a3075df5dea3c710",
+      "unchanged_lf": true
+    },
+    {
+      "path": "code/Protocols/vofa_task.inc",
+      "reference_sha256_lf": "9ba9b5eacbb73f8e413a467b353ce86b0c533335a8d5239c8cd2e0c7a3c8fe31",
+      "target_sha256_lf": "9ba9b5eacbb73f8e413a467b353ce86b0c533335a8d5239c8cd2e0c7a3c8fe31",
+      "unchanged_lf": true
+    },
+    {
+      "path": "user/cpu0_main.c",
+      "reference_sha256_lf": "d15d974ddc5472df94280ca861e4972a40550c8d4b56b393437a8201fa680054",
+      "target_sha256_lf": "d15d974ddc5472df94280ca861e4972a40550c8d4b56b393437a8201fa680054",
+      "unchanged_lf": true
+    },
+    {
+      "path": "user/cpu0_main.h",
+      "reference_sha256_lf": "7d0bbe153b6a76b741d196fb205e390f2ab1734c342c73dd7672884551818f2a",
+      "target_sha256_lf": "7d0bbe153b6a76b741d196fb205e390f2ab1734c342c73dd7672884551818f2a",
+      "unchanged_lf": true
+    },
+    {
+      "path": "user/cpu1_main.c",
+      "reference_sha256_lf": "8a42b78ff0f7792ba2def5f667cce191ea437e2df024748ee2340fabe794a281",
+      "target_sha256_lf": "8a42b78ff0f7792ba2def5f667cce191ea437e2df024748ee2340fabe794a281",
+      "unchanged_lf": true
+    },
+    {
+      "path": "user/isr.c",
+      "reference_sha256_lf": "58dc85aa0e956972a0558e86a318f2e2be3a493adc3e30aa86b01c1f0663fcde",
+      "target_sha256_lf": "c7142116676dddf992cd3a7159ea38f1d4e7383ddb3e81b82228a79a86d77606",
+      "unchanged_lf": false
+    },
+    {
+      "path": "user/isr.h",
+      "reference_sha256_lf": "e14abf1b044e964cb2015aea6cdfb6f60df7568fdde0548110f37e626151dacb",
+      "target_sha256_lf": "e14abf1b044e964cb2015aea6cdfb6f60df7568fdde0548110f37e626151dacb",
+      "unchanged_lf": true
+    },
+    {
+      "path": "user/isr_config.h",
+      "reference_sha256_lf": "b73d7c01b732b35e06671d406e166b2dc3fd41d728f06ec3df605ecf1c0550fa",
+      "target_sha256_lf": "b73d7c01b732b35e06671d406e166b2dc3fd41d728f06ec3df605ecf1c0550fa",
+      "unchanged_lf": true
+    }
+  ],
+  "menu_main_equivalence": "Menu/Display and CPU0 entry retained; Menu navigation is now static parent-child-sibling nodes, while drawing/font/layout are preserved.",
+  "local_hardware_overrides": [
+    "key pins: P20_7/P20_6/P11_3/P11_2",
+    "measured old zeros 5.4/-0.2 degrees -> reference gravity rotation",
+    "ground friction 730/1100 PWM",
+    "camera auto-start disabled",
+    "UART3 text duty mailbox, text/binary RPM, optional binary TX",
+    "project Qcar, dynamic build path, OneWheelUpright artifact",
+    "new QCAF parameter marker; private LAN header ignored"
+  ],
+  "boot_display_fix": "2026-11-04: auto-start applies only in vision_core_init; manual restart always allowed; SDK camera nonfatal LCD logging off by default, VISION_CORE_FAILED still reported.",
+  "linked_menu": "Static node pool; actual child/parent transitions, sibling movement, node-local cursor/scroll and folder callbacks. No heap allocation.",
+  "imu_diagnostics": "First SPI/sample failure retained until imu_init; low-level SPI timeout, not-ready, all-FF/zero-accel, clipping, identity and nonfinite values reported through menu.",
+  "menu_edit_step_support": {
+    "code/Menu/menu.c": "ef87df80babef107846a9fad640e4adfe103dd3eea8b1c2319cebeb6329e85b6",
+    "code/Menu/menu_path.inc": "3fcb9f2b56f4b71ec33b85771737ad9f8b69adf6db09f8a48dbb7276d75eed8f",
+    "code/Menu/menu_tree.c": "b75c062b5a0e1195da6eef7cde8f8066a657e801b96787383cd211775e38d05a",
+    "code/Menu/menu_tree.h": "ef48da80826b1255f0eaed10e615701474426e29b056cf03cb5575aa85219829"
+  },
+  "menu_edit_steps": "Per-node 0.01/0.1/1/10/100 scale, effective-step footer, long Enter once per hold; short Enter done, integer minimum 1 and fixed direction/switch steps; preferences last until menu reinitialization.",
+  "step_hold": "Enter key only: 300ms while Group/Path editing, original 1000ms outside editing; other keys unchanged; one gear change per hold."
+}

@@ -1,213 +1,189 @@
 /*********************************************************************************************************************
-* TC264 Opensourec Library 即（TC264 开源库）是一个基于官方 SDK 接口的第三方开源库
-* Copyright (c) 2022 SEEKFREE 逐飞科技
+* TC264 Opensourec Library ����TC264 ��Դ�⣩��һ�����ڹٷ� SDK �ӿڵĵ�������Դ��
+* Copyright (c) 2022 SEEKFREE ��ɿƼ�
 *
-* 本文件是 TC264 开源库的一部分
+* ���ļ��� TC264 ��Դ���һ����
 *
-* TC264 开源库 是免费软件
-* 您可以根据自由软件基金会发布的 GPL（GNU General Public License，即 GNU通用公共许可证）的条款
-* 即 GPL 的第3版（即 GPL3.0）或（您选择的）任何后来的版本，重新发布和/或修改它
+* TC264 ��Դ�� ���������
+* �����Ը���������������ᷢ���� GPL��GNU General Public License���� GNUͨ�ù�������֤��������
+* �� GPL �ĵ�3�棨�� GPL3.0������ѡ��ģ��κκ����İ汾�����·�����/���޸���
 *
-* 本开源库的发布是希望它能发挥作用，但并未对其作任何的保证
-* 甚至没有隐含的适销性或适合特定用途的保证
-* 更多细节请参见 GPL
+* ����Դ��ķ�����ϣ�����ܷ������ã�����δ�������κεı�֤
+* ����û�������������Ի��ʺ��ض���;�ı�֤
+* ����ϸ����μ� GPL
 *
-* 您应该在收到本开源库的同时收到一份 GPL 的副本
-* 如果没有，请参阅<https://www.gnu.org/licenses/>
+* ��Ӧ�����յ�����Դ���ͬʱ�յ�һ�� GPL �ĸ���
+* ���û�У������<https://www.gnu.org/licenses/>
 *
-* 额外注明：
-* 本开源库使用 GPL3.0 开源许可证协议 以上许可申明为译文版本
-* 许可申明英文版在 libraries/doc 文件夹下的 GPL3_permission_statement.txt 文件中
-* 许可证副本在 libraries 文件夹下 即该文件夹下的 LICENSE 文件
-* 欢迎各位使用并传播本程序 但修改内容时必须保留逐飞科技的版权声明（即本声明）
+* ����ע����
+* ����Դ��ʹ�� GPL3.0 ��Դ����֤Э�� ������������Ϊ���İ汾
+* ��������Ӣ�İ��� libraries/doc �ļ����µ� GPL3_permission_statement.txt �ļ���
+* ����֤������ libraries �ļ����� �����ļ����µ� LICENSE �ļ�
+* ��ӭ��λʹ�ò����������� ���޸�����ʱ���뱣����ɿƼ��İ�Ȩ����������������
 *
-* 文件名称          zf_driver_flash
-* 公司名称          成都逐飞科技有限公司
-* 版本信息          查看 libraries/doc 文件夹内 version 文件 版本说明
-* 开发环境          ADS v1.10.2
-* 适用平台          TC264D
-* 店铺链接          https://seekfree.taobao.com/
+* �ļ�����          zf_driver_flash
+* ��˾����          �ɶ���ɿƼ����޹�˾
+* �汾��Ϣ          �鿴 libraries/doc �ļ����� version �ļ� �汾˵��
+* ��������          ADS v1.10.2
+* ����ƽ̨          TC264D
+* ��������          https://seekfree.taobao.com/
 *
-* 修改记录
-* 日期              作者                备注
+* �޸ļ�¼
+* ����              ����                ��ע
 * 2022-09-15       pudding            first version
-* 2023-07-14       pudding            修复之前不完整的断言判断以及错误的注释内容
-* 2023-07-15       pudding            写入时单独增加是否擦除判断，防止用户使用报错
+* 2023-07-14       pudding            �޸�֮ǰ�������Ķ����ж��Լ������ע������
+* 2023-07-15       pudding            д��ʱ���������Ƿ�����жϣ���ֹ�û�ʹ�ñ���
 ********************************************************************************************************************/
 
+/* CPU0 foreground only; no ISR/other-core Flash access during a transaction.
+ * The vendor logical "page" is an 8 KiB erase sector. Each stored uint32
+ * occupies the low half of one 8-byte hardware page. Keep this wire format. */
+#include "Common/storage_profile.h"
 #include "IfxScuWdt.h"
 #include "IfxFlash.h"
-#include "zf_common_debug.h"
+#include "IfxStm.h"
+#include "zf_common_interrupt.h"
 #include "zf_driver_flash.h"
+#include <string.h>
 
-
-
-flash_data_union flash_union_buffer[EEPROM_PAGE_LENGTH];                    // FLASH 操作的数据缓冲区
-static uint8     flash_erase_page_flag;                                     // FLASH 擦除页标志位  如果用户没有主动擦除后再写入 则帮用户擦除
-
-//-------------------------------------------------------------------------------------------------------------------
-//  函数简介      校验FLASH页是否有数据
-//  参数说明      sector_num    仅可填写0  此处扇区编号并无实际作用，只是留出接口
-//  参数说明      page_num      需要写入的页编号   参数范围0-11
-//  返回参数      返回1有数据，返回0没有数据，如果需要对有数据的区域写入新的数据则应该对所在扇区进行擦除操作
-//  使用示例      flash_check(0, 0); // 校验0页是否有数据
-//  备注信息
-//-------------------------------------------------------------------------------------------------------------------
-uint8 flash_check (uint32 sector_num, uint32 page_num)
+flash_data_union flash_union_buffer[EEPROM_PAGE_LENGTH];
+static flash_status_t s_status;
+static uint8 s_fault; /* Timeout/hardware errors latch until reset. */
+#define BUSY_MASK (1u << 1)
+#define PAGE_MASK (1u << 10)
+/* Bundled TC26B FSR: OPER/SQER/PROER 11..13, DFlash ECC 18..21,
+ * SRIADDERR 22, PVER/EVER 25..26. Reject even corrected DFlash ECC:
+ * marginal/uncertain contents must not authorize a destructive operation.
+ * A silicon bus/ECC trap may occur before C regains control. These status
+ * checks do NOT implement trap recovery or validate blank-sector ECC behavior.
+ * Keep STORAGE_FLASH_VALIDATED=0 until silicon/trap/ENDINIT timing is reviewed. */
+#define ERROR_MASK ((7u << 11) | (31u << 18) | (3u << 25))
+static int hardware_ok(void)
 {
-    zf_assert(EEPROM_PAGE_NUM > page_num);
-
-    uint32 sector_addr = IfxFlash_dFlashTableEepLog[page_num].start;
-
-    uint32 num = 0;
-
-    for(num = 0; num < EEPROM_PAGE_LENGTH && *(uint32 *)(sector_addr + num  * FLASH_DATA_SIZE) == 0; num ++);
-
-    return num == EEPROM_PAGE_LENGTH ? 0 : 1;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//  函数简介      擦除页
-//  参数说明      sector_num    仅可填写0  此处扇区编号并无实际作用，只是留出接口
-//  参数说明      page_num      需要写入的页编号   参数范围0-11
-//  返回参数      void
-//  使用示例      flash_erase_page(0, 0);
-//  备注信息
-//-------------------------------------------------------------------------------------------------------------------
-void flash_erase_page (uint32 sector_num, uint32 page_num)
-{
-    zf_assert(EEPROM_PAGE_NUM > page_num);
-
-    uint32 flash = 0;
-    uint16 end_init_sfty_pw;
-    uint32 sector_addr = IfxFlash_dFlashTableEepLog[page_num].start;
-
-    end_init_sfty_pw   = IfxScuWdt_getSafetyWatchdogPassword();
-
-    IfxScuWdt_clearSafetyEndinit(end_init_sfty_pw);
-    IfxFlash_eraseSector        (sector_addr);
-    IfxScuWdt_setSafetyEndinit  (end_init_sfty_pw);
-
-    IfxFlash_waitUnbusy(flash, IfxFlash_FlashType_D0);
-    
-    flash_erase_page_flag = 1;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     读取一页
-// 参数说明     sector_num      仅可填写0  此处扇区编号并无实际作用，只是留出接口
-// 参数说明     page_num        当前扇区页的编号   参数范围 <0 - 11>
-// 参数说明     buf             需要读取的数据地址   传入的数组类型必须为uint32
-// 参数说明     len             需要写入的数据长度   参数范围 1-1023
-// 返回参数     void
-// 使用示例     flash_read_page(0, 11, data_buffer, 256);
-// 备注信息
-//-------------------------------------------------------------------------------------------------------------------
-void flash_read_page(uint32 sector_num, uint32 page_num, uint32 *buf, uint16 len)
-{
-    uint32 data_cont = 0;
-    zf_assert(EEPROM_PAGE_NUM > page_num);
-    zf_assert(EEPROM_PAGE_LENGTH >= len);
-
-    for(data_cont = 0; data_cont < len; data_cont ++)
-    {
-        *buf ++ = *((uint32 *)((EEPROM_BASE_ADDR + page_num * EEPROM_PAGE_SIZE) + (data_cont * FLASH_DATA_SIZE)));
+    if (FLASH0_FSR.U & ERROR_MASK) {
+        s_status = FLASH_STATUS_HARDWARE; s_fault = 1; return 0;
     }
+    return 1;
 }
-
-//-------------------------------------------------------------------------------------------------------------------
-//  函数简介      编程一页
-//  参数说明      sector_num      仅可填写0  此处扇区编号并无实际作用，只是留出接口
-//  参数说明      page_num        当前扇区页的编号    参数范围 <0 - 11>
-//  参数说明      buf             需要写入的数据地址   传入的数组类型必须为 uint32
-//  参数说明      len             需要写入的数据长度   参数范围 1-1024
-//  返回参数      void
-//  使用示例      flash_write_page(0, 0, buf, 10);
-//  备注信息
-//-------------------------------------------------------------------------------------------------------------------
-void flash_write_page (uint32 sector_num, uint32 page_num, const uint32 *buf, uint16 len)
+flash_status_t flash_last_status(void) { return s_status; }
+static int ready(uint32 sector, uint32 page)
 {
-    zf_assert(EEPROM_PAGE_NUM > page_num);
-    zf_assert(EEPROM_PAGE_LENGTH >= len);
-
-    uint16 end_init_sfty_pw;
-    uint32 flash_addr = IfxFlash_dFlashTableEepLog[page_num].start;
-    uint32 data_addr = 0;
-    uint32 data_cont = 0;
-    end_init_sfty_pw   = IfxScuWdt_getSafetyWatchdogPassword();
-
-    if(flash_erase_page_flag == 0 && flash_check(sector_num, page_num))
-    {
-        flash_erase_page(sector_num, page_num);
-    }
-
-    for(data_cont = 0; data_cont < len; data_cont ++)
-    {
-        data_addr  = flash_addr + data_cont * FLASH_DATA_SIZE;
-
-        zf_assert(0 == IfxFlash_enterPageMode(data_addr));
-
-        IfxFlash_waitUnbusy(0, IfxFlash_FlashType_D0);
-
-        IfxFlash_loadPage(data_addr, *buf ++, 0);
-
-        IfxScuWdt_clearSafetyEndinit(end_init_sfty_pw);
-        IfxFlash_writePage          (data_addr);
-        IfxScuWdt_setSafetyEndinit  (end_init_sfty_pw);
-
-        IfxFlash_waitUnbusy(0, IfxFlash_FlashType_D0);
-    }
-
-    flash_erase_page_flag = 0;
+    if (!STORAGE_FLASH_VALIDATED) { s_status = FLASH_STATUS_DISABLED; return 0; }
+    if (s_fault) return 0;
+    if (sector != 0u || page >= EEPROM_PAGE_NUM) { s_status = FLASH_STATUS_ARGUMENT; return 0; }
+    if (FLASH0_FSR.U & BUSY_MASK) { s_status = FLASH_STATUS_BUSY; return 0; }
+    if (!hardware_ok()) return 0;
+    s_status = FLASH_STATUS_OK;
+    return 1;
 }
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     从指定 FLASH 的扇区的指定页码读取数据到缓冲区
-// 参数说明     sector_num      仅可填写0  此处扇区编号并无实际作用，只是留出接口
-// 参数说明     page_num        当前扇区页的编号   参数范围 <0 - 11>
-// 返回参数     void
-// 使用示例     flash_read_page_to_buffer(0, 11);
-// 备注信息
-//-------------------------------------------------------------------------------------------------------------------
-void flash_read_page_to_buffer (uint32 sector_num, uint32 page_num)
+static int wait_status(uint32 mask, uint32 value, uint32 ms)
 {
-    uint32 data_cont = 0;
-    zf_assert(EEPROM_PAGE_NUM > page_num);
-
-    uint32 flash_addr = IfxFlash_dFlashTableEepLog[page_num].start; // 提取当前 Flash 地址
-
-    for(data_cont = 0; data_cont < EEPROM_PAGE_LENGTH; data_cont ++)
-    {
-        flash_union_buffer[data_cont].uint32_type = *((uint32 *)(flash_addr + (data_cont * FLASH_DATA_SIZE)));
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     向指定 FLASH 的扇区的指定页码写入缓冲区的数据
-// 参数说明     sector_num      仅可填写0  此处扇区编号并无实际作用，只是留出接口
-// 参数说明     page_num        当前扇区页的编号   参数范围 <0 - 11>
-// 返回参数     uint8           1-表示失败 0-表示成功
-// 使用示例     flash_write_page_from_buffer(0, 11);
-// 备注信息
-//-------------------------------------------------------------------------------------------------------------------
-uint8 flash_write_page_from_buffer (uint32 sector_num, uint32 page_num)
-{
-    uint32 *data_pointer = (uint32 *)flash_union_buffer;
-
-    flash_write_page(0, page_num, data_pointer, EEPROM_PAGE_LENGTH);
-
+    uint32 start = IfxStm_getLower(&MODULE_STM0);
+    uint32 ticks = (uint32)(IfxStm_getFrequency(&MODULE_STM0) / 1000.0f) * ms;
+    uint32 polls = 10000000u;
+    do {
+        uint32 status = FLASH0_FSR.U;
+        if (status & ERROR_MASK) { s_status = FLASH_STATUS_HARDWARE; s_fault = 1; return 0; }
+        if ((status & mask) == value) { __dsync(); return hardware_ok(); }
+        if ((uint32)(IfxStm_getLower(&MODULE_STM0) - start) >= ticks) break;
+    } while (--polls);
+    s_status = FLASH_STATUS_TIMEOUT; s_fault = 1;
     return 0;
 }
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     清空数据缓冲区
-// 参数说明     void
-// 返回参数     void
-// 使用示例     flash_buffer_clear();
-// 备注信息
-//-------------------------------------------------------------------------------------------------------------------
-void flash_buffer_clear (void)
+static uint32 address(uint32 page) { return IfxFlash_dFlashTableEepLog[page].start; }
+static int read_word(uint32 addr, uint32 *value)
 {
-    memset(flash_union_buffer, 0xFF, EEPROM_PAGE_LENGTH);
+    uint32 v = *(volatile uint32 *)addr;
+    /* Observe read-triggered ECC/address errors before publishing the value or
+     * accepting an early occupied/blank/verify result. Never clear the flags. */
+    __dsync();
+    if (!hardware_ok()) return 0;
+    *value = v;
+    return 1;
 }
-
+uint8 flash_check(uint32 sector, uint32 page)
+{
+    uint32 i, addr, value;
+    if (!ready(sector, page)) return 1; /* failure is never mistaken for blank */
+    addr = address(page);
+    /* Inspect BOTH hardware words, including unused high halves. */
+    for (i = 0; i < EEPROM_PAGE_SIZE; i += 4u) {
+        if (!read_word(addr+i, &value)) return 1;
+        if (value != 0u) return 1;
+    }
+    return 0;
+}
+void flash_read_page(uint32 sector, uint32 page, uint32 *buf, uint16 len)
+{
+    uint32 i, addr, low, high;
+    if (!ready(sector, page)) return;
+    if (!buf || len > EEPROM_PAGE_LENGTH) { s_status = FLASH_STATUS_ARGUMENT; return; }
+    addr = address(page);
+    for (i = 0; i < len; i++) {
+        if (!read_word(addr+i*FLASH_DATA_SIZE+4u, &high)) return;
+        if (high != 0u) {
+            s_status = FLASH_STATUS_VERIFY; return; /* incompatible packed layout */
+        }
+        if (!read_word(addr+i*FLASH_DATA_SIZE, &low)) return;
+        buf[i] = low;
+    }
+}
+void flash_erase_page(uint32 sector, uint32 page)
+{
+    uint32 irq;
+    uint16 password;
+    if (!ready(sector, page)) return;
+    irq = interrupt_global_disable();
+    IfxFlash_resetToRead(0);
+    IfxFlash_clearStatus(0);
+    password = IfxScuWdt_getSafetyWatchdogPassword();
+    IfxScuWdt_clearSafetyEndinit(password);
+    IfxFlash_eraseSector(address(page));
+    IfxScuWdt_setSafetyEndinit(password);
+    interrupt_global_enable(irq);
+    if (!wait_status(BUSY_MASK, 0, 1000u)) return;
+    IfxFlash_resetToRead(0);
+    if (flash_check(sector, page) && s_status == FLASH_STATUS_OK)
+        s_status = FLASH_STATUS_VERIFY;
+}
+void flash_write_page(uint32 sector, uint32 page, const uint32 *buf, uint16 len)
+{
+    uint32 i, irq, addr, error, low, high;
+    uint16 password;
+    if (!ready(sector, page)) return;
+    if (!buf || !len || len > EEPROM_PAGE_LENGTH) { s_status = FLASH_STATUS_ARGUMENT; return; }
+    /* Ownership belongs to the record layer. Never implicitly erase data. */
+    if (flash_check(sector, page)) {
+        if (s_status == FLASH_STATUS_OK) s_status = FLASH_STATUS_VERIFY;
+        return;
+    }
+    for (i = 0; i < len; i++) {
+        addr = address(page) + i*FLASH_DATA_SIZE;
+        irq = interrupt_global_disable();
+        error = IfxFlash_enterPageMode(addr);
+        interrupt_global_enable(irq);
+        if (error) { s_status = FLASH_STATUS_HARDWARE; s_fault = 1; return; }
+        if (!wait_status(PAGE_MASK, PAGE_MASK, 10u)) return;
+        irq = interrupt_global_disable();
+        IfxFlash_loadPage(addr, buf[i], 0);
+        password = IfxScuWdt_getSafetyWatchdogPassword();
+        IfxScuWdt_clearSafetyEndinit(password);
+        IfxFlash_writePage(addr);
+        IfxScuWdt_setSafetyEndinit(password);
+        interrupt_global_enable(irq);
+        if (!wait_status(BUSY_MASK, 0, 10u)) return;
+        IfxFlash_resetToRead(0);
+        if (!read_word(addr, &low) || !read_word(addr+4u, &high)) return;
+        if (low != buf[i] || high != 0u) {
+            s_status = FLASH_STATUS_VERIFY; return;
+        }
+    }
+}
+void flash_read_page_to_buffer(uint32 sector, uint32 page)
+{ flash_read_page(sector, page, (uint32 *)flash_union_buffer, EEPROM_PAGE_LENGTH); }
+uint8 flash_write_page_from_buffer(uint32 sector, uint32 page)
+{
+    flash_write_page(sector, page, (const uint32 *)flash_union_buffer, EEPROM_PAGE_LENGTH);
+    return (uint8)(s_status != FLASH_STATUS_OK);
+}
+void flash_buffer_clear(void) { memset(flash_union_buffer, 0, sizeof(flash_union_buffer)); }

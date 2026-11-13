@@ -87,7 +87,19 @@
                                                                                 //                  如果自动曝光开启  EXP_TIME命令设置自动曝光时间的上限
                                                                                 //                  一般情况是不需要开启自动曝光设置 如果遇到光线非常不均匀的情况可以尝试设置自动曝光，增加图像稳定性
 #define MT9V03X_EXP_TIME_DEF    ( 512 )                                         // 曝光时间         摄像头收到后会自动计算出最大曝光时间，如果设置过大则设置为计算出来的最大曝光值
-#define MT9V03X_FPS_DEF         ( 50  )                                         // 图像帧率         摄像头收到后会自动计算出最大FPS，如果过大则设置为计算出来的最大FPS
+#define MT9V03X_FPS_DEF         ( 100 )                                         // 图像帧率         摄像头收到后会自动计算出最大FPS，如果过大则设置为计算出来的最大FPS
+                                                                                //
+                                                                                // 实测这颗模块**恒定隔场丢一帧**，跟设多少无关：
+                                                                                //   设 60 -> VS60 DM30 DP30 F30      设 50 -> VS50 DM25 DP25 F24~26
+                                                                                // 丢的路径是 .c 里 mt9v03x_vsync_handler() 的 busy_drop：VSYNC 来的时候
+                                                                                // 上一场的 finish_flag 还没被消费，本场直接不启动 DMA。
+                                                                                // 不是算法慢 —— CPU1 一帧只算 2.1ms，50 帧的预算是 20ms。
+                                                                                //
+                                                                                // 所以按"实际到手 = 设定/2"来配：100 -> 到手 50。
+                                                                                // 摄像头手册 1.5 节明确推荐 50 或 100 两档(避开工频干扰)，并且写着
+                                                                                // "如果是直立车想要提高响应速度也可以将帧率设置为 100 帧"，正是本车的情形。
+                                                                                // 到手 50 帧时 CPU1 负载 2.1/20 = 10%，余量充足。
+                                                                                // 注意帧率越高摄像头能给的最大曝光越短，图像变暗就调 cam_exposure 或增益。
 #define MT9V03X_LR_OFFSET_DEF   ( 0   )                                         // 图像左右偏移量   正值 右偏移   负值 左偏移  列为188 376 752时无法设置偏移
                                                                                 //                  摄像头收偏移数据后会自动计算最大偏移，如果超出则设置计算出来的最大偏移
 #define MT9V03X_UD_OFFSET_DEF   ( 0   )                                         // 图像上下偏移量   正值 上偏移   负值 下偏移  行为120 240 480时无法设置偏移
@@ -134,6 +146,9 @@ typedef enum
 
 //================================================声明 MT9V03X 全局变量================================================
 extern vuint8    mt9v03x_finish_flag;                                           // 一场图像采集完成标志位
+extern vuint32   mt9v03x_vsync_count;                                           // VSYNC 中断累计次数
+extern vuint32   mt9v03x_dma_count;                                             // DMA 完整帧累计次数
+extern vuint32   mt9v03x_busy_drop_count;                                       // 上一帧未消费导致的丢帧累计次数
 extern uint8    mt9v03x_image[MT9V03X_H][MT9V03X_W];                            // 图像数据存储数组
 //================================================声明 MT9V03X 全局变量================================================
 
@@ -144,5 +159,11 @@ uint8       mt9v03x_set_exposure_time   (uint16 light);                         
 uint8       mt9v03x_set_reg             (uint8 addr, uint16 data);              // 对摄像头内部寄存器进行写操作
 uint8       mt9v03x_init                (void);                                 // MT9V03X 摄像头初始化
 //================================================声明 MT9V03X 基础函数================================================
+
+/* Qcar: CPU1 camera failures are reported through VISION_CORE_FAILED.
+ * LCD belongs to CPU0; optional SDK diagnostics must not clear it from CPU1. */
+#ifndef MT9V03X_INIT_LOG_ENABLE
+#define MT9V03X_INIT_LOG_ENABLE 0
+#endif
 
 #endif

@@ -1,0 +1,67 @@
+{
+  "format_version": 1,
+  "created_utc": "2026-11-10T16:47:26.6515310Z",
+  "scope": "Documentation organization and one regenerated Python cache only",
+  "moves": [
+    {
+      "original_path": "ANGLE_RESPONSE_AB.md",
+      "archived_path": "docs/history/2026-11-10_cleanup/ANGLE_RESPONSE_AB.md",
+      "bytes": 2515,
+      "sha256": "146F4F28EB66017207997CFAEA38A914EEE2257643B609FF50A71409185E056F",
+      "byte_verified": true,
+      "historical_reference": "validation/FILE_SHA256.json retained unchanged"
+    },
+    {
+      "original_path": "ANGLE_TUNING_DATA.md",
+      "archived_path": "docs/history/2026-11-10_cleanup/ANGLE_TUNING_DATA.md",
+      "bytes": 3074,
+      "sha256": "7D132962832AA970D5C773AF5DAA087559CA5BF46F8679B8C192F43E401F18A4",
+      "byte_verified": true,
+      "historical_reference": "validation/FILE_SHA256.json retained unchanged"
+    },
+    {
+      "original_path": "MODE8_STEP_TEST.md",
+      "archived_path": "docs/history/2026-11-10_cleanup/MODE8_STEP_TEST.md",
+      "bytes": 1084,
+      "sha256": "ECC5F0211CB66375A0A4A3A94B59FB6E07B0DE1D8EC3B54469B37A80160D29FA",
+      "byte_verified": true,
+      "historical_reference": "validation/FILE_SHA256.json retained unchanged"
+    }
+  ],
+  "readme": {
+    "path": "README.md",
+    "backup_path": "docs/history/2026-11-10_cleanup/README.before-cleanup.bytes",
+    "before_bytes": 9461,
+    "before_sha256": "6567520A309E16C0F31BC154D05F997C5F7948BEFD9C41D49D0A58397C1E5C5E",
+    "original_body_preserved": true,
+    "after_bytes": 9942,
+    "after_sha256": "5338A7C4306B23534580E56128CB33B3E4BF5747026E62623DF4073A91380956"
+  },
+  "deleted_cache": {
+    "path": "tools/__pycache__/c_bench_cli.cpython-314.pyc",
+    "bytes": 27081,
+    "sha256": "B4C51D4982D0A452ACBEB81BDB4BB3FE9971D26A7F6B70C2AE703772C2AE6073",
+    "regenerated_from": "tools/c_bench_cli.py"
+  },
+  "added_paths": [
+    "docs/CURRENT_WORKFLOW.md",
+    "docs/history/2026-11-10_cleanup/README.md",
+    "docs/history/2026-11-10_cleanup/README.before-cleanup.bytes",
+    "docs/history/2026-11-10_cleanup/restore_manifest.json"
+  ],
+  "validation": {
+    "project_programs_run": false,
+    "tests_run": false,
+    "build_run": false,
+    "hardware_used": false,
+    "network_packets_sent": false,
+    "private_wifi_header_content_read": false,
+    "status": "file_checks_passed",
+    "protected_original_files_checked": 2794,
+    "private_header_metadata_only_count": 1,
+    "unexpected_changes": [],
+    "unexpected_additions": [],
+    "broken_new_links": [],
+    "checked_utc": "2026-11-10T16:47:50.3744413Z"
+  }
+}

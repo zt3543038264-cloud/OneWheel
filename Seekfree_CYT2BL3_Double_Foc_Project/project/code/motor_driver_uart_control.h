@@ -37,7 +37,11 @@
 #define _motor_driver_uart_control_h_
 
 
+#ifdef DRIVER_SAFETY_HOST
+#include "driver_safety_host.h"
+#else
 #include "zf_common_headfile.h"
+#endif
 
 
 #define MOTOR_DRIVER_UART      UART_2 

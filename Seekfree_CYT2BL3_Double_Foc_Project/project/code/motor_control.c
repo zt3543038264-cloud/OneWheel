@@ -34,6 +34,7 @@
 ********************************************************************************************************************/
 
 #include "motor_control.h"
+#include "driver_safety.h"
 #include "driver_trace.h"
 
 motor_struct motor_left;
@@ -49,13 +50,20 @@ motor_struct motor_right;
 //-------------------------------------------------------------------------------------------------------------------
 void motor_left_update_isr(void)
 {
+    if(!motor_calibration_valid) {
+        Cy_Tcpwm_Counter_ClearTC_Intr(MOTOR_LEFT_A_PHASE_TCPWM_TIMER);
+        return;
+    }
+    driver_safety_control_alive(0);
     static uint8  left_speed_count = 0;                                         // 速度拟合计次
 
     static uint32 left_protect_count = 0;                                       // 输出保护计次
     
 #if MOTOR_LOSE_CONTROL_PROTECT  == DRIVER_ENABLE && USER_CONTROL_MODE == 0   
     
-    if(++ motor_left.lose_control_protect_count > (MOTOR_LOSE_CONTROL_TIME * 20))
+    if(motor_left.lose_control_protect_count < (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
+        ++motor_left.lose_control_protect_count;
+    if(motor_left.lose_control_protect_count >= (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
     {
         motor_left.motor_duty       = 0.0f;
     }
@@ -216,7 +224,9 @@ void motor_left_update_isr(void)
         
 #if MOTOR_LOSE_CONTROL_PROTECT  == DRIVER_ENABLE && USER_CONTROL_MODE == 0     
     
-    if(++ motor_right.lose_control_protect_count > (MOTOR_LOSE_CONTROL_TIME * 20))
+    if(motor_right.lose_control_protect_count < (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
+        ++motor_right.lose_control_protect_count;
+    if(motor_right.lose_control_protect_count >= (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
     {
         motor_right.motor_duty       = 0.0f;
     }
@@ -235,7 +245,12 @@ void motor_left_update_isr(void)
 // 备注信息       
 //-------------------------------------------------------------------------------------------------------------------
 void motor_right_update_isr(void)
-{       
+{
+    if(!motor_calibration_valid) {
+        Cy_Tcpwm_Counter_ClearTC_Intr(MOTOR_RIGHT_A_PHASE_TCPWM_TIMER);
+        return;
+    }
+    driver_safety_control_alive(1);       
 
     static uint8  right_speed_count = 0;                                        // 速度拟合计次
 
@@ -243,7 +258,9 @@ void motor_right_update_isr(void)
 
 #if MOTOR_LOSE_CONTROL_PROTECT  == DRIVER_ENABLE && USER_CONTROL_MODE == 0     
     
-    if(++ motor_right.lose_control_protect_count > (MOTOR_LOSE_CONTROL_TIME * 20))
+    if(motor_right.lose_control_protect_count < (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
+        ++motor_right.lose_control_protect_count;
+    if(motor_right.lose_control_protect_count >= (MOTOR_LOSE_CONTROL_TIME * (FPWM / 1000u)))
     {
         motor_right.motor_duty       = 0.0f;
     }
@@ -407,196 +424,9 @@ void motor_right_update_isr(void)
 // 备注信息       
 //-------------------------------------------------------------------------------------------------------------------
 uint8 motor_both_zero_calibration(void)
-{        
-    int16  rotation_direction[2] = {0}; 
-    int32  encoder_data_integral[2] = {0};
-    uint16 start_encoder_data[2] = {0};    
-    uint16 stop_encoder_data[2] = {0};    
-    uint8  calibration_state = 2;
-    
-    
-    // 矫正零点时默认恢复电机工作保护状态
-    motor_left.motor_protect_state   = NORMAL_RUN_MODE;     
-    motor_right.motor_protect_state  = NORMAL_RUN_MODE;     
-    
-    // 初始化默认配置参数
-    fast_foc_init(&motor_left_foc_driver,  ENCODER_PRECISION, OUTPUT_DUTY_MAX, 1, 0, 1);
-    fast_foc_init(&motor_right_foc_driver, ENCODER_PRECISION, OUTPUT_DUTY_MAX, 1, 0, 1);    
-    
-    // 开环定位 20% 占空比
-    fast_foc_calculate(&motor_left_foc_driver,  0, 0.2, 0);
-    fast_foc_calculate(&motor_right_foc_driver, 0, 0.2, 0);                            
-    
-    // 输出占空比到电机
-    motor_left_duty_set (motor_left_foc_driver.ouput_duty[0],  motor_left_foc_driver.ouput_duty[1],  motor_left_foc_driver.ouput_duty[2] );
-    motor_right_duty_set(motor_right_foc_driver.ouput_duty[0], motor_right_foc_driver.ouput_duty[1], motor_right_foc_driver.ouput_duty[2]); 
-    
-    // 延时 200ms 等待电机回到零点
-    system_delay_ms(200);                                                                                       
-    
-    // 获取牵引开始时的磁编码器数值
-    for(int i = 0; i < 10; i ++)
-    {
-        start_encoder_data[LEFT_MOTOR]  = menc15a_get_absolute_data((menc15a_module_enum)LEFT_MOTOR);
-        start_encoder_data[RIGHT_MOTOR] = menc15a_get_absolute_data((menc15a_module_enum)RIGHT_MOTOR); 
-        //printf("%d,%d\r\n", menc15a_absolute_data[0], menc15a_absolute_data[1]);
-        
-        system_delay_ms(5); 
-    }
-    
-    // 开环牵引 100 次 
-    for(uint16_t i = 0; i <= 100; i ++)                                                                         
-    {
-        // 以 10% 占空比循环牵引
-        fast_foc_calculate(&motor_left_foc_driver,  ENCODER_PRECISION * i / 100, 0.2, 0);
-        fast_foc_calculate(&motor_right_foc_driver, ENCODER_PRECISION * i / 100, 0.2, 0);     
-        
-        // 输出占空比到电机
-        motor_left_duty_set (motor_left_foc_driver.ouput_duty[0],  motor_left_foc_driver.ouput_duty[1],  motor_left_foc_driver.ouput_duty[2] );
-        motor_right_duty_set(motor_right_foc_driver.ouput_duty[0], motor_right_foc_driver.ouput_duty[1], motor_right_foc_driver.ouput_duty[2]);
-        
-        // 单次牵引间隔为（默认5ms） 
-        system_delay_ms(5);                                                                                     
-        
-        // 获取当前磁编码器数值
-        menc15a_get_absolute_data((menc15a_module_enum)LEFT_MOTOR);
-        menc15a_get_absolute_data((menc15a_module_enum)RIGHT_MOTOR);                                                            
-        
-        // printf("%d,%d\r\n", menc15a_absolute_data[0], menc15a_absolute_data[1]);
-        
-        // 累计单次牵引的旋转方向
-        if(menc15a_absolute_offset_data[LEFT_MOTOR] > 0)                                                                 
-        {
-            rotation_direction[LEFT_MOTOR] ++;
-        }
-        else if(menc15a_absolute_offset_data[LEFT_MOTOR] < 0)
-        {
-            rotation_direction[LEFT_MOTOR] --;
-        }
-        if(menc15a_absolute_offset_data[RIGHT_MOTOR] > 0)                                                                 
-        {
-            rotation_direction[RIGHT_MOTOR] ++;
-        }
-        else if(menc15a_absolute_offset_data[RIGHT_MOTOR] < 0)
-        {
-            rotation_direction[RIGHT_MOTOR] --;
-        }
-        
-        // 累积单次牵引的旋转数值
-        encoder_data_integral[LEFT_MOTOR] += menc15a_absolute_offset_data[LEFT_MOTOR];
-        encoder_data_integral[RIGHT_MOTOR] += menc15a_absolute_offset_data[RIGHT_MOTOR];
-    }                                                                                      
-    
-    // 获取牵引结束时的磁编码器数值
-    stop_encoder_data[LEFT_MOTOR]  = menc15a_get_absolute_data((menc15a_module_enum)LEFT_MOTOR);
-    stop_encoder_data[RIGHT_MOTOR] = menc15a_get_absolute_data((menc15a_module_enum)RIGHT_MOTOR);                    
-    
-    // 关闭输出
-    motor_left_duty_set (0, 0, 0);    
-    motor_right_duty_set(0, 0, 0);    
-    
-    printf("\r\nleft motor:\r\n");						// 打印校准过程数据（用于调试）
-    printf("encoder start:%d\r\n",     start_encoder_data[LEFT_MOTOR]);
-    printf("encoder end:%d\r\n",       stop_encoder_data[LEFT_MOTOR]);
-    printf("encoder distance:%d\r\n",  encoder_data_integral[LEFT_MOTOR]);	
-
-    // 判断是否正确读取到磁编数据 开环牵引积分小于 1000 则认为电机没有旋转  折算下来为11°意味着超过 32 对极的电机无法检测
-    if(func_abs(encoder_data_integral[LEFT_MOTOR]) < 1000)
-    {
-        // 更改左侧磁编码器状态标志
-        motor_left.encoder_state = ENCODER_ERROR;
-        
-        // 修正默认参数
-        motor_left.zero_location = 0;
-        motor_left.rotation_direction = 1;
-        motor_left.pole_pairs = 7;
-        
-        // 错误信息打印到 串口
-        printf("left motor magnetic encoder error!!\r\n");   
-    }
-    else
-    {
-        // 更改左侧磁编码器状态标志
-        motor_left.encoder_state = ENCODER_NORMAL;
-        
-        // 旋转方向归一化 正转则为 1  反转则为 -1
-        motor_left.rotation_direction  = rotation_direction[LEFT_MOTOR]  / (rotation_direction[LEFT_MOTOR]  > 0 ? rotation_direction[LEFT_MOTOR]  : -rotation_direction[LEFT_MOTOR]) ;  
-
-        // 反转则需要将牵引结束的编码器数值反相
-        if(motor_left.rotation_direction == -1)                                                                     
-        {
-            stop_encoder_data[LEFT_MOTOR] = ENCODER_PRECISION - stop_encoder_data[LEFT_MOTOR];
-        }
-        
-        // 计算极对数  磁编最大值 除以 单圈电角度积分值 四舍五入
-        motor_left.pole_pairs  = (uint16)round((float)ENCODER_PRECISION / func_abs((float)encoder_data_integral[LEFT_MOTOR]));
- 
-        // 计算零点位置  结束位置 除以 电角度的磁编数值范围 取余
-        motor_left.zero_location  = stop_encoder_data[LEFT_MOTOR] % (ENCODER_PRECISION / motor_left.pole_pairs );
-
-        // 按照计算的数据重新初始化fast_foc参数
-        fast_foc_init(&motor_left_foc_driver,  ENCODER_PRECISION, OUTPUT_DUTY_MAX, motor_left.pole_pairs,  motor_left.zero_location,  motor_left.rotation_direction );
-
-        // 矫正信息打印到 串口
-        printf("LEFT MOTOR ZERO:%d, DIR:%s, POLE_PAIRS：%d\r\n",  motor_left_foc_driver.motor_zero_location, 
-                                                                  motor_left_foc_driver.motor_rotation_direction  == 1 ? "forward" : "reverse", 
-                                                                  motor_left.pole_pairs);    
-        
-        calibration_state --;
-    }
-    
-    printf("\r\nright motor:\r\n");						// 打印校准过程数据（用于调试）
-    printf("encoder start:%d\r\n",     start_encoder_data[RIGHT_MOTOR]);
-    printf("encoder end:%d\r\n",       stop_encoder_data[RIGHT_MOTOR]);
-    printf("encoder distance:%d\r\n",  encoder_data_integral[RIGHT_MOTOR]);	
-
-    
-    // 判断是否正确读取到磁编数据 开环牵引积分小于 1000 则认为电机没有旋转 折算下来为11°意味着超过 32 对极的电机无法检测
-    if(func_abs(encoder_data_integral[RIGHT_MOTOR]) < 1000)
-    {
-        // 更改右侧磁编码器状态标志
-        motor_right.encoder_state = ENCODER_ERROR;
-        
-        // 修正默认参数
-        motor_right.zero_location = 0;
-        motor_right.rotation_direction = 1;
-        motor_right.pole_pairs = 7;
-        
-        // 错误信息打印到 串口
-        printf("right motor magnetic encoder error!!\r\n");   
-    }
-    else
-    {
-        // 更改右侧磁编码器状态标志
-        motor_right.encoder_state = ENCODER_NORMAL;
-        
-        // 旋转方向归一化 正转则为 1  反转则为 -1
-        motor_right.rotation_direction = rotation_direction[RIGHT_MOTOR] / (rotation_direction[RIGHT_MOTOR] > 0 ? rotation_direction[RIGHT_MOTOR] : -rotation_direction[RIGHT_MOTOR]);   
-        
-        // 反转则需要将牵引结束的编码器数值反相
-        if(motor_right.rotation_direction == -1)                                                                     
-        {
-            stop_encoder_data[RIGHT_MOTOR] = ENCODER_PRECISION - stop_encoder_data[RIGHT_MOTOR];
-        }
-        
-        // 计算极对数  磁编最大值 除以 单圈电角度积分值 四舍五入
-        motor_right.pole_pairs = (uint16)round((float)ENCODER_PRECISION / func_abs((float)encoder_data_integral[RIGHT_MOTOR]));
-        
-        // 计算零点位置  结束位置 除以 电角度的磁编数值范围 取余
-        motor_right.zero_location = stop_encoder_data[RIGHT_MOTOR] % (ENCODER_PRECISION / motor_right.pole_pairs);    
-        
-        // 按照计算的数据重新初始化fast_foc参数
-        fast_foc_init(&motor_right_foc_driver, ENCODER_PRECISION, OUTPUT_DUTY_MAX, motor_right.pole_pairs, motor_right.zero_location, motor_right.rotation_direction);       
-        
-        // 矫正信息打印到 串口
-        printf("RIGHT MOTOR ZERO:%d, DIR:%s, POLE_PAIRS：%d\r\n", motor_right_foc_driver.motor_zero_location, 
-                                                                  motor_right_foc_driver.motor_rotation_direction == 1 ? "forward" : "reverse", 
-                                                                  motor_right.pole_pairs);    
-        
-        calibration_state --;
-    }
-    
-    return calibration_state;
+{
+    /* Explicitly unavailable: use a separate, reviewed calibration image. */
+    driver_safety_disarm(DRIVER_SAFE_MANUAL); return 2;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -608,65 +438,8 @@ uint8 motor_both_zero_calibration(void)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_zero_calibration(void)
 {
-    if(motor_left.driver_mode == BRUSHED)                                       // 有刷模式无需零位校准，直接退出
-    {
-        printf("brushed mode has no this cmd\r\n");
-        
-        return;
-    }
-
-    interrupt_global_disable();							// 关闭全局中断
-  
-    if((motor_left.motor_speed_filter != 0.0f || motor_right.motor_speed_filter != 0.0f))       // 如果电机正在旋转 则刹车
-    {
-        motor_left_duty_set(0, 0, 0);                                           // 左侧电机刹车
-        
-        motor_right_duty_set(0, 0, 0);                                          // 右侧电机刹车
-
-        system_delay_ms(1000);                                                  // 刹车等待
-    }
-    
-    motor_left_phase_check(200);                                                // 左侧三相 MOS 及 预驱 功能检测 由于没有检测三相电流 因此需要人为判断是否响三声
-    
-    motor_right_phase_check(200);                                               // 右侧三相 MOS 及 预驱 功能检测 由于没有检测三相电流 因此需要人为判断是否响三声
-    
-    if(motor_left.driver_mode == FAST_FOC)                                      // 只有在 FAST-FOC 模式下才需要矫正零点
-    {       
-        motor_left_output_init(PWM_PRIOD_LOAD, 1);                              // 左侧电机三相 PWM 输出初始化
-      
-        motor_right_output_init(PWM_PRIOD_LOAD, 1);                             // 右侧电机三相 PWM 输出初始化
-      
-        uint8 calibration_state = motor_both_zero_calibration();                // 双电机零点及旋转方向同时矫正
-        
-        if(calibration_state == 0)                                              // 判断矫正结果
-        {
-            printf("motor zero calibration is complete\r\n");                   // 输出反馈信息
-        }
-        else
-        {
-            printf("motor zero calibration is failed\r\n");                     // 输出反馈信息
-        }
-        
-        if(calibration_state <= 1)                                              // 至少矫正成功一个电机 则将零点写入flash
-        {
-            motor_flash_write();                                                // 矫正后的数据写入flash
-        }
-        
-    }
-    else  if(motor_left.driver_mode == HALL_SIX_STEP)      
-    {
-        motor_left_output_init(PWM_PRIOD_LOAD,  0);                             // 左侧电机三相 PWM 输出初始化
-    
-        motor_right_output_init(PWM_PRIOD_LOAD, 0);                             // 右侧电机三相 PWM 输出初始化
-      
-        printf("only the FOC mode requires zero calibration\r\n");              // 输出反馈信息
-    }
-    else      
-    {
-        printf("only the FOC mode requires zero calibration\r\n");              // 输出反馈信息
-    }
-    
-    interrupt_global_enable(0);							// 开启全局中断
+    /* Explicitly unavailable: use a separate, reviewed calibration image. */
+    driver_safety_disarm(DRIVER_SAFE_MANUAL);
 }
 
 
@@ -693,10 +466,12 @@ void motor_foc_control_init(void)
     
     menc15a_init();                                             // 磁编码器初始化
       
+    if(motor_calibration_valid) {
     fast_foc_init(&motor_left_foc_driver,  ENCODER_PRECISION, OUTPUT_DUTY_MAX, motor_left.pole_pairs,  motor_left.zero_location,  motor_left.rotation_direction );     // 左侧电机 FAST_FOC 功能初始化
     
     fast_foc_init(&motor_right_foc_driver, ENCODER_PRECISION, OUTPUT_DUTY_MAX, motor_right.pole_pairs, motor_right.zero_location, motor_right.rotation_direction);     // 右侧电机 FAST_FOC 功能初始化
     
+    }
     motor_left_output_init(PWM_PRIOD_LOAD, 1);                  // 左侧电机三相 PWM 输出初始化
       
     motor_right_output_init(PWM_PRIOD_LOAD, 1);                 // 右侧电机三相 PWM 输出初始化
@@ -805,48 +580,9 @@ void motor_control_init(void)
 //-------------------------------------------------------------------------------------------------------------------
 void driver_cmd_forthwith(void)
 {
-    if(motor_value.refresh_flag == CMD_FORTHWITH)     // 判断是否需要循环执行                          
-    {
-        switch(motor_value.immediate_command)   // 判断即时指令类型
-        {
-            case SET_DUTY:                      // 设置占空比指令
-            {
-                uint32 trace_irq=__get_PRIMASK();
-                __disable_irq();
-
-#if             MOTOR_DRIVER_MODE      ==    BRUSHED_MODE
-                motor_left.motor_duty  = func_limit_ab((float)(motor_value.receive_left_duty_data)  / 10000.0f, -BRUSHED_DUTY_MAX, BRUSHED_DUTY_MAX);   // 有刷模式占空比限幅 ±0.95
-    
-                motor_right.motor_duty = func_limit_ab((float)(motor_value.receive_right_duty_data) / 10000.0f, -BRUSHED_DUTY_MAX, BRUSHED_DUTY_MAX);   // 有刷模式占空比限幅 ±0.95
-#else
-                motor_left.motor_duty  = func_limit_ab((float)(motor_value.receive_left_duty_data)  / 10000.0f, -1.0f, 1.0f);   // 设置左侧电机占空比
-    
-                motor_right.motor_duty = func_limit_ab((float)(motor_value.receive_right_duty_data) / 10000.0f, -1.0f, 1.0f);   // 设置右侧电机占空比
-#endif
-                
-#if             MOTOR_DRIVER_MODE      ==    SENSERLESS_MODE
-                
-                motor_left.motor_duty  = motor_left.motor_duty  * (SENSERLESS_MOTOR_LEFT_DIR == 0 ? 1 : -1); 
-                
-                motor_right.motor_duty = motor_right.motor_duty * (SENSERLESS_MOTOR_RIGHT_DIR == 0 ? 1 : -1); 
-                
-#endif
-                motor_left.lose_control_protect_count = 0;
-                
-                motor_right.lose_control_protect_count = 0;
-                driver_trace_on_command((int16)func_limit_ab(motor_value.receive_left_duty_data,-10000,10000),
-                                        (int16)func_limit_ab(motor_value.receive_right_duty_data,-10000,10000));
-                __set_PRIMASK(trace_irq);
-                
-            }break;
-            
-            default:break;
-        }
-        
-        motor_value.immediate_command = NULL_CMD;// 清除指令
-      
-        motor_value.refresh_flag = CMD_NULL;     // 刷新标志位清除
-    }
+    /* Legacy dispatch cannot actuate this image. SAFE-DUTY is the sole writer. */
+    motor_value.immediate_command=NULL_CMD;
+    motor_value.refresh_flag=CMD_NULL;
 }
 
 

@@ -86,7 +86,7 @@
 
 #define  BLDC_GLIDING_MODE              DRIVER_DISABLE  // BLDC模式下      滑行模式  DRIVER_ENABLE: 给0占空比时，电机滑行    DRIVER_DISABLE: 给0占空比时，电机刹车
 
-#define  SENSERLESS_WORK_MUSIC          DRIVER_ENABLE   // 无感电调模式下  DRIVER_ENABLE: 开启上电音乐(可用于判断三相控制是否正常)    DRIVER_DISABLE: 关闭上电音乐
+#define  SENSERLESS_WORK_MUSIC          DRIVER_DISABLE   // 无感电调模式下  DRIVER_ENABLE: 开启上电音乐(可用于判断三相控制是否正常)    DRIVER_DISABLE: 关闭上电音乐
 
 #define  SENSERLESS_MOTOR_LEFT_DIR      (0)             // 无感电调模式下  左侧电机的默认旋转方向(修改此处无需重新焊接电机线)   0 正转    1 反转
 
@@ -157,7 +157,7 @@
 
 
 /**************************** 失控保护 ****************************/
-#define  MOTOR_LOSE_CONTROL_PROTECT     DRIVER_DISABLE   // 是否开启失控保护功能(默认关闭)      DRIVER_ENABLE: 开启失控保护    DRIVER_DISABLE: 不开启失控保护 
+#define  MOTOR_LOSE_CONTROL_PROTECT     DRIVER_ENABLE   // 是否开启失控保护功能(默认关闭)      DRIVER_ENABLE: 开启失控保护    DRIVER_DISABLE: 不开启失控保护 
 
 #define  MOTOR_LOSE_CONTROL_TIME        (500)            // 失控检测时长(默认500ms)     当驱动连续该时长未收到占空比设置指令，则认为电机失控，关闭输出
 /**************************** 失控保护 ****************************/
@@ -170,4 +170,9 @@
 #define  MOTOR_DISTURB_SPEED            (500)           // 干扰保护检测占空比(默认500RPM)      当占空比改变较小(几乎无改变)，但电机转速在100ms内下降该阈值的转速，则触发干扰保护
 /**************************** 干扰保护 ****************************/
 
+/* This commissioning image is deliberately only the calibrated FAST_FOC UART
+ * configuration. Other modes have direct output paths that were not qualified. */
+#if MOTOR_DRIVER_MODE != FAST_FOC_MODE || USER_CONTROL_MODE != 0
+#error "Commissioning safety requires FAST_FOC and UART control"
+#endif
 #endif

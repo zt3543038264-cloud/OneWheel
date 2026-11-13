@@ -34,6 +34,7 @@
 ********************************************************************************************************************/
 
 #include "driver_gpio.h"
+#include "driver_safety.h"
 
 uint32 gpio_loop_count = 0;
 
@@ -51,13 +52,14 @@ void driver_gpio_loop(void)
     
     gpio_loop_count ++;
     
+    driver_safety_button_sample(gpio_get_level(P06_6)==KEY_RELEASE_LEVEL);
     key_scanner();                                                              // 按键扫描
       
     if(key_get_state(KEY_1) == KEY_SHORT_PRESS)                                 // 如果按键按下 则执行内容
     {
         key_clear_state(KEY_1);                                                 // 清除按下标志位
 
-        motor_zero_calibration();                                               // 电机零位矫正
+        /* Calibration is disabled in the commissioning image. */                                               // 电机零位矫正
     } 
       
     if(battery_value.protect_flag == 1 && battery_value.battery_state == BATTERY_ERROR)     // 电池低电压保护  
