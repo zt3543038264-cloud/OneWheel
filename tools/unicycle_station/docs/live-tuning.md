@@ -1,3 +1,5 @@
+> 历史功能/源码参考，不是当前实车验收结论。当前主轮测试暂停，开机参数读取和路径 Flash 关闭；实际功能以当前固件应答为准。
+
 # 0.5.1 · Run Test 波形与运行中调参
 
 更新上位机并将当前车端源码按原流程构建、烧录。程序入口仍是 `start_app.bat` 或 `dist/EmbeddedStation/EmbeddedStation.exe`。

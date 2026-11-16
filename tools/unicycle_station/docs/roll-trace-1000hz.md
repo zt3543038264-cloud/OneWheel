@@ -1,3 +1,5 @@
+> 历史功能/源码参考，不是当前实车验收结论。当前主轮测试暂停，开机参数读取和路径 Flash 关闭；实际功能以当前固件应答为准。
+
 # Roll 1 kHz short trace
 
 The CPU0 1 ms control ISR captures 256 samples (nominal 0.256 s) into a

@@ -8,7 +8,7 @@ class Clock:
     t=0
     late=False
     def now(self):return self.t
-    def sleep(self,n):self.t+=n+(.002 if self.late else 0)
+    def sleep(self,n):self.t+=n+(.025 if self.late else 0)
 class Fake:
     def __init__(self,fail=None,modify=None):
         self.calls=[];self.fail=fail;self.modify=modify
@@ -16,7 +16,7 @@ class Fake:
     def request(self,op,*args):
         self.calls.append((op,args))
         if op==self.fail:raise ProtocolError('simulated timeout')
-        if op=='cbench_start':self.s.update(mode=6,session=1,active=1,state=1,reason=1,target=args[2],limit=args[-1],duration_ms=400)
+        if op=='cbench_start':self.s.update(mode=6,session=1,active=1,state=1,reason=1,target=args[2],limit=args[-1],duration_ms=args[-2])
         if op=='cbench_keep':self.s['keep_seq']=args[1]
         if op=='cbench_stop':self.s.update(active=0,state=2,reason=2,applied=0,calculated=0)
         s=dict(self.s)
@@ -26,14 +26,14 @@ class Tests(unittest.TestCase):
     def check(self,f,level=1,direction=1,c=None):
         c=c or Clock();trace=[];p.run(f,level=level,direction=direction,trace=trace,clock=c.now,sleep=c.sleep);return trace
     def test_all_levels_directions(self):
-        for l in range(1,7):
+        for l in range(1,8):
             for direction in (-1,1):
                 f=Fake();trace=self.check(f,l,direction)
-                self.assertEqual(f.calls[1],('cbench_start',(0,'powered_pulse',direction*l*200,0,0,400,l*200)))
-                self.assertEqual(sum(x[0]=='cbench_keep' for x in f.calls),7)
+                self.assertEqual(f.calls[1],('cbench_start',(0,'powered_pulse',direction*p.LEVELS[l-1],0,0,1000,p.LEVELS[l-1])))
+                self.assertEqual(sum(x[0]=='cbench_keep' for x in f.calls),19)
                 self.assertEqual(sum(x[0]=='cbench_stop' for x in f.calls),1)
     def test_bad_levels_no_send(self):
-        for l in (0,7,1.5,True):
+        for l in (0,8,1.5,True):
             f=Fake()
             with self.assertRaises(ValueError):self.check(f,l)
             self.assertEqual(f.calls,[])
@@ -53,7 +53,7 @@ class Tests(unittest.TestCase):
             self.assertEqual(sum(x[0]=='cbench_stop' for x in f.calls),1)
     def test_wrong_start_and_keep(self):
         for op in ('cbench_start','cbench_keep'):
-            for key,value in [('session',99),('mode',4),('profile',1),('target',0),('applied',-1),('calculated',-1),('limit',201)]:
+            for key,value in [('session',99),('mode',4),('profile',1),('target',0),('applied',-1),('calculated',-1),('limit',201),('duration_ms',400)]:
                 f=Fake(modify=lambda x,s:s.update({key:value}) if x==op else None)
                 with self.assertRaises(ProtocolError):self.check(f)
                 self.assertEqual(f.calls[-1][0],'cbench_stop')
@@ -64,6 +64,11 @@ class Tests(unittest.TestCase):
         c=Clock();c.late=True;f=Fake()
         with self.assertRaises(ProtocolError):self.check(f,c=c)
         self.assertFalse(any(x[0]=='cbench_keep' for x in f.calls))
+    def test_bounded_jitter_still_completes(self):
+        class JitterClock(Clock):
+            def sleep(self,n):self.t+=n+.005
+        f=Fake();self.check(f,level=7,c=JitterClock())
+        self.assertEqual(sum(op=='cbench_keep' for op,args in f.calls),19)
     def test_mode6_parser_bounds(self):
         s={k:0 for k in FIELDS};s.update(version=1,profile=2,mode=6,session=1,state=2,reason=2,duration_ms=400,target=1200,limit=1200)
         self.assertEqual(parse_status([str(s[k]) for k in FIELDS])['limit'],1200)

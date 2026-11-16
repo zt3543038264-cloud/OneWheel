@@ -1,3 +1,5 @@
+> 历史旧驱动覆盖补丁。当前驱动已另行更新，禁止把本目录当作最新驱动安装；保留用于源码/许可证参考。
+
 # CYT2BL3 双驱修复源码
 
 来自用户提供的逐飞 `CYT2BL3_Brushless_Driver_Project-master/Seekfree_CYT2BL3_Double_Foc_Project/project/code`，源文件保留逐飞 GPL-3.0-or-later 版权声明；许可证见 [LICENSE.md](LICENSE.md)。仓库内存为UTF-8，安装脚本转回原工程的GBK/CRLF。

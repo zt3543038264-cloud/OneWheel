@@ -1,3 +1,6 @@
+Historical diagnostic reference, not the current timing/profile specification.
+Use current tool --help and firmware sources. IP addresses below are examples from 2026-11-11.
+
 Keep packet evidence (2026-11-11)
 
 Purpose

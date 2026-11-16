@@ -1,10 +1,11 @@
-# Staged TC264 storage safety
+# 当前存储状态与设计参考
 
-The adapted build defaults to **no automatic DFlash reads and no writes**.
-`code/Common/storage_profile.h` defines `STORAGE_FLASH_VALIDATED=0` and
-`STORAGE_BOOT_LOAD=0`. Initializers load RAM defaults only. Diagnostic/lab
-builds must explicitly opt in; these are not proof that hardware is validated.
-Do not enable startup load merely to diagnose saves.
+更新：2026-11-16。
+
+最新已交付的 `storage_profile.h`：参数手动 Save 启用 (`STORAGE_FLASH_VALIDATED=1`)，开机自动读取关闭 (`STORAGE_BOOT_LOAD=0`)，路径 Flash 关闭 (`STORAGE_PATH_FLASH_ENABLED=0`)。参数宏名字不代表硬件已经验收。
+用户已报告编译烧录成功，尚未报告本版手动 Save 结果。RAM 路径功能保留；既有路径记录不因关闭开关自动擦除。
+
+下方保留 11 月 9 日存储实现参考和离线验证范围，不应把其中测试配置的 disabled 默认分支解释为当前发布配置。路径缓冲描述只适用于开启路径 Flash 的实现，当前关闭该分支以减少 RAM 占用。以当前源码为准。
 
 ## Address and format preservation
 
@@ -104,5 +105,4 @@ validation. A physical bus/ECC trap can occur before the next C status check;
 this code does not catch/recover such traps or prove the ordering/coverage of
 FSR flags on silicon. No host test authorizes enabling Flash. Review TC26B
 silicon revision/errata, erased-page ECC reads, trap handling, safety-ENDINIT
-windows and sole-client ownership first. Keep both storage gates at 0 in this
-delivery; back up any unknown sectors independently before deciding recovery.
+windows and sole-client ownership first. Back up unknown sectors independently before deciding recovery.
