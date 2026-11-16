@@ -65,7 +65,7 @@ int path_record_decode(const uint32_t *w, path_point_t *p, uint16_t *count, uint
 static path_storage_status_t s_status;
 path_storage_status_t path_store_status(void) { return s_status; }
 
-#if STORAGE_FLASH_VALIDATED
+#if STORAGE_FLASH_VALIDATED && STORAGE_PATH_FLASH_ENABLED
 /* Keep Flash-only work buffers out of locked builds, including -O0 builds.
  * Do not reduce the hardware page size, stack/CSA reservations or record checks. */
 static uint32_t s_record[EEPROM_PAGE_LENGTH];
@@ -190,6 +190,6 @@ int path_store_save(void)
     s_status = PATH_STORAGE_DISABLED;
     return 0;
 }
-#endif /* STORAGE_FLASH_VALIDATED */
+#endif /* STORAGE_FLASH_VALIDATED && STORAGE_PATH_FLASH_ENABLED */
 #pragma section all restore
 #endif

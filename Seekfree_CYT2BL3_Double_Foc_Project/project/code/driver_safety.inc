@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  * Included by motor_driver_uart_control.c so existing IDE source lists keep working.
  * Shared state changes are short PRIMASK critical sections. No UART writes in IRQ.
- * This is a commissioning pulse gate, not a production vehicle safety controller.
+ * Capability 2 dual-channel session gate; command/CPU/control watchdogs remain.
  */
 #include "driver_safety.h"
 #include <stdio.h>
@@ -60,7 +60,8 @@ void driver_safety_tick_1ms(void)
     ++safe_ms;
     if(safe_ms>=20u) safe_timer_ready=1;
     if(safe_state==DRIVER_SAFE_ARMED) {
-        if(safe_fault()) safe_stop(DRIVER_SAFE_MOTOR_FAULT);
+        if(!motor_calibration_valid) safe_stop(DRIVER_SAFE_CALIBRATION_INVALID);
+        else if(safe_fault()) safe_stop(DRIVER_SAFE_MOTOR_FAULT);
         else if((uint32_t)(safe_ms-safe_control_tick[0])>=DRIVER_SAFE_CONTROL_MS ||
                 (uint32_t)(safe_ms-safe_control_tick[1])>=DRIVER_SAFE_CONTROL_MS)
             safe_stop(DRIVER_SAFE_CONTROL_TIMEOUT);
@@ -68,8 +69,7 @@ void driver_safety_tick_1ms(void)
             safe_stop(DRIVER_SAFE_MAIN_TIMEOUT);
         else if((uint32_t)(safe_ms-safe_last_command)>=DRIVER_SAFE_COMMAND_MS)
             safe_stop(DRIVER_SAFE_COMMAND_TIMEOUT);
-        else if(safe_pulse_started && (uint32_t)(safe_ms-safe_pulse_start)>=DRIVER_SAFE_PULSE_MS)
-            safe_stop(DRIVER_SAFE_PULSE_LIMIT);
+
     } else if((safe_state==DRIVER_SAFE_LOCAL_READY || safe_state==DRIVER_SAFE_ZEROED) &&
               (uint32_t)(safe_ms-safe_window_start)>=DRIVER_SAFE_ARM_WINDOW_MS)
         safe_stop(DRIVER_SAFE_ARM_WINDOW_EXPIRED);
@@ -105,12 +105,15 @@ void driver_safety_button_sample(int released)
 }
 int driver_safety_output_allowed(unsigned side)
 {
-    /* Atomic snapshots at aligned word granularity; register writes are locked by caller. */
-    return safe_state==DRIVER_SAFE_ARMED && side==1 &&
-        motor_right.motor_duty>=-0.05f && motor_right.motor_duty<=0.05f &&
+    float duty;
+    if(side>1u) return 0;
+    duty=side==0?motor_left.motor_duty:motor_right.motor_duty;
+    return safe_state==DRIVER_SAFE_ARMED && duty>=-1.0f && duty<=1.0f && duty!=0.0f &&
         (uint32_t)(safe_ms-safe_last_command)<DRIVER_SAFE_COMMAND_MS &&
-        (!safe_pulse_started || (uint32_t)(safe_ms-safe_pulse_start)<DRIVER_SAFE_PULSE_MS) &&
-        !safe_fault() && (side==0?motor_left.motor_duty:motor_right.motor_duty)!=0.0f;
+        (uint32_t)(safe_ms-safe_main_tick)<DRIVER_SAFE_MAIN_MS &&
+        (uint32_t)(safe_ms-safe_control_tick[0])<DRIVER_SAFE_CONTROL_MS &&
+        (uint32_t)(safe_ms-safe_control_tick[1])<DRIVER_SAFE_CONTROL_MS &&
+        motor_calibration_valid && !safe_fault();
 }
 /* Exact decimal grammar, no sign/whitespace/leading zeros for unsigned fields. */
 static int safe_uint(const char **p,uint32_t *v,char delimiter)
@@ -138,6 +141,23 @@ static int safe_wire(const char *s)
     const char *p; uint32_t session,seq,irq; int16_t left,right;
     if(strcmp(s,"SAFE-STATUS,1\r\n")==0) {safe_reply=1;return 1;}
     if(strcmp(s,"SAFE-DISARM,1\r\n")==0) {driver_safety_disarm(DRIVER_SAFE_MANUAL);return 1;}
+    /* Explicit host Start only. Not authentication: generation resets on reboot.
+     * A full recorded handshake is not protected against replay across boots. */
+    if(strcmp(s,"SAFE-OPEN,1\r\n")==0) {
+        irq=safe_lock();
+        if((safe_state==DRIVER_SAFE_DISARMED || safe_state==DRIVER_SAFE_LATCHED) &&
+           safe_timer_ready && motor_calibration_valid && !safe_fault() &&
+           safe_generation!=UINT32_MAX &&
+           (uint32_t)(safe_ms-safe_main_tick)<DRIVER_SAFE_MAIN_MS &&
+           (uint32_t)(safe_ms-safe_control_tick[0])<DRIVER_SAFE_CONTROL_MS &&
+           (uint32_t)(safe_ms-safe_control_tick[1])<DRIVER_SAFE_CONTROL_MS) {
+            safe_zero_outputs(); ++safe_generation; safe_session=safe_generation;
+            safe_sequence=0; safe_window_start=safe_ms; safe_state=DRIVER_SAFE_LOCAL_READY;
+            safe_reason=DRIVER_SAFE_NONE; safe_pulse_started=0;
+        }
+        safe_reply=1; safe_unlock(irq); return 1;
+    }
+
     if(strncmp(s,"SAFE-ZERO,1,",12)==0 || strncmp(s,"SAFE-ARM,1,",11)==0) {
         int zero=s[5]=='Z'; p=s+(zero?12:11);
         if(!safe_uint(&p,&session,'\r') || *p++!='\n' || *p!='\0') return 1;
@@ -161,7 +181,8 @@ static int safe_wire(const char *s)
         if(!safe_uint(&p,&session,',') || !safe_uint(&p,&seq,',') ||
            !safe_duty(&p,&left,',') || !safe_duty(&p,&right,'\r') ||
            *p++!='\n' || *p!='\0') return 1;
-        if(left!=0 || right < -DRIVER_SAFE_B_DUTY_MAX || right > DRIVER_SAFE_B_DUTY_MAX) return 1;
+        if(left < -DRIVER_SAFE_A_DUTY_MAX || left > DRIVER_SAFE_A_DUTY_MAX ||
+           right < -DRIVER_SAFE_B_DUTY_MAX || right > DRIVER_SAFE_B_DUTY_MAX) return 1;
         irq=safe_lock();
         if(safe_state==DRIVER_SAFE_ARMED && session!=0 && session==safe_session &&
            seq>safe_sequence && (uint32_t)(safe_ms-safe_last_command)<DRIVER_SAFE_COMMAND_MS &&
@@ -197,7 +218,7 @@ void driver_safety_service(void)
     safe_last_status=safe_ms;
     safe_reply=0;session=safe_session;seq=safe_sequence;state=safe_state;reason=safe_reason;
     safe_unlock(irq);
-    n=snprintf(response,sizeof response,"SAFE-STATUS,1,%u,%lu,%lu,%u,1\r\n",
+    n=snprintf(response,sizeof response,"SAFE-STATUS,1,%u,%lu,%lu,%u,2\r\n",
                state,(unsigned long)session,(unsigned long)seq,reason);
     if(n>0 && (size_t)n<sizeof response) uart_write_buffer(MOTOR_DRIVER_UART,(uint8 *)response,(uint32)n);
 }

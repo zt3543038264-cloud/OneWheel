@@ -150,12 +150,12 @@ void Y_Motor_Stop(void)
  * enforces the build gate and absolute raw range before any abs conversion.
  * A sign change holds PWM zero for >=2 real STM ms before changing DIR. This
  * is software break-before-make, NOT verified gate dead time or hardware stop. */
-int32 Y_Motor_BenchSetRawDuty(int32 duty)
+static int32 y_motor_bench_set_bounded(int32 duty, int32 bound)
 {
 #if C_BENCH_SIGNAL_OUTPUT_ALLOWED
     uint8 level;
     uint64 now;
-    duty = func_limit_ab(duty, -C_BENCH_RAW_DUTY_MAX, C_BENCH_RAW_DUTY_MAX);
+    duty = func_limit_ab(duty, -bound, bound);
     if (!y_motor_bench_ticks_per_ms || !duty) { Y_Motor_Stop(); return 0; }
     now = y_motor_bench_now();
     level = (uint8)((duty > 0) ? Y_MOTOR_FORWARD_DIR_LEVEL :
@@ -173,9 +173,23 @@ int32 Y_Motor_BenchSetRawDuty(int32 duty)
     y_motor_bench_applied = duty;
     return duty;
 #else
-    (void)duty;
+    (void)duty; (void)bound;
     Y_Motor_Stop();
     return 0;
+#endif
+}
+
+/* Existing callers retain the original 500 raw bound. */
+int32 Y_Motor_BenchSetRawDuty(int32 duty)
+{ return y_motor_bench_set_bounded(duty, C_BENCH_RAW_DUTY_MAX); }
+
+/* Only the explicit POWERED_PULSE mode uses the larger dedicated sink. */
+int32 Y_Motor_BenchPulseRawDuty(int32 duty)
+{
+#if C_BENCH_POWERED_RATE_PROFILE
+    return y_motor_bench_set_bounded(duty, C_BENCH_PULSE_RAW_DUTY_MAX);
+#else
+    (void)duty; Y_Motor_Stop(); return 0;
 #endif
 }
 
@@ -325,4 +339,15 @@ float Y_Motor_GetSpeedMps(void)
 float Y_Motor_GetDistanceMeter(void)
 {
     return Y_Motor_CountToMeter(Y_Motor_GetTotalCount());
+}
+
+/* Local manual test: no MOTOR_DIR_C/deadzone. Uses the same measured-time
+ * software zero interval on a reversal as the diagnostic sink. */
+int32 Y_Motor_ManualRawDuty(int32 duty)
+{
+#if VEHICLE_MOTOR_OUTPUT_ALLOWED && C_BENCH_SIGNAL_OUTPUT_ALLOWED
+    return y_motor_bench_set_bounded(duty,Y_MOTOR_MANUAL_RAW_LIMIT);
+#else
+    (void)duty;Y_Motor_Stop();return 0;
+#endif
 }

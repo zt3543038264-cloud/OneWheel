@@ -14,6 +14,7 @@
 
 // ====================== 对外全局量 ======================
 
+static volatile int s_manual_raw_dir; /* zero at boot, no persisted run state */
 start_state_t start_flag = START_STOP;          // 发车状态机，上电全停
 
 float g_roll_zero, g_pitch_zero;                // 机械零点(°)
@@ -1269,6 +1270,7 @@ static float yaw_test_ctrl(uint8 run_angle)
  * W_Motor or write a calculated output to either driver or public motor value. */
 static void control_zero_sink(void)
 {
+    s_manual_raw_dir=0;
     start_flag = START_STOP;
     g_target_distance = 0;
     g_pwm_roll = g_pwm_pitch = g_pwm_yaw = 0.0f;
@@ -1317,6 +1319,7 @@ void control_timing_status(control_timing_diag_t *out)
 }
 
 #include "Controller/c_bench.inc"
+#include "Controller/c_manual_raw.inc"
 
 uint8 control_bench_b_running(void) { return W_Motor_BenchBusy(); }
 
@@ -1825,6 +1828,7 @@ void control_init(void)
 //-------------------------------------------------------------------------------------------------------------------
 void control_stop(void)
 {
+    s_manual_raw_dir=0;
     control_c_bench_stop();
     control_test_stop();
     control_jog_stop();
@@ -1845,6 +1849,7 @@ void control_stop(void)
 //-------------------------------------------------------------------------------------------------------------------
 uint8 control_balance_start(void)
 {
+    if(s_manual_raw_dir) {s_test_status=CTRL_TEST_STATUS_BUSY;return 0;}
     if (!VEHICLE_MOTOR_OUTPUT_ALLOWED) { s_test_status = CTRL_TEST_STATUS_ADAPT_LOCKED; return 0; }
     control_block_t block;
 
@@ -1890,6 +1895,7 @@ uint8 control_balance_start(void)
     g_yaw_target = imu_get_angle_yaw(); // 目标跟随当前航向，防松刹车瞬间的航向阶跃
     Y_Motor_EncoderClear();
 
+    if (!W_Motor_OrdinaryStart()) { s_test_status=CTRL_TEST_STATUS_BLDC_LOST; return 0; }
     s_test_status = CTRL_TEST_STATUS_OK;
     start_flag = START_BALANCE;
     return 1;
@@ -2298,6 +2304,7 @@ uint8 control_jog_start(motor_jog_t target, uint8 forward)
         interrupt_global_enable(mask);
         return 0;
     }
+    if (target != MOTOR_JOG_C && !W_Motor_OrdinaryStart()) { s_test_status=CTRL_TEST_STATUS_BLDC_LOST; interrupt_global_enable(mask); return 0; }
     duty_i = (target == MOTOR_JOG_C) ? JOG_DUTY_DRIVE : JOG_DUTY_FLY;
     if (duty_i < 0) duty_i = 0;
     if (duty_i > 10000) duty_i = 10000;
@@ -2429,8 +2436,10 @@ uint8 control_test_start(tune_axis_t axis, tune_ring_t ring)
         return 0;
     }
 
+    if (axis != TUNE_AXIS_PITCH && !W_Motor_OrdinaryStart()) { s_test_status=CTRL_TEST_STATUS_BLDC_LOST; return 0; }
     if (!test_start(axis, ring))
     {
+        W_Motor_Stop();
         s_test_status = CTRL_TEST_STATUS_INVALID;
         return 0;
     }
@@ -2815,7 +2824,17 @@ void control_loop(void)
 
     // Preview has an explicit calculation route, followed by an unconditional
     // zero sink. The compile-time gate and both driver gates remain independent.
-    if (control_c_bench_running())
+    if (W_Motor_OrdinaryFailed()) {
+        control_stop(); s_test_status=CTRL_TEST_STATUS_BLDC_LOST;
+    }
+    if (W_Motor_OrdinaryPending()) {
+        control_test_status_t pending_reason=control_sensor_reason();
+        if(pending_reason!=CTRL_TEST_STATUS_OK) { control_stop();s_test_status=pending_reason; }
+        else W_Motor_OrdinaryService();
+        Y_Motor_Stop();g_motor_a=g_motor_b=g_motor_c=0;
+    }
+    else if (s_manual_raw_dir) { control_manual_raw_run(); }
+    else if (control_c_bench_running())
     {
         control_c_bench_run();
     }
@@ -2857,6 +2876,9 @@ void control_loop(void)
     if (s_control_timing.work_us >= CONTROL_BENCH_MAX_WORK_US ||
         (s_control_timing.valid && s_control_timing.period_us >= CONTROL_BENCH_MAX_GAP_US)) {
         if (s_control_timing.overrun_count != 0xffffffffu) s_control_timing.overrun_count++;
+        if (VEHICLE_MOTOR_OUTPUT_ALLOWED && (start_flag!=START_STOP || s_test_running || s_jog_target!=MOTOR_JOG_NONE || W_Motor_OrdinaryPending())) {
+            control_stop();s_test_status=CTRL_TEST_STATUS_SAFETY;
+        }
         if (control_c_bench_running()) c_bench_finish(C_BENCH_REASON_TIMING);
         if (W_Motor_BenchBusy()) {
             W_Motor_BenchAbort(W_BENCH_REASON_TIMEOUT);

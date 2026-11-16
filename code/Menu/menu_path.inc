@@ -195,7 +195,7 @@ static void handle_path(uint8 up, uint8 down, uint8 enter, uint8 back)
     {
         if (!control_path_storage_ready()) { menu_status("WAIT STOP / RX / BLDC / IPM"); return; }
         if (s_cursor==6u && !path_confirm(6u)) return;
-        menu_status((s_cursor==5u ? path_store_save() : path_store_load()) ? "PATH STORED / LOADED" : "NO VALID PATH / FLASH ERROR");
+        menu_status((s_cursor==5u ? path_store_save() : path_store_load()) ? "PATH STORED / LOADED" : (path_store_status()==PATH_STORAGE_DISABLED ? "PATH FLASH DISABLED" : "NO VALID PATH / FLASH ERROR"));
     }
     else if (s_cursor==7u && path_confirm(7u))
     { path_nav_clear(); menu_status("RAM CLEARED - SAVE TO ERASE"); }

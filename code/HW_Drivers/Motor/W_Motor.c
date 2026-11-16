@@ -4,6 +4,9 @@
 #include "IfxStm.h"
 #endif
 #include <string.h>
+#if VEHICLE_MOTOR_OUTPUT_ALLOWED && !QCAR_DRIVER_TEXT_DUTY
+#error "Ordinary dual output requires SAFE capability2 text driver"
+#endif
 
 #define W_MOTOR_FRAME_HEAD       0xA5u
 #define W_MOTOR_SET_DUTY_CMD     0x01u
@@ -35,6 +38,10 @@ static volatile uint8 wm_query_pending, wm_status_pending, wm_status_query_ms;
 static uint8 wm_rx_line[WM_LINE_SIZE], wm_rx_used, wm_rx_overflow, wm_rx_cr;
 static volatile uint8 wm_clock_ok, wm_identity, wm_driver_state, wm_driver_reason;
 static volatile uint8 wm_bench_state, wm_bench_reason;
+static volatile uint8 wm_ordinary, wm_ordinary_failed, wm_cap2_seen, wm_open_sent;
+#define WM_WAIT_OPEN 5u
+static int16 wm_left_duty;
+static uint64 wm_input_at;
 static volatile uint16 wm_duration_ms;
 static volatile int16 wm_right_duty;
 static volatile uint32 wm_ticks_per_ms, wm_driver_session, wm_driver_seq;
@@ -61,7 +68,7 @@ static uint8 wm_expired(uint64 now, uint64 since, uint16 ms)
 }
 static uint8 wm_busy(void)
 {
-    return (uint8)(wm_bench_state >= W_BENCH_WAIT_ZERO && wm_bench_state <= W_BENCH_PULSE);
+    return (uint8)((wm_bench_state >= W_BENCH_WAIT_ZERO && wm_bench_state <= W_BENCH_PULSE) || (wm_ordinary && wm_bench_state==WM_WAIT_OPEN));
 }
 static void wm_tx_enable(uint8 enabled)
 {
@@ -90,7 +97,8 @@ static void wm_queue_stop_locked(uint8 reason)
     if (wm_identity && wm_driver_session) wm_consumed_session = wm_driver_session;
     wm_bench_state = W_BENCH_LATCHED;
     wm_bench_reason = reason;
-    wm_right_duty = 0;
+    wm_right_duty = wm_left_duty = 0;
+    if (wm_ordinary) wm_ordinary_failed = 1;
     wm_identity = 0;
     memcpy(wm_tx_pending, stop, sizeof(stop) - 1u);
     wm_pending_len = (uint8)(sizeof(stop) - 1u);
@@ -101,8 +109,13 @@ static void wm_watchdog_locked(uint64 now)
 {
     if (!wm_busy()) return;
     if (!wm_clock_ok) { wm_queue_stop_locked(W_BENCH_REASON_INVALID); return; }
-    if (wm_bench_state == W_BENCH_PULSE && wm_expired(now, wm_pulse_at, wm_duration_ms)) {
+    if (wm_ordinary && wm_expired(now, wm_input_at, WM_STATUS_AGE_MS)) { wm_queue_stop_locked(W_BENCH_REASON_TIMEOUT); return; }
+    if (!wm_ordinary && wm_bench_state == W_BENCH_PULSE && wm_expired(now, wm_pulse_at, wm_duration_ms)) {
         wm_queue_stop_locked(W_BENCH_REASON_COMPLETE); return;
+    }
+    if (wm_ordinary && wm_bench_state==WM_WAIT_OPEN) {
+        if(wm_expired(now,wm_stage_at,WM_STAGE_TIMEOUT_MS)) wm_queue_stop_locked(W_BENCH_REASON_TIMEOUT);
+        return;
     }
     if (!wm_identity || wm_expired(now, wm_status_at, WM_STATUS_AGE_MS)) {
         wm_queue_stop_locked(W_BENCH_REASON_LINK); return;
@@ -153,7 +166,9 @@ static uint8 wm_safe_command_locked(const char *prefix, uint8 duty)
     if (duty) {
         wm_tx_pending[n++] = ',';
         n += wm_append_u32(wm_tx_pending + n, wm_sent_seq);
-        memcpy(wm_tx_pending + n, ",0,", 3u); n += 3u;
+        wm_tx_pending[n++] = ',';
+        n += wm_append_signed(wm_tx_pending+n,wm_left_duty);
+        wm_tx_pending[n++] = ',';
         n += wm_append_signed(wm_tx_pending + n, wm_right_duty);
     }
     wm_tx_pending[n++] = '\r'; wm_tx_pending[n++] = '\n';
@@ -200,19 +215,23 @@ static uint8 wm_parse_rpm(const uint8 **p, int16 *out)
 static void wm_status_line(const uint8 *p)
 {
     uint32 values[6], i;
-    const uint32 limits[6] = {1u, 4u, 0xffffffffu, 0xffffffffu, 10u, 1u};
+    const uint32 limits[6] = {1u, 4u, 0xffffffffu, 0xffffffffu, 10u, 2u};
     uint64 now;
     for (i = 0; i < 6u; ++i) {
         if (!wm_parse_u32(&p, limits[i], &values[i])) goto invalid;
         if (i < 5u) { if (*p++ != ',') goto invalid; }
     }
-    if (*p || values[0] != 1u || values[5] != 1u) goto invalid;
+    if (*p || values[0] != 1u || values[5] != 2u) goto invalid;
     if ((values[1] >= 1u && values[1] <= 3u) && (!values[2] || values[4])) goto invalid;
     if ((values[1] == 1u || values[1] == 2u) && values[3]) goto invalid;
     now = wm_now();
-    wm_identity = 1; wm_driver_state = (uint8)values[1]; wm_driver_session = values[2];
+    wm_cap2_seen = 1; wm_identity = 1; wm_driver_state = (uint8)values[1]; wm_driver_session = values[2];
     wm_driver_seq = values[3]; wm_driver_reason = (uint8)values[4];
     wm_status_at = now; ++wm_status_count;
+    if (wm_ordinary && wm_bench_state==WM_WAIT_OPEN) {
+        /* Status only records state. Sensor-checked Service sends ZERO/ARM. */
+        return;
+    }
     if (wm_busy()) {
         if (wm_driver_session != wm_session) { wm_queue_stop_locked(W_BENCH_REASON_SESSION); return; }
         if ((wm_bench_state == W_BENCH_WAIT_ZERO && wm_driver_state > 2u) ||
@@ -226,7 +245,7 @@ static void wm_status_line(const uint8 *p)
     }
     return;
 invalid:
-    wm_identity = 0;
+    wm_cap2_seen = 0; wm_identity = 0;
     if (wm_busy()) wm_queue_stop_locked(W_BENCH_REASON_PROTOCOL);
 }
 static void wm_text_rx(uint8 byte)
@@ -291,6 +310,7 @@ void W_Motor_Init(void)
     wm_rx_used = wm_rx_overflow = wm_rx_cr = 0;
     wm_identity = wm_driver_state = wm_driver_reason = 0;
     wm_bench_state = W_BENCH_IDLE; wm_bench_reason = W_BENCH_REASON_NONE;
+    wm_ordinary = wm_ordinary_failed = wm_cap2_seen = wm_open_sent = 0; wm_left_duty=0; wm_input_at=0;
     wm_duration_ms = 0; wm_right_duty = 0;
     wm_driver_session = wm_driver_seq = wm_session = wm_consumed_session = 0;
     wm_sent_seq = wm_ack_seq = wm_status_count = wm_stage_status_count = 0;
@@ -309,23 +329,77 @@ void W_Motor_TxHandler(void)
     wm_tx_pump_locked(); interrupt_global_enable(irq);
 #endif
 }
-void W_Motor_SetDuty(int32 motor1_duty, int32 motor2_duty)
+void W_Motor_SetDuty(int32 left, int32 right)
 {
-    (void)motor1_duty; (void)motor2_duty;
-    w_motor_brake_locked = 1;
-    W_Motor_SendFrame(W_MOTOR_SET_DUTY_CMD);
+#if QCAR_DRIVER_TEXT_DUTY
+    uint32 irq=interrupt_global_disable();
+    wm_watchdog_locked(wm_now());
+    if (wm_ordinary && !wm_ordinary_failed && !w_motor_brake_locked && wm_busy()) {
+        wm_input_at=wm_now();
+        left=func_limit_ab(left,-W_MOTOR_DUTY_MAX,W_MOTOR_DUTY_MAX);
+        right=func_limit_ab(right,-W_MOTOR_DUTY_MAX,W_MOTOR_DUTY_MAX);
+        wm_left_duty=(int16)(left*MOTOR_DIR_A); wm_right_duty=(int16)(right*MOTOR_DIR_B);
+        W_Motor_BenchService();
+    } else if (!wm_busy()) W_Motor_SendFrame(W_MOTOR_SET_DUTY_CMD);
+    else wm_queue_stop_locked(W_BENCH_REASON_STOP);
+    interrupt_global_enable(irq);
+#else
+    (void)left;(void)right;W_Motor_SendFrame(W_MOTOR_SET_DUTY_CMD);
+#endif
 }
-void W_Motor_KeepZero(void) { W_Motor_SetDuty(0, 0); }
+void W_Motor_KeepZero(void) { W_Motor_SetDuty(0,0); }
 void W_Motor_Stop(void)
 {
-    w_motor_brake_locked = 1;
+    w_motor_brake_locked=1;
 #if QCAR_DRIVER_TEXT_DUTY
-    W_Motor_BenchAbort(W_BENCH_REASON_STOP);
+    uint32 irq=interrupt_global_disable();
+    wm_queue_stop_locked(W_BENCH_REASON_STOP);wm_ordinary=0;wm_ordinary_failed=0;
+    wm_tx_pump_locked();interrupt_global_enable(irq);
 #else
     W_Motor_SendFrame(W_MOTOR_SET_DUTY_CMD);
 #endif
 }
-void W_Motor_Release(void) { w_motor_brake_locked = 1; }
+void W_Motor_Release(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+    if(wm_ordinary && !wm_ordinary_failed && wm_busy()) w_motor_brake_locked=0;
+#endif
+}
+uint8 W_Motor_OrdinaryStart(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+    uint32 irq=interrupt_global_disable(); uint64 now=wm_now();
+    if(wm_busy() || !wm_clock_ok || !wm_cap2_seen || wm_expired(now,wm_status_at,WM_STATUS_AGE_MS)) {interrupt_global_enable(irq);return 0;}
+    wm_ordinary=1;wm_ordinary_failed=0;wm_open_sent=0;
+    wm_left_duty=wm_right_duty=0;wm_input_at=wm_stage_at=now;
+    wm_sent_seq=wm_ack_seq=0;wm_stage_status_count=wm_status_count;
+    wm_bench_state=WM_WAIT_OPEN;wm_bench_reason=W_BENCH_REASON_NONE;
+    w_motor_brake_locked=1;
+    interrupt_global_enable(irq);return 1;
+#else
+    return 0;
+#endif
+}
+uint8 W_Motor_OrdinaryPending(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+ return (uint8)(wm_ordinary && wm_busy() && wm_bench_state!=W_BENCH_PULSE);
+#else
+ return 0;
+#endif
+}
+uint8 W_Motor_OrdinaryFailed(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+ return wm_ordinary_failed;
+#else
+ return 0;
+#endif
+}
+void W_Motor_OrdinaryService(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+ uint32 irq=interrupt_global_disable();
+ wm_watchdog_locked(wm_now());
+ if(wm_ordinary && !wm_ordinary_failed){wm_input_at=wm_now();W_Motor_BenchService();}
+ interrupt_global_enable(irq);
+#endif
+}
 void W_Motor_BenchAbort(uint8 reason)
 {
 #if QCAR_DRIVER_TEXT_DUTY
@@ -339,7 +413,7 @@ uint8 W_Motor_BenchBusy(void)
 {
 #if QCAR_DRIVER_TEXT_DUTY
     uint8 busy; uint32 irq = interrupt_global_disable();
-    busy = wm_busy(); interrupt_global_enable(irq); return busy;
+    busy = (uint8)(wm_busy() && !wm_ordinary); interrupt_global_enable(irq); return busy;
 #else
     return 0;
 #endif
@@ -359,6 +433,7 @@ uint8 W_Motor_BenchRequestB(int16 raw_duty, uint16 duration_ms, uint32 expected_
         interrupt_global_enable(irq); return 0;
     }
     wm_session = wm_consumed_session = wm_driver_session;
+    wm_ordinary=wm_ordinary_failed=0;wm_left_duty=0;
     wm_right_duty = raw_duty; wm_duration_ms = duration_ms;
     wm_sent_seq = wm_ack_seq = 0; wm_stage_at = now; wm_pulse_at = 0;
     wm_stage_status_count = wm_status_count;
@@ -375,7 +450,17 @@ void W_Motor_BenchService(void)
     uint32 irq = interrupt_global_disable();
     uint64 now = wm_now();
     wm_watchdog_locked(now);
-    if (wm_bench_state == W_BENCH_WAIT_ZERO && wm_driver_state == 2u &&
+    if(wm_ordinary && wm_bench_state==WM_WAIT_OPEN) {
+        if(!wm_open_sent && !wm_pending_kind && wm_tx_pos>=wm_tx_len && !IfxAsclin_getTxFifoFillLevel(uart3_handle.asclin)) {
+            memcpy(wm_tx_pending,"SAFE-OPEN,1\r\n",13u);wm_pending_len=13u;wm_pending_kind=WM_TX_SAFE;
+            wm_open_sent=1;wm_stage_status_count=wm_status_count;
+        } else if(wm_open_sent && wm_status_count!=wm_stage_status_count && wm_driver_state==1u && !wm_driver_reason && wm_driver_session && !wm_driver_seq && wm_pending_kind<WM_TX_SAFE) {
+            wm_session=wm_consumed_session=wm_driver_session;
+            wm_stage_at=now;wm_stage_status_count=wm_status_count;wm_bench_state=W_BENCH_WAIT_ZERO;
+            wm_safe_command_locked("SAFE-ZERO,1,",0);
+        }
+    }
+    else if (wm_bench_state == W_BENCH_WAIT_ZERO && wm_driver_state == 2u &&
         wm_status_count != wm_stage_status_count && wm_driver_seq == 0u && wm_pending_kind < WM_TX_SAFE) {
         wm_bench_state = W_BENCH_WAIT_ARM; wm_stage_at = now;
         wm_stage_status_count = wm_status_count;
@@ -460,4 +545,12 @@ void W_Motor_Tick1ms(void)
 }
 int16 W_Motor_GetSpeed1(void) { return w_motor_speed_1; }
 int16 W_Motor_GetSpeed2(void) { return w_motor_speed_2; }
-uint8 W_Motor_LinkLost(void) { return (uint8)(w_motor_link_age_ms >= W_MOTOR_LINK_TIMEOUT_MS); }
+uint8 W_Motor_LinkLost(void) {
+#if QCAR_DRIVER_TEXT_DUTY
+ uint32 irq=interrupt_global_disable();
+ uint8 lost=(uint8)(wm_ordinary_failed || (!wm_ordinary && (!wm_cap2_seen || wm_expired(wm_now(),wm_status_at,WM_STATUS_AGE_MS))) || (wm_ordinary && wm_bench_state!=WM_WAIT_OPEN && (!wm_identity || wm_expired(wm_now(),wm_status_at,WM_STATUS_AGE_MS))));
+ interrupt_global_enable(irq);return lost;
+#else
+ return 1;
+#endif
+}

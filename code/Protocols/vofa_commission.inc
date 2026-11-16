@@ -80,12 +80,13 @@ static void commission_c_cfg(char **f, uint8 count, uint16 seq)
         else if (!strcmp(f[3],"signal_rate")) mode=C_BENCH_SIGNAL_RATE;
         else if (!strcmp(f[3],"powered_rate_pos")) mode=C_BENCH_POWERED_RATE_POS;
         else if (!strcmp(f[3],"powered_rate_neg")) mode=C_BENCH_POWERED_RATE_NEG;
-        else { (void)cfg_reply(seq,"err","BAD_MODE,Require dry_raw dry_rate signal_raw signal_rate powered_rate_pos or powered_rate_neg"); return; }
+        else if (!strcmp(f[3],"powered_pulse")) mode=C_BENCH_POWERED_PULSE;
+        else { (void)cfg_reply(seq,"err","BAD_MODE,Require dry_raw dry_rate signal_raw signal_rate powered_rate_pos powered_rate_neg or powered_pulse"); return; }
         if (!commission_u32(f[2],&session) ||
             !cmd_parse_float_strict(f[4],&target) || !cmd_parse_float_strict(f[5],&kp) ||
             !cmd_parse_float_strict(f[6],&ki) || !commission_u32(f[7],&duration) ||
             duration<1u || duration>3000u || !commission_u32(f[8],&limit) ||
-            limit<1u || limit>500u ||
+            limit<1u || limit>(mode==C_BENCH_POWERED_PULSE ? CONTROL_C_PULSE_RAW_LIMIT : CONTROL_C_BENCH_RAW_LIMIT) ||
             ((mode==C_BENCH_DRY_RAW || mode==C_BENCH_SIGNAL_RAW) &&
              (target<-(float)limit || target>(float)limit || kp!=0.0f || ki!=0.0f)) ||
             ((mode==C_BENCH_DRY_RATE || mode==C_BENCH_SIGNAL_RATE) &&

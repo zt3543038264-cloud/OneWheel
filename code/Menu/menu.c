@@ -194,7 +194,7 @@ static const menu_param_item_t s_motor_items[] =
     { "Enc C",    "enc_dir_c",      2.0f,   0 },
     { "Steer Dir","steer_dir",      2.0f,   0 },
     { "Duty Fly", "jog_duty_fly",   100.0f, 0 },
-    { "Duty Drv", "jog_duty_drive", 100.0f, 0 },
+    { "Duty Drv", "jog_duty_drive", 10.0f, 0 },
     { "Fly Max",  "fly_speed_limit",100.0f, 0 },
     { "Fly Slew", "fly_slew",       100.0f, 0 }
 };
@@ -219,7 +219,8 @@ static const char * const s_motor_action_names[] =
 {
     "A L/Yaw Fwd", "A L/Yaw Rev",
     "B R/Roll Fwd", "B R/Roll Rev",
-    "C Ground Fwd", "C Ground Rev"
+    "C Ground Fwd", "C Ground Rev",
+    "C Raw + HOLD", "C Raw - HOLD", "C Raw STOP"
 };
 
 #define MENU_ITEMS_OF(a) ((uint8)(sizeof(a) / sizeof((a)[0])))
@@ -233,7 +234,7 @@ static const menu_group_t s_groups[] =
     { "Run",     s_run_items,     MENU_ITEMS_OF(s_run_items),     TUNE_AXIS_YAW,  0, GROUP_KIND_RUN     },
     { "Camera",  s_camera_items,  MENU_ITEMS_OF(s_camera_items),  TUNE_AXIS_YAW,  1, GROUP_KIND_CAMERA  },
     { "Element", s_element_items, MENU_ITEMS_OF(s_element_items), TUNE_AXIS_YAW,  0, GROUP_KIND_ELEMENT },
-    { "Motor",   s_motor_items,   MENU_ITEMS_OF(s_motor_items),   TUNE_AXIS_ROLL, 6, GROUP_KIND_MOTOR   },
+    { "Motor",   s_motor_items,   MENU_ITEMS_OF(s_motor_items),   TUNE_AXIS_ROLL, 9, GROUP_KIND_MOTOR   },
     { "Zero",    s_zero_items,    MENU_ITEMS_OF(s_zero_items),    TUNE_AXIS_ROLL, 0, GROUP_KIND_ZERO    },
     { "Odometry",s_odometry_items,MENU_ITEMS_OF(s_odometry_items),TUNE_AXIS_PITCH,2, GROUP_KIND_ODOMETRY}
 };
@@ -562,6 +563,7 @@ static uint8 current_count(void)
 //-------------------------------------------------------------------------------------------------------------------
 static void stop_local_test(void)
 {
+    if(control_manual_raw_running()) control_manual_raw_stop();
     if (control_bench_b_running()) control_bench_b_stop();
     // control_jog_stop() 会锁刹车, 平衡运行中翻页不能误触发, 所以先确认确实在点动。
     if (control_jog_running() != MOTOR_JOG_NONE) control_jog_stop();
@@ -1018,7 +1020,11 @@ static void render_group_live(void)
     {
         motor_jog_t jog = control_jog_running();
 
-        if (W_Motor_LinkLost())
+        if(control_manual_raw_running()) {
+            (void)snprintf(line,sizeof(line),"RAW C%+6d / BACK STOP",(int)g_motor_c);
+            ui_line(229,line,UI_YELLOW);
+        }
+        else if (W_Motor_LinkLost())
             ui_line(229, "BLDC LINK LOST", UI_RED);
         else
         {
@@ -1284,7 +1290,15 @@ static void motor_jog_action(uint8 action_index)
     motor_jog_t target;
     uint8 forward;
 
-    if (action_index >= 6u) return;
+    if (action_index >= 9u) return;
+    if (control_manual_raw_running() || action_index==8u) {
+        control_manual_raw_stop();menu_status("RAW C STOPPED");s_dirty=1;return;
+    }
+    if(action_index>=6u) {
+        if(control_manual_raw_start(action_index==6u?1:-1)) menu_status("RAW HOLD / BACK STOP");
+        else menu_status(test_status_text(control_test_last_status()));
+        s_dirty=1;return;
+    }
     if (control_jog_running() != MOTOR_JOG_NONE)
     {
         control_jog_stop();
@@ -1415,6 +1429,9 @@ static uint8 group_param_edit_allowed(const menu_group_t *group, uint8 item_inde
 {
     uint8 item_ring;
 
+    if(control_manual_raw_running())
+        return (uint8)(group->kind==GROUP_KIND_MOTOR && item_index<group->item_count &&
+                       strcmp(group->items[item_index].name,"jog_duty_drive")==0);
     if (path_nav_busy() || control_path_active()) return 0;
     if (group->kind == GROUP_KIND_ZERO &&
         (control_bench_b_running() || control_test_running() || control_jog_running() != MOTOR_JOG_NONE)) return 0;

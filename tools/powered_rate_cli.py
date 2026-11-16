@@ -135,7 +135,7 @@ def parse_status(values):
         s = {k: float(v) if k in FLOATS else int(v) for k, v in zip(FIELDS, values)}
         if not all(math.isfinite(v) for v in s.values()):
             raise ValueError('nonfinite telemetry')
-        if s['version'] != 1 or s['profile'] not in (0, 1, 2) or s['mode'] not in range(6):
+        if s['version'] != 1 or s['profile'] not in (0, 1, 2) or s['mode'] not in range(7):
             raise ValueError('version/profile/mode')
         if s['active'] not in (0, 1) or s['state'] not in range(4) or s['reason'] not in range(13):
             raise ValueError('state/reason')
@@ -147,15 +147,20 @@ def parse_status(values):
             raise ValueError('running reason')
         if any(not 0 <= s[k] <= 0xffffffff for k in ('session', 'keep_seq', 'elapsed_ms', 'heartbeat_age_ms', 'imu_age_ms')):
             raise ValueError('counter')
-        if not (0 <= s['duration_ms'] <= 3000 and 0 <= s['limit'] <= 500):
+        raw_max = 2000 if s['mode'] == 6 else 500
+        if s['mode'] == 6 and (s['profile'] != 2 or s['duration_ms'] not in (400, 1000) or
+                s['limit'] not in (200,400,600,800,1000,1200,2000) or
+                abs(s['target']) != s['limit'] or s['kp'] != 0 or s['ki'] != 0):
+            raise ValueError('pulse configuration')
+        if not (0 <= s['duration_ms'] <= 3000 and 0 <= s['limit'] <= raw_max):
             raise ValueError('duration/limit')
         if not -0x80000000 <= s['encoder_20ms'] <= 0x7fffffff:
             raise ValueError('encoder')
         if not s['active'] and s['applied'] != 0:
             raise ValueError('inactive output')
-        if s['active'] and not (1 <= s['duration_ms'] <= 3000 and 1 <= s['limit'] <= 500):
+        if s['active'] and not (1 <= s['duration_ms'] <= 3000 and 1 <= s['limit'] <= raw_max):
             raise ValueError('active limits')
-        if abs(s['applied']) > 500 or (s['limit'] > 0 and abs(s['applied']) > s['limit']):
+        if abs(s['applied']) > raw_max or (s['limit'] > 0 and abs(s['applied']) > s['limit']):
             raise ValueError('output')
         if (s['profile'] == 0 or s['mode'] in (0, 1)) and s['applied']:
             raise ValueError('dry output')
@@ -221,8 +226,20 @@ class Client:
                 continue
             if parts[0] != 'rsp:' + str(self.sequence):
                 continue
+            if len(parts) >= 3 and parts[1] == 'err':
+                # Preserve the matched board refusal instead of calling it an ACK timeout.
+                detail = ','.join(parts[2:])
+                if parts[2] == 'CBENCH_BLOCKED' and len(parts) == 5:
+                    reasons = {5: 'TIMING', 6: 'SENSOR_OR_ATTITUDE', 7: 'ENCODER',
+                               8: 'INVALID', 9: 'BUSY', 10: 'LOCKED', 11: 'SESSION', 12: 'OUTPUT'}
+                    try:
+                        reason = int(parts[3]); sensor = int(parts[4])
+                        detail += ' (' + reasons.get(reason, 'UNKNOWN') + ', sensor_reason=' + str(sensor) + ')'
+                    except ValueError:
+                        pass
+                raise ProtocolError(operation + ' rejected by board: ' + detail + '; no retry')
             if len(parts) < 3 or parts[1:3] != ['ok', operation]:
-                raise ProtocolError('Rejected or malformed matching ACK')
+                raise ProtocolError('Malformed matching ACK for ' + operation)
             status = parse_status(parts[3:])
             if self.clock() >= deadline:
                 break

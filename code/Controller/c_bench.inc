@@ -5,6 +5,9 @@
 #if CONTROL_C_BENCH_RAW_LIMIT != C_BENCH_RAW_DUTY_MAX
 #error "C bench controller and final PWM driver raw bounds must agree"
 #endif
+#if CONTROL_C_PULSE_RAW_LIMIT != C_BENCH_PULSE_RAW_DUTY_MAX
+#error "Pulse controller and driver bounds must agree"
+#endif
 #pragma section all "cpu0_dsram"
 static volatile control_c_bench_diag_t s_c_bench;
 static uint64 s_c_started, s_c_heartbeat, s_c_imu_seen_at, s_c_encoder_seen_at;
@@ -17,8 +20,10 @@ static float s_c_roll_zero, s_c_pitch_zero;
 
 static uint8 c_bench_powered(uint8 mode)
 { return (uint8)(mode == C_BENCH_POWERED_RATE_POS || mode == C_BENCH_POWERED_RATE_NEG); }
+static uint8 c_bench_pulse(uint8 mode)
+{ return (uint8)(mode == C_BENCH_POWERED_PULSE); }
 static uint8 c_bench_signal(uint8 mode)
-{ return (uint8)(mode == C_BENCH_SIGNAL_RAW || mode == C_BENCH_SIGNAL_RATE || c_bench_powered(mode)); }
+{ return (uint8)(mode == C_BENCH_SIGNAL_RAW || mode == C_BENCH_SIGNAL_RATE || c_bench_powered(mode) || c_bench_pulse(mode)); }
 static uint8 c_bench_rate(uint8 mode)
 { return (uint8)(mode == C_BENCH_DRY_RATE || mode == C_BENCH_SIGNAL_RATE || c_bench_powered(mode)); }
 static uint32 c_bench_age_ms(uint64 now, uint64 since)
@@ -131,23 +136,28 @@ uint32 control_c_bench_start(control_c_bench_mode_t mode, float target,
     if (s_c_bench.active || c_bench_conflict()) reason = C_BENCH_REASON_BUSY;
     else if (expected_session != s_c_bench.session || s_c_bench.session == 0xffffffffu)
         reason = C_BENCH_REASON_SESSION;
-    else if ((int)mode < (int)C_BENCH_DRY_RAW || mode > C_BENCH_POWERED_RATE_NEG ||
+    else if ((int)mode < (int)C_BENCH_DRY_RAW || mode > C_BENCH_POWERED_PULSE ||
         !ctrl_is_finite(target) || !ctrl_is_finite(kp) || !ctrl_is_finite(ki) ||
         duration_ms == 0 || duration_ms > CONTROL_C_BENCH_MAX_MS ||
-        limit == 0 || limit > CONTROL_C_BENCH_RAW_LIMIT ||
+        limit == 0 || limit > (c_bench_pulse((uint8)mode) ? CONTROL_C_PULSE_RAW_LIMIT : CONTROL_C_BENCH_RAW_LIMIT) ||
         kp < 0.0f || kp > CONTROL_C_BENCH_KP_MAX || ki < 0.0f || ki > CONTROL_C_BENCH_KI_MAX ||
         (c_bench_rate((uint8)mode) ? fabsf(target) > CONTROL_C_BENCH_TARGET_DPS :
             (fabsf(target) > (float)limit || kp != 0.0f || ki != 0.0f)))
+        reason = C_BENCH_REASON_INVALID;
+    else if (c_bench_pulse((uint8)mode) &&
+        (duration_ms != CONTROL_C_PULSE_MS || kp != 0.0f || ki != 0.0f ||
+         fabsf(target) != (float)limit || limit < 200u || (limit % 200u) != 0u ||
+         (limit > 1200u && limit != 2000u)))
         reason = C_BENCH_REASON_INVALID;
     else if (c_bench_powered((uint8)mode) &&
         (target != 0.0f || ki != 0.0f || kp <= 0.0f || kp > CONTROL_C_POWER_KP_MAX ||
          duration_ms > CONTROL_C_POWER_MAX_MS || limit > CONTROL_C_POWER_RAW_LIMIT))
         reason = C_BENCH_REASON_INVALID;
-    else if ((c_bench_powered((uint8)mode) && !C_BENCH_POWERED_RATE_PROFILE) ||
+    else if (((c_bench_powered((uint8)mode) || c_bench_pulse((uint8)mode)) && !C_BENCH_POWERED_RATE_PROFILE) ||
         (C_BENCH_POWERED_RATE_PROFILE &&
          (mode == C_BENCH_SIGNAL_RAW || mode == C_BENCH_SIGNAL_RATE)))
         reason = C_BENCH_REASON_LOCKED;
-    else if (c_bench_powered((uint8)mode) &&
+    else if ((c_bench_powered((uint8)mode) || c_bench_pulse((uint8)mode)) &&
         (!pitch_coordinates_valid() || !ctrl_is_finite(pitch_euler_rate()) ||
          fabsf(pitch_euler_rate()) >= CONTROL_C_POWER_START_RATE_DPS))
         reason = C_BENCH_REASON_SENSOR;
@@ -232,7 +242,16 @@ static void control_c_bench_run(void)
         c_bench_finish(C_BENCH_REASON_LOCKED); return;
     }
     requested = s_c_bench.calculated;
-    if (!c_bench_rate(s_c_bench.mode)) requested = s_c_bench.target;
+    if (c_bench_pulse(s_c_bench.mode)) {
+        uint32 elapsed = c_bench_age_ms(now, s_c_started);
+        float scale = 1.0f;
+        if (elapsed < CONTROL_C_PULSE_RAMP_MS)
+            scale = (float)elapsed / (float)CONTROL_C_PULSE_RAMP_MS;
+        else if (elapsed > CONTROL_C_PULSE_MS - CONTROL_C_PULSE_RAMP_MS)
+            scale = (float)(CONTROL_C_PULSE_MS - elapsed) / (float)CONTROL_C_PULSE_RAMP_MS;
+        requested = s_c_bench.target * scale;
+    }
+    else if (!c_bench_rate(s_c_bench.mode)) requested = s_c_bench.target;
     else if (s_c_pi_seq != s_c_imu_seq) {
         float dt = (float)(now - s_c_pi_at) / ((float)s_control_ticks_per_ms * 1000.0f);
         float error = s_c_bench.target - pitch_euler_rate();
@@ -263,7 +282,9 @@ static void control_c_bench_run(void)
     reason = c_bench_guard(now, 0);
     if (reason != C_BENCH_REASON_OK) { c_bench_finish(reason); return; }
     s_c_bench.calculated = requested;
-    if (c_bench_signal(s_c_bench.mode))
+    if (c_bench_pulse(s_c_bench.mode))
+        s_c_bench.applied = Y_Motor_BenchPulseRawDuty((int32)requested);
+    else if (c_bench_signal(s_c_bench.mode))
         s_c_bench.applied = Y_Motor_BenchSetRawDuty((int32)requested);
     else { Y_Motor_Stop(); s_c_bench.applied = 0; }
     if (s_c_bench.applied > (int32)s_c_bench.limit || s_c_bench.applied < -(int32)s_c_bench.limit ||

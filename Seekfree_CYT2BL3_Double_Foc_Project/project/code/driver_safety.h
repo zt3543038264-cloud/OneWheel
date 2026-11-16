@@ -3,8 +3,9 @@
 #define DRIVER_SAFETY_H
 #include <stdint.h>
 #include <stddef.h>
-#define DRIVER_SAFE_B_DUTY_MAX 500
-#define DRIVER_SAFE_CAPABILITY 1u /* right-only, max 500, max 200 ms */
+#define DRIVER_SAFE_B_DUTY_MAX 10000
+#define DRIVER_SAFE_A_DUTY_MAX 10000
+#define DRIVER_SAFE_CAPABILITY 2u /* dual-channel continuous, command watchdog retained */
 #define DRIVER_SAFE_COMMAND_MS 100u
 #define DRIVER_SAFE_ARM_WINDOW_MS 5000u
 #define DRIVER_SAFE_PULSE_MS 200u

@@ -8,10 +8,10 @@ from pathlib import Path
 import time
 
 # Use the exact transport/parser delivered in the WiFi repair package.
-_EXPECTED = 'c9827ec8c4f103260249bc79e937c84f4edc024581293101798d612442d0bf9b'
+_EXPECTED = 'db77ca5e30549a8a0a2128f17250056df3dffd23447d0425d2e495fc6041afff'
 _dependency = Path(__file__).with_name('powered_rate_cli.py')
 if not _dependency.is_file() or hashlib.sha256(_dependency.read_bytes()).hexdigest() != _EXPECTED:
-    raise SystemExit('Transport version mismatch. Use powered_rate_cli.py from the 20261113 WiFi ACK package; no command sent.')
+    raise SystemExit('Transport version mismatch. Use powered_rate_cli.py from the 20261113 graded pulse package; no command sent.')
 from powered_rate_cli import Client, UDPTransport, WireRecorder, ProtocolError
 
 

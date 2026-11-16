@@ -35,7 +35,7 @@
 #define W_MOTOR_UART_RX_PIN             (UART3_RX_P15_7)
 #define W_MOTOR_DUTY_MAX                (10000)
 #define W_MOTOR_LINK_TIMEOUT_MS         (60)
-#define W_MOTOR_SPEED_REQUEST_MS        (200)
+#define W_MOTOR_SPEED_REQUEST_MS        (20)
 
 // Y_Motor：行进轮 C 使用 DRV8701E 通道 1，编码器为 P33.7 脉冲 + P33.6 方向。
 #define Y_MOTOR_DIR_PIN                 (P21_4)

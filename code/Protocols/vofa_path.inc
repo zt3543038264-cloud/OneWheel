@@ -167,7 +167,7 @@ static void path_cfg_poll(void)
         uint8 save=s_path_store_save;
         s_path_save_seq=0;
         if (!control_path_storage_ready()) (void)cfg_reply(seq,"err","SAVE_BLOCKED,Stable stopped wheels required");
-        else if (!(save?path_store_save():path_store_load())) (void)cfg_reply(seq,"err","FLASH_FAILED,Route storage failed");
+        else if (!(save?path_store_save():path_store_load())) (void)cfg_reply(seq,"err",path_store_status()==PATH_STORAGE_DISABLED ? "FLASH_DISABLED,Route persistence disabled" : "FLASH_FAILED,Route storage failed");
         else (void)cfg_reply(seq,"ok",save?"path_save,VERIFIED":"path_load,VERIFIED");
     }
 }

@@ -2,12 +2,16 @@
 #define W_MOTOR_H_
 #include "zf_common_headfile.h"
 
-/* Ordinary control paths are permanently zero-only in this commissioning
- * build. Release does not release the hardware or enable a bench pulse. */
+/* Ordinary output requires explicit OrdinaryStart and cap2 OPEN/ZERO/ARM.
+ * Release never creates a session; boot, Stop and faults remain zero. */
 void W_Motor_Init(void);
 void W_Motor_SetDuty(int32 motor1_duty, int32 motor2_duty);
 void W_Motor_Stop(void);     /* Explicit emergency stop: cancel grant + zero. */
 void W_Motor_Release(void);
+uint8 W_Motor_OrdinaryStart(void);
+uint8 W_Motor_OrdinaryPending(void);
+uint8 W_Motor_OrdinaryFailed(void);
+void W_Motor_OrdinaryService(void);
 /* Idle observation zero, preserves a driver-local KEY1 grant. Do not call
  * while BenchBusy: an unexpected call aborts the pulse, rather than ignoring it. */
 void W_Motor_KeepZero(void);
@@ -44,7 +48,7 @@ typedef struct {
 } w_motor_bench_status_t;
 
 /* Explicit one-shot manual B/right-only pulse. Returns 1 only when a fresh
- * SAFE v1 capability1 LOCAL_READY grant was accepted. No auto retry/rearm.
+ * SAFE v1 capability2 LOCAL_READY grant was accepted. No auto retry/rearm.
  * Starts with ZERO only; the controller must validate current sensors before
  * EVERY BenchService call. A/C must remain hard zero in that controller branch.
  * expected_session must match the fresh grant displayed to the operator.

@@ -30,6 +30,10 @@ void Y_Motor_Stop(void);
 /* C-only diagnostic sink. Raw sign directly selects DIR, no sign parameter or
  * deadzone. Returns actual signed PWM requested from hardware, zero if gated. */
 int32 Y_Motor_BenchSetRawDuty(int32 duty);
+/* Separate bounded sink for explicit 400ms POWERED_PULSE only. */
+int32 Y_Motor_BenchPulseRawDuty(int32 duty);
+#define Y_MOTOR_MANUAL_RAW_LIMIT 3500
+int32 Y_Motor_ManualRawDuty(int32 duty);
 /* Generation of complete 20ms windows; not evidence the sensor is connected. */
 uint32 Y_Motor_GetEncoderSampleId20ms(void);
 

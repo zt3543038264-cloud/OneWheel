@@ -41,11 +41,22 @@
 
 #include "driver_safety.h"
 static uint8_t safe_right_connected;
+static uint8_t safe_left_connected;
 static void safe_pin_low(volatile stc_GPIO_PRT_t *port,uint32_t pin)
 {
     Cy_GPIO_Clr(port,pin);
     Cy_GPIO_SetHSIOM(port,pin,HSIOM_SEL_GPIO);
     Cy_GPIO_SetDrivemode(port,pin,CY_GPIO_DM_STRONG);
+}
+static void safe_left_pins_low(void)
+{
+    safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_H,MOTOR_LEFT_A_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_L,MOTOR_LEFT_A_PHASE_PIN_L);
+    safe_pin_low(MOTOR_LEFT_B_PHASE_PORT_H,MOTOR_LEFT_B_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_B_PHASE_PORT_L,MOTOR_LEFT_B_PHASE_PIN_L);
+    safe_pin_low(MOTOR_LEFT_C_PHASE_PORT_H,MOTOR_LEFT_C_PHASE_PIN_H);
+    safe_pin_low(MOTOR_LEFT_C_PHASE_PORT_L,MOTOR_LEFT_C_PHASE_PIN_L);
+    safe_left_connected=0;
 }
 static void safe_right_pins_low(void)
 {
@@ -59,6 +70,7 @@ static void safe_right_pins_low(void)
 }
 void motor_output_inhibit(void)
 {
+    safe_left_pins_low();
     safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_H,MOTOR_LEFT_A_PHASE_PIN_H);
     safe_pin_low(MOTOR_LEFT_A_PHASE_PORT_L,MOTOR_LEFT_A_PHASE_PIN_L);
     safe_pin_low(MOTOR_LEFT_B_PHASE_PORT_H,MOTOR_LEFT_B_PHASE_PIN_H);
@@ -90,6 +102,17 @@ void motor_output_inhibit(void)
     MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC1.u32Register=PWM_PRIOD_LOAD/2;
     MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register=PWM_PRIOD_LOAD/2;
     MOTOR_RIGHT_C_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register=PWM_PRIOD_LOAD/2;
+}
+static void safe_left_pins_restore(void)
+{
+    if(safe_left_connected) return;
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_A_PHASE_PORT_H,MOTOR_LEFT_A_PHASE_PIN_H,MOTOR_LEFT_A_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_A_PHASE_PORT_L,MOTOR_LEFT_A_PHASE_PIN_L,MOTOR_LEFT_A_PIN_HSIOM_L);
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_B_PHASE_PORT_H,MOTOR_LEFT_B_PHASE_PIN_H,MOTOR_LEFT_B_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_B_PHASE_PORT_L,MOTOR_LEFT_B_PHASE_PIN_L,MOTOR_LEFT_B_PIN_HSIOM_L);
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_C_PHASE_PORT_H,MOTOR_LEFT_C_PHASE_PIN_H,MOTOR_LEFT_C_PIN_HSIOM_H);
+    Cy_GPIO_SetHSIOM(MOTOR_LEFT_C_PHASE_PORT_L,MOTOR_LEFT_C_PHASE_PIN_L,MOTOR_LEFT_C_PIN_HSIOM_L);
+    safe_left_connected=1;
 }
 static void safe_right_pins_restore(void)
 {
@@ -250,8 +273,12 @@ void motor_left_output_init(uint16 timer_period, uint8 isr_state)
 //-------------------------------------------------------------------------------------------------------------------
 void motor_left_duty_set(uint16 a_duty, uint16 b_duty, uint16 c_duty)
 {
-    /* Version 1 bench capability: A/left is permanently inhibited. */
-    a_duty=b_duty=c_duty=0;
+    uint32_t irq=__get_PRIMASK();
+    __disable_irq();
+    if(!driver_safety_output_allowed(0)) {
+        a_duty=b_duty=c_duty=0;
+        if(safe_left_connected) safe_left_pins_low();
+    }
 
     MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC0_BUFF.u32Register = (PWM_PRIOD_LOAD - a_duty) / 2;  // 配置A相通道比较器1的值
     MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unCC1_BUFF.u32Register = (PWM_PRIOD_LOAD + a_duty) / 2;  // 配置A相通道比较器2的值
@@ -262,6 +289,8 @@ void motor_left_duty_set(uint16 a_duty, uint16 b_duty, uint16 c_duty)
     MOTOR_LEFT_A_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置A相通道交换使能
     MOTOR_LEFT_B_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置B相通道交换使能
     MOTOR_LEFT_C_PHASE_TCPWM_TIMER->unTR_CMD.u32Register  |= 1;  // 配置C相通道交换使能
+    if(driver_safety_output_allowed(0)) safe_left_pins_restore();
+    __set_PRIMASK(irq);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

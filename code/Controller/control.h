@@ -179,11 +179,15 @@ uint8 control_bench_b_running(void);
 #define CONTROL_C_POWER_RAW_LIMIT 200u
 #define CONTROL_C_POWER_KP_MAX 20.0f
 #define CONTROL_C_POWER_START_RATE_DPS 5.0f
+/* Fixed 100ms rise, 800ms plateau, 100ms fall; separate from rate loop. */
+#define CONTROL_C_PULSE_MS 1000u
+#define CONTROL_C_PULSE_RAMP_MS 100u
+#define CONTROL_C_PULSE_RAW_LIMIT 2000u
 
 typedef enum {
     C_BENCH_DRY_RAW = 0, C_BENCH_DRY_RATE,
     C_BENCH_SIGNAL_RAW, C_BENCH_SIGNAL_RATE,
-    C_BENCH_POWERED_RATE_POS, C_BENCH_POWERED_RATE_NEG
+    C_BENCH_POWERED_RATE_POS, C_BENCH_POWERED_RATE_NEG, C_BENCH_POWERED_PULSE
 } control_c_bench_mode_t;
 typedef enum {
     C_BENCH_IDLE = 0, C_BENCH_RUNNING, C_BENCH_STOPPED, C_BENCH_FAULT
@@ -255,6 +259,9 @@ void control_loop(void);
 // 使用示例     control_stop();
 //-------------------------------------------------------------------------------------------------------------------
 void control_stop(void);
+uint8 control_manual_raw_start(int direction);
+int control_manual_raw_running(void);
+void control_manual_raw_stop(void);
 
 /* CPU0 foreground path actions; push recording never enables motors. */
 uint8 control_path_record_start(uint8 remote);
