@@ -11,6 +11,16 @@
 typedef enum { PARAM_STORAGE_OK = 0, PARAM_STORAGE_EMPTY, PARAM_STORAGE_INCOMPATIBLE,
     PARAM_STORAGE_CORRUPT, PARAM_STORAGE_IO, PARAM_STORAGE_DISABLED } param_storage_status_t;
 param_storage_status_t param_storage_status(void);
+/* Diagnostic only: never grants permission to erase or migrate a record. */
+typedef enum { PARAM_INCOMPAT_NONE = 0, PARAM_INCOMPAT_OLD_FORMAT,
+    PARAM_INCOMPAT_MAGIC, PARAM_INCOMPAT_TAIL, PARAM_INCOMPAT_KEY } param_incompat_reason_t;
+param_incompat_reason_t param_incompat_reason(void);
+/* Read-only snapshot of logical low words; high halves are checked by driver. */
+typedef struct { uint32 word[4]; uint16 nonzero_count, first_nonzero, last_nonzero; } param_flash_inspect_t;
+uint8 param_flash_inspect(param_flash_inspect_t *out);
+uint8 param_rebuild_current(void); /* explicit recovery only; overwrites exact archived page */
+uint8 param_flash_read_words(uint16 offset, uint32 *out, uint16 count);
+
 
 // 参数结构
 typedef struct

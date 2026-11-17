@@ -494,6 +494,7 @@ void param_sync_zero(void)
 // 使用示例     uint8 ok = param_erase();
 //-------------------------------------------------------------------------------------------------------------------
 static param_storage_status_t s_storage_status;
+static param_incompat_reason_t s_incompat_reason;
 static int param_read_record(void);
 uint8 param_erase(void)
 {
@@ -509,11 +510,44 @@ uint8 param_erase(void)
 /* No automatic migration. Old magic, unknown keys and damaged records remain
  * untouched until backed up and deliberately handled outside this firmware. */
 param_storage_status_t param_storage_status(void) { return s_storage_status; }
+param_incompat_reason_t param_incompat_reason(void) { return s_incompat_reason; }
+uint8 param_flash_read_words(uint16 offset, uint32 *out, uint16 count)
+{
+    uint16 i;
+    if (!out || !count || count > 8u || (uint32)offset + count > EEPROM_PAGE_LENGTH) return 0;
+    if (!STORAGE_FLASH_VALIDATED) { s_storage_status = PARAM_STORAGE_DISABLED; return 0; }
+    flash_read_page_to_buffer(PARAM_FLASH_SECTOR, PARAM_FLASH_PAGE);
+    if (flash_last_status() != FLASH_STATUS_OK) { s_storage_status = PARAM_STORAGE_IO; return 0; }
+    for (i = 0; i < count; ++i) out[i] = flash_union_buffer[offset + i].uint32_type;
+    return 1;
+}
+
+uint8 param_flash_inspect(param_flash_inspect_t *out)
+{
+    uint32 i;
+    if (!out) return 0;
+    memset(out, 0, sizeof(*out));
+    if (!STORAGE_FLASH_VALIDATED) { s_storage_status = PARAM_STORAGE_DISABLED; return 0; }
+    /* Never call save/erase, apply parameters, or clear hardware error flags. */
+    flash_read_page_to_buffer(PARAM_FLASH_SECTOR, PARAM_FLASH_PAGE);
+    if (flash_last_status() != FLASH_STATUS_OK) { s_storage_status = PARAM_STORAGE_IO; return 0; }
+    for (i = 0; i < 4u; ++i) out->word[i] = flash_union_buffer[i].uint32_type;
+    out->first_nonzero = out->last_nonzero = 0xFFFFu;
+    for (i = 0; i < EEPROM_PAGE_LENGTH; ++i)
+        if (flash_union_buffer[i].uint32_type != 0u) {
+            if (!out->nonzero_count) out->first_nonzero = (uint16)i;
+            out->last_nonzero = (uint16)i;
+            ++out->nonzero_count;
+        }
+    return 1;
+}
+
 static int param_read_record(void)
 {
     uint32 i, j, count, words;
     uint16 t;
     uint8 occupied;
+    s_incompat_reason = PARAM_INCOMPAT_NONE;
     if (!STORAGE_FLASH_VALIDATED) { s_storage_status = PARAM_STORAGE_DISABLED; return 0; }
     occupied = flash_check(PARAM_FLASH_SECTOR, PARAM_FLASH_PAGE);
     if (flash_last_status() != FLASH_STATUS_OK) { s_storage_status = PARAM_STORAGE_IO; return 0; }
@@ -521,6 +555,9 @@ static int param_read_record(void)
     flash_read_page_to_buffer(PARAM_FLASH_SECTOR, PARAM_FLASH_PAGE);
     if (flash_last_status() != FLASH_STATUS_OK) { s_storage_status = PARAM_STORAGE_IO; return 0; }
     if (flash_union_buffer[0].uint32_type != PARAM_MAGIC) {
+        uint32 magic = flash_union_buffer[0].uint32_type;
+        s_incompat_reason = (magic == PARAM_MAGIC_LEGACY || magic == PARAM_MAGIC_MASTER)
+            ? PARAM_INCOMPAT_OLD_FORMAT : PARAM_INCOMPAT_MAGIC;
         s_storage_status = PARAM_STORAGE_INCOMPATIBLE; return 0;
     }
     count = flash_union_buffer[PARAM_COUNT_INDEX].uint32_type;
@@ -533,6 +570,7 @@ static int param_read_record(void)
      * The low-level full-page read already checked every unused high half. */
     for (i = words+1u; i < EEPROM_PAGE_LENGTH; i++)
         if (flash_union_buffer[i].uint32_type != 0u) {
+            s_incompat_reason = PARAM_INCOMPAT_TAIL;
             s_storage_status = PARAM_STORAGE_INCOMPATIBLE; return 0;
         }
     for (i = 0; i < count; i++) {
@@ -543,7 +581,8 @@ static int param_read_record(void)
             }
         for (t = 0; t < PARAM_TABLE_NUM; t++)
             if (key == param_name_key(g_param_table[t].name, g_param_table[t].is_float)) break;
-        if (t == PARAM_TABLE_NUM) { s_storage_status = PARAM_STORAGE_INCOMPATIBLE; return 0; }
+        if (t == PARAM_TABLE_NUM) { s_incompat_reason = PARAM_INCOMPAT_KEY;
+            s_storage_status = PARAM_STORAGE_INCOMPATIBLE; return 0; }
         {
             const param_desc_t *d = &g_param_table[t];
             flash_data_union value = flash_union_buffer[PARAM_FIRST_RECORD_INDEX+i*2u+1u];
@@ -639,7 +678,56 @@ static uint8 param_name_listed(const char *name, const char *const *names, uint1
 // 返回参数     uint8           1 表示写入并回读比对成功
 // 使用示例     ok = param_save_impl(0, 0);
 //-------------------------------------------------------------------------------------------------------------------
-static uint8 param_save_impl(const char *const *names, uint16 count)
+/* Exact backed-up page from 2026-11-17; no hash-based ownership shortcut.
+ * SHA256 of the 8KiB archived image: dbe2c9b0aec63b375e5e7c2a07adc5f8b8b14a9c486cc4ff49cfdd0031c7a61f.
+ * Every remaining low word and EVERY high half must be zero. */
+static const uint32 s_rebuild_backup[153] = {
+    0x51435453u, 0x0000004Bu, 0xB50A9F5Fu, 0x3F999991u, 0xB311A6A4u, 0x3F4CCCD0u,
+    0xCA9FC617u, 0x3F4CCCD0u, 0x28F7C32Bu, 0x3F7FFFF6u, 0x451EC1FDu, 0x3F800000u,
+    0x119B072Fu, 0x3E4CCCCDu, 0x0A584A88u, 0x3F000000u, 0x703EBA7Fu, 0x3F800000u,
+    0xBB0F7877u, 0x3FCCCCC4u, 0x473FCC25u, 0x3F7FFFFEu, 0x33D3EE1Eu, 0x42700000u,
+    0x9FABD54Bu, 0x00000000u, 0xD2D1A6ACu, 0x3E19999Au, 0xB2BF700Fu, 0x00000043u,
+    0x8D9C90B6u, 0x408246A7u, 0x829C9625u, 0x3EEEC966u, 0x839C9448u, 0xC3B33A17u,
+    0x809C95FFu, 0x34E99CAFu, 0x899C9EFAu, 0x40D08C78u, 0x8E9C9C69u, 0xC4007131u,
+    0x8F9C9D9Cu, 0xB10753F3u, 0x8C9C9303u, 0x3D884568u, 0x859C8DDEu, 0x3F800000u,
+    0x3274BC54u, 0x00000030u, 0xC27D41F5u, 0x4636BC00u, 0xB96CA88Du, 0x3D4CCCCFu,
+    0x802CE760u, 0x3AC49BA6u, 0x992CC35Fu, 0x00000000u, 0x9C2CC7E4u, 0x00000000u,
+    0xF74FF7C7u, 0x42100010u, 0xEE4FE2F8u, 0x00000000u, 0xE34F9ADBu, 0x00000000u,
+    0x8B5A52E8u, 0x41A00000u, 0xB05A6A57u, 0x00000000u, 0x875A41CCu, 0x41000000u,
+    0x12962B75u, 0x3D75C28Fu, 0x6596395Eu, 0x3A83126Du, 0x6E960BE9u, 0x00000000u,
+    0xF686CF1Du, 0x411FFFFEu, 0xC98637B6u, 0x00000000u, 0xC2862F91u, 0x00000000u,
+    0xD9019B36u, 0x41A80000u, 0xC601B29Du, 0x3F3851ECu, 0xD5018E0Au, 0x00000000u,
+    0x05B9E448u, 0x41900010u, 0x22B9BF37u, 0x00000000u, 0x31B98AACu, 0x00000000u,
+    0xE0B5927Du, 0x42600000u, 0xFBB5FA96u, 0x80000000u, 0xFCB5F2F1u, 0x80000000u,
+    0xBDBEA3BFu, 0x3C23D709u, 0x9906CB1Bu, 0x3F333333u, 0xF111DB15u, 0x41900000u,
+    0x1F778132u, 0x40BFFFF6u, 0x5009F8F7u, 0x00000001u, 0x14E797E3u, 0x00000001u,
+    0xAC21BBD3u, 0x00000000u, 0x34580D61u, 0x00000001u, 0xF99A4CA7u, 0x00000154u,
+    0x20D39B36u, 0x0000012Cu, 0x1AD391C4u, 0x00000190u, 0x6716E798u, 0x00000001u,
+    0xE52F52CEu, 0xBF19999Au, 0x250A4B49u, 0xC04CCCC8u, 0x6C992F90u, 0x41A00000u,
+    0x677981D3u, 0x42480000u, 0x61C387FEu, 0x00000001u, 0x60C3866Bu, 0x00000001u,
+    0x5FC384D8u, 0x00000001u, 0x0C225E45u, 0x00000001u, 0x7A5BCCCAu, 0x00000001u,
+    0x86C803A2u, 0x000009C4u, 0x62D4FB37u, 0x00000320u, 0xCAC45B32u, 0x00001F40u,
+    0xABD1DDC8u, 0x00000000u, 0xE37FA989u
+};
+static uint8 param_rebuild_destination_matches(void)
+{
+    uint32 i;
+    if (!control_path_storage_ready() || control_test_running() ||
+        control_bench_b_running() || control_c_bench_running() ||
+        control_run_running() || control_remote_running()) return 0;
+    if (!STORAGE_FLASH_VALIDATED) { s_storage_status = PARAM_STORAGE_DISABLED; return 0; }
+    flash_read_page_to_buffer(PARAM_FLASH_SECTOR, PARAM_FLASH_PAGE);
+    if (flash_last_status() != FLASH_STATUS_OK) { s_storage_status = PARAM_STORAGE_IO; return 0; }
+    for (i = 0; i < EEPROM_PAGE_LENGTH; ++i)
+        if (flash_union_buffer[i].uint32_type != (i < 153u ? s_rebuild_backup[i] : 0u)) {
+            s_storage_status = PARAM_STORAGE_INCOMPATIBLE;
+            s_incompat_reason = PARAM_INCOMPAT_NONE;
+            return 0;
+        }
+    return 1;
+}
+
+static uint8 param_save_impl(const char *const *names, uint16 count, uint8 rebuild)
 {
     static uint32 expected[PARAM_RECORD_WORDS];     // 回读比对用，放静态区不占栈
     uint32 words;
@@ -655,7 +743,8 @@ static uint8 param_save_impl(const char *const *names, uint16 count)
     if (!param_validate_current()) return 0;
 
     /* All saves, including full saves, must first validate the destination. */
-    if (!param_read_record()) return 0;
+    if (rebuild) { if (names != 0 || !param_rebuild_destination_matches()) return 0; }
+    else if (!param_read_record()) return 0;
     if (names != 0) param_load_stored();
     flash_buffer_clear();
 
@@ -725,7 +814,7 @@ static uint8 param_save_impl(const char *const *names, uint16 count)
 //-------------------------------------------------------------------------------------------------------------------
 uint8 param_save(void)
 {
-    return param_save_impl(0, 0);
+    return param_save_impl(0, 0, 0);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -737,5 +826,12 @@ uint8 param_save(void)
 uint8 param_save_names(const char *const *names, uint16 count)
 {
     if (names == 0 || count == 0u) return 0;
-    return param_save_impl(names, count);
+    return param_save_impl(names, count, 0);
+}
+
+/* Only the explicit, double-confirmed stopped-state menu action calls this.
+ * Never loads old values; never runs at startup or from a network command. */
+uint8 param_rebuild_current(void)
+{
+    return param_save_impl(0, 0, 1);
 }

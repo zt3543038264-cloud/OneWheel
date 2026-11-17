@@ -1,5 +1,6 @@
 from dataclasses import asdict
-from PySide6 import QtWidgets as W
+from PySide6 import QtWidgets as W, QtCore as C
+from app.transports.wifi_discovery import WifiDiscovery
 from app.core.models import ConnectionConfig, read_document, write_document
 from app.transports.serial_transport import SerialTransport
 
@@ -11,6 +12,12 @@ class ConnectionDialog(W.QDialog):
         outer=W.QVBoxLayout(self);form=W.QFormLayout();outer.addLayout(form)
         self.fields={}
         self.original=config
+        self.discovery=WifiDiscovery()
+        self.discovery_ticks=0
+        self.discovery_timer=C.QTimer(self)
+        self.discovery_timer.setInterval(50)
+        self.discovery_timer.timeout.connect(self.poll_discovery)
+        self.finished.connect(self.stop_discovery)
         self.form=form
         self.mode=W.QComboBox();self.mode.addItem("串口", "serial");self.mode.addItem("WiFi · SPI 模块", "wifi")
         self.mode.setCurrentIndex(1 if config.transport == "wifi" else 0);form.addRow("连接方式",self.mode)
@@ -22,6 +29,17 @@ class ConnectionDialog(W.QDialog):
             self.fields[name]=field;form.addRow(label,field)
         self.wifi_note=W.QLabel("电脑与车辆连接同一热点。车辆端口默认 6666，本机接收端口默认 1349。\n车辆固件中的目标 IP 应填写电脑在该热点下的 IPv4 地址；本机接收地址通常保留 0.0.0.0。")
         self.wifi_note.setWordWrap(True);form.addRow(self.wifi_note)
+        self.discover_row=W.QWidget();discover_layout=W.QHBoxLayout(self.discover_row)
+        discover_layout.setContentsMargins(0,0,0,0)
+        self.discover_button=W.QPushButton("自动识别 WiFi 地址")
+        self.discover_button.clicked.connect(self.start_discovery)
+        self.discovered=W.QComboBox()
+        self.use_peer=W.QPushButton("使用选中地址");self.use_peer.setEnabled(False)
+        self.use_peer.clicked.connect(self.apply_discovered)
+        discover_layout.addWidget(self.discover_button);discover_layout.addWidget(self.discovered,1);discover_layout.addWidget(self.use_peer)
+        form.addRow(self.discover_row)
+        self.discover_info=W.QLabel("先断开现有连接，再从车端状态/遥测识别 IP 和源端口；不识别硬件唯一 ID。")
+        self.discover_info.setWordWrap(True);form.addRow(self.discover_info)
         self.port=W.QComboBox();self.port.setEditable(True)
         self.port.addItem(config.port);self.fields["port"]=self.port
         row=W.QHBoxLayout();row.addWidget(self.port)
@@ -50,10 +68,56 @@ class ConnectionDialog(W.QDialog):
         for name in ("wifi_host","wifi_port","wifi_bind","wifi_local_port"):
             self.form.setRowVisible(self.fields[name],wifi)
         self.form.setRowVisible(self.wifi_note,wifi)
+        self.form.setRowVisible(self.discover_row,wifi)
+        self.form.setRowVisible(self.discover_info,wifi)
+        if not wifi:self.stop_discovery()
         self.form.setRowVisible(self.serial_port_row,not wifi)
         for name in ("baudrate","bytesize","parity","stopbits","flow_control","dtr","rts"):
             self.form.setRowVisible(self.fields[name],not wifi)
         self.info.setVisible(not wifi)
+
+    def start_discovery(self):
+        if self.discovery_timer.isActive():
+            self.stop_discovery()
+            self.discover_info.setText("识别已取消，原地址不变。")
+            return
+        self.discovered.clear();self.use_peer.setEnabled(False)
+        try:
+            self.discovery.open(self.fields["wifi_bind"].text().strip(),self.fields["wifi_local_port"].value())
+        except (OSError,ValueError) as exc:
+            self.discover_info.setText(f"无法监听：{exc}。请断开上位机连接并关闭占用该端口的其他程序。")
+            return
+        self.discovery_ticks=0
+        for name in ("wifi_host","wifi_port","wifi_bind","wifi_local_port"):self.fields[name].setEnabled(False)
+        self.discover_button.setText("取消识别")
+        self.discover_info.setText("正在监听 5 秒，不发送命令。请确保车端 WiFi 已连接，车端目标 IP 和端口指向本机；无需启动车辆。")
+        self.discovery_timer.start()
+
+    def poll_discovery(self):
+        try:
+            for peer in self.discovery.poll():
+                self.discovered.addItem(f"{peer[0]}:{peer[1]}",peer)
+        except OSError as exc:
+            self.stop_discovery();self.discover_info.setText(f"识别失败：{exc}");return
+        self.discovery_ticks+=1
+        if self.discovery_ticks>=100:
+            self.stop_discovery()
+            count=self.discovered.count()
+            self.use_peer.setEnabled(count>0)
+            if count==1:self.apply_discovered()
+            elif count>1:self.discover_info.setText("发现多个地址，请选择目标车辆后点击“使用选中地址”；未自动更改原地址。")
+            else:self.discover_info.setText("未收到有效遥测，原地址不变。检查车端目标 IP、本机接收端口和网络；车端未向本机发包时请手动填写。")
+
+    def stop_discovery(self,*_):
+        self.discovery_timer.stop();self.discovery.close()
+        self.discover_button.setText("自动识别 WiFi 地址")
+        for name in ("wifi_host","wifi_port","wifi_bind","wifi_local_port"):self.fields[name].setEnabled(True)
+
+    def apply_discovered(self):
+        peer=self.discovered.currentData()
+        if peer is None:return
+        self.fields["wifi_host"].setText(peer[0]);self.fields["wifi_port"].setValue(peer[1])
+        self.discover_info.setText(f"已填写 {peer[0]}:{peer[1]}，点击确定后再连接。仅识别地址，尚未完成协议握手。")
 
     def refresh(self):
         current=self.port.currentText().split(" · ",1)[0];self.port.clear();lines=[]
@@ -88,6 +152,7 @@ class ConnectionDialog(W.QDialog):
         except ValueError as exc:self.info.setText(str(exc));self.info.show()
 
     def load(self):
+        self.stop_discovery()
         path,_=W.QFileDialog.getOpenFileName(self,"加载连接预设","","JSON (*.json)")
         if not path:return
         try:

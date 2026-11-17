@@ -125,6 +125,28 @@ static void test_ecc(void) {
  assert(flash_last_status()==FLASH_STATUS_VERIFY);unchanged(0,0);
  puts("PASS real Flash: pre/post-read ECC, both halves, boundary reads, latch, verify status, no implicit erase");
 }
+static void load_rebuild_backup(void) {
+ unsigned i;mock_reset();param_load_defaults();
+ for(i=0;i<153;i++)mock_flash[11][i*2]=s_rebuild_backup[i];
+}
+static void test_rebuild(void) {
+ unsigned i;param_t ram;
+ for(i=0;i<2048;i++) {
+  load_rebuild_backup();mock_flash[11][i]^=1u;
+  memcpy(snapshot,mock_flash,sizeof snapshot);
+  assert(!param_rebuild_current());unchanged(0,0);
+ }
+ load_rebuild_backup();ram=g_param;assert(param_rebuild_current());
+ assert(mock_flash[11][0]==PARAM_MAGIC && !memcmp(&ram,&g_param,sizeof ram));
+ assert(mock_erases==1u);assert(!param_rebuild_current());assert(mock_erases==1u);
+ load_rebuild_backup();mock_ecc_bit=1u<<21;mock_ecc_after_sync=2001;
+ memcpy(snapshot,mock_flash,sizeof snapshot);assert(!param_rebuild_current());unchanged(0,0);
+ load_rebuild_backup();mock_write_ecc=1u<<21;ram=g_param;
+ assert(!param_rebuild_current());assert(param_storage_status()==PARAM_STORAGE_IO);
+ assert(!memcmp(&ram,&g_param,sizeof ram));assert(mock_erases==1u&&mock_writes==1u);
+ assert(!param_rebuild_current());assert(mock_erases==1u&&mock_writes==1u);
+ puts("PASS rebuild: every physical word mismatch refused, exact page accepted, RAM unchanged, ECC/write failure blocked");
+}
 static void test_param(void) {
  unsigned i,half,erases,writes;
  uint32 prefix;
@@ -180,7 +202,7 @@ static void test_path(void) {
 int main(void) {
  mock_reset();
 #if STORAGE_FLASH_VALIDATED
- test_ecc();test_param();test_path();
+ test_ecc();test_rebuild();test_param();test_path();
 #else
  {uint32 value=1,out=123;
  param_init();assert(!param_save()&&!param_erase());path_store_init();assert(!path_store_save()&&!path_store_load());
@@ -204,13 +226,13 @@ def run():
     with tempfile.TemporaryDirectory(prefix='flash-preservation-') as td:
         p=Path(td);(p/'Controller').mkdir()
         (p/'zf_common_headfile.h').write_text(HEADER)
-        (p/'Controller/control.h').write_text('#include "zf_common_headfile.h"\n')
+        (p/'Controller/control.h').write_text('#include "zf_common_headfile.h"\nint control_path_storage_ready(void);\n' + ''.join('#define '+name+'() '+value+'\n' for name,value in [('control_test_running','0'),('control_bench_b_running','0'),('control_c_bench_running','0'),('control_run_running','0'),('control_remote_running','0')]))
         (p/'path_store_stubs.h').write_text('#include "zf_common_headfile.h"\n')
         (p/'driver.c').write_text(DRIVER_STUB+driver+DRIVER_RESET)
         (p/'test.c').write_text(HARNESS)
         for enabled in (0,1):
             exe=p/f'test{enabled}'
-            flags = ['-DSTORAGE_FLASH_VALIDATED=1','-DSTORAGE_BOOT_LOAD=1'] if enabled else []
+            flags = [f'-DSTORAGE_FLASH_VALIDATED={enabled}', f'-DSTORAGE_BOOT_LOAD={enabled}', f'-DSTORAGE_PATH_FLASH_ENABLED={enabled}']
             subprocess.run(['gcc','-std=c99','-O2','-fno-pie','-no-pie','-Wall','-Wextra','-Werror',
                 '-Wno-int-to-pointer-cast','-Wno-unknown-pragmas',*flags,
                 '-DPATH_HOST_TEST','-DPATH_STORE_TEST',

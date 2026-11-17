@@ -289,6 +289,8 @@ static const char * const s_param_page_names[] =
     "Odometry",
     "Save",
     "Reset",
+    "Flash Inspect",
+    "Flash Rebuild",
     "Back"
 };
 
@@ -311,6 +313,8 @@ static uint8       s_test_on;                       // 当前页开着 Test
 static uint8       s_active_test;                   // 开着的是哪一个动作行，0xFF 表示没有
 static uint8       s_dirty;                         // 1=重绘本页 2=先整屏清再重绘
 static uint8       s_image_ok;                      // 图像页看到的摄像头就绪状态
+static uint32      s_rebuild_armed_until_ms;
+static uint32      s_rebuild_revision;
 static uint32      s_reset_armed_until_ms;          // Reset 二次确认截止时刻，0=未进入确认态
 static uint32      s_balance_armed_until_ms;        // Balance 二次确认截止时刻，0=未进入确认态
 static uint32      s_remote_armed_until_ms;         // Remote 二次确认截止时刻，0=未进入确认态
@@ -611,12 +615,64 @@ static const char *storage_failure_text(void)
     switch (param_storage_status())
     {
         case PARAM_STORAGE_DISABLED:     return "FLASH DISABLED";
-        case PARAM_STORAGE_INCOMPATIBLE: return "FLASH INCOMPATIBLE";
+        case PARAM_STORAGE_INCOMPATIBLE:
+            switch (param_incompat_reason())
+            {
+                case PARAM_INCOMPAT_OLD_FORMAT: return "FLASH OLD FORMAT";
+                case PARAM_INCOMPAT_MAGIC:      return "FLASH UNKNOWN MAGIC";
+                case PARAM_INCOMPAT_TAIL:       return "FLASH FOREIGN TAIL";
+                case PARAM_INCOMPAT_KEY:        return "FLASH UNKNOWN KEY";
+                default:                       return "FLASH INCOMPATIBLE";
+            }
         case PARAM_STORAGE_CORRUPT:      return "FLASH CORRUPT";
         case PARAM_STORAGE_IO:           return "FLASH I/O FAILED";
         case PARAM_STORAGE_EMPTY:        return "FLASH EMPTY";
         default:                         return "FLASH ACTION FAILED";
     }
+}
+
+/* Repeated presses show one read-only snapshot. No Save/Reset is invoked. */
+static void inspect_flash_action(void)
+{
+    static param_flash_inspect_t snapshot;
+    static uint8 field;
+    char text[30];
+    if (save_blocked()) return;
+    if (field == 0u && !param_flash_inspect(&snapshot)) {
+        menu_status(storage_failure_text());
+        return;
+    }
+    if (field < 4u)
+        (void)snprintf(text, sizeof(text), "FLASH W%u=%08lX", (unsigned)field,
+                       (unsigned long)snapshot.word[field]);
+    else if (field == 4u)
+        (void)snprintf(text, sizeof(text), "FLASH NZ=%u/1024", (unsigned)snapshot.nonzero_count);
+    else
+        (void)snprintf(text, sizeof(text), "FLASH FIRST=%u LAST=%u",
+                       (unsigned)snapshot.first_nonzero, (unsigned)snapshot.last_nonzero);
+    field = (uint8)((field + 1u) % 6u);
+    menu_status(text);
+}
+
+static void rebuild_flash_action(void)
+{
+    uint32 now = g_control_uptime_ms;
+    if (s_enter_event_long) return; /* Holding Enter must not count as consent. */
+    if (save_blocked() || !control_path_storage_ready() ||
+        control_c_bench_running() || control_run_running() || control_remote_running()) {
+        s_rebuild_armed_until_ms = 0;
+        menu_status("REBUILD BLOCKED: BUSY");
+        return;
+    }
+    if (!s_rebuild_armed_until_ms || (int32)(now - s_rebuild_armed_until_ms) >= 0 ||
+        s_rebuild_revision != g_param_revision) {
+        s_rebuild_armed_until_ms = now + UI_RESET_CONFIRM_MS;
+        s_rebuild_revision = g_param_revision;
+        menu_status("AGAIN: REPLACE OLD FLASH");
+        return;
+    }
+    s_rebuild_armed_until_ms = 0;
+    menu_status(param_rebuild_current() ? "REBUILT, READBACK OK" : "REBUILD FAILED: NO RETRY");
 }
 
 static void save_params_action(void)
@@ -1909,6 +1965,7 @@ static void handle_run_test(uint8 up, uint8 down, uint8 enter, uint8 back)
 //-------------------------------------------------------------------------------------------------------------------
 static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
 {
+    if (back) s_rebuild_armed_until_ms = 0;
     if (back)
     {
         menu_back();
@@ -1917,7 +1974,7 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     if (up) move_cursor(-1);
     if (down) move_cursor(1);
     // 光标一离开 Reset 行就撤销确认态，避免停在别处按确认时误擦
-    if (up || down) s_reset_armed_until_ms = 0;
+    if (up || down) { s_reset_armed_until_ms = 0; s_rebuild_armed_until_ms = 0; }
     if (!enter) return;
 
     if (s_cursor == 0)
@@ -1943,6 +2000,14 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     else if (s_cursor == (uint8)(GROUP_COUNT + 2u))
     {
         reset_params_action();
+    }
+    else if (s_cursor == (uint8)(GROUP_COUNT + 3u))
+    {
+        inspect_flash_action();
+    }
+    else if (s_cursor == (uint8)(GROUP_COUNT + 4u))
+    {
+        rebuild_flash_action();
     }
     else
     {

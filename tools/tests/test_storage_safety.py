@@ -15,6 +15,7 @@ typedef union {uint32 uint32_type; int32 int32_type; float float_type;} flash_da
 #define FLASH_STATUS_OK 0
 extern flash_data_union flash_union_buffer[1024];
 extern float g_roll_zero,g_pitch_zero;
+int control_path_storage_ready(void); int control_test_running(void); int control_bench_b_running(void); int control_c_bench_running(void); int control_run_running(void); int control_remote_running(void);
 int flash_last_status(void); uint8 flash_check(uint32,uint32);
 void flash_erase_page(uint32,uint32); void flash_read_page_to_buffer(uint32,uint32);
 uint8 flash_write_page_from_buffer(uint32,uint32); void flash_buffer_clear(void);
@@ -27,7 +28,11 @@ HARNESS = r'''
 param_t g_param; volatile uint32 g_param_revision;
 float g_roll_zero,g_pitch_zero;
 flash_data_union flash_union_buffer[1024], disk[1024];
-static int io_error, fail_write, reads, writes;
+static int io_error, fail_write, reads, writes, rebuild_ready=1, active;
+int control_path_storage_ready(void){return rebuild_ready;}
+int control_test_running(void){return active;} int control_bench_b_running(void){return active;}
+int control_c_bench_running(void){return active;} int control_run_running(void){return active;}
+int control_remote_running(void){return active;}
 int flash_last_status(void) {return io_error;}
 uint8 flash_check(uint32 s,uint32 p) {unsigned i; assert(s==0 && p==11); reads++; for(i=0;i<1024;i++)if(disk[i].uint32_type)return 1;return 0;}
 void flash_read_page_to_buffer(uint32 s,uint32 p){assert(s==0&&p==11);reads++;memcpy(flash_union_buffer,disk,sizeof disk);}
@@ -37,17 +42,48 @@ void flash_buffer_clear(void){memset(flash_union_buffer,0,sizeof flash_union_buf
 int main(void){
  param_init();
 #if !STORAGE_FLASH_VALIDATED
+ {param_flash_inspect_t d; assert(!param_flash_inspect(&d));}
  assert(reads==0 && writes==0 && param_storage_status()==PARAM_STORAGE_DISABLED);
  assert(!param_save() && !param_erase()); assert(reads==0 && writes==0);
 #else
+ {param_flash_inspect_t d; param_t before=g_param; int n=writes;
+  assert(param_flash_inspect(&d)); assert(d.nonzero_count==0 && d.first_nonzero==65535);
+  disk[0].uint32_type=0xDEADBEEF;disk[3].uint32_type=0x12345678;disk[1023].uint32_type=1;
+  assert(param_flash_inspect(&d));assert(d.word[0]==0xDEADBEEF && d.word[3]==0x12345678);
+  assert(d.nonzero_count==3 && d.first_nonzero==0 && d.last_nonzero==1023);
+  {uint32 chunk[8], sentinel=99;
+   assert(param_flash_read_words(0,chunk,8));assert(chunk[0]==0xDEADBEEF && chunk[3]==0x12345678);
+   assert(param_flash_read_words(1016,chunk,8));assert(chunk[7]==1);
+   assert(!param_flash_read_words(1017,chunk,8));assert(!param_flash_read_words(0,&sentinel,9));assert(sentinel==99);
+  }
+  assert(writes==n && memcmp(&before,&g_param,sizeof before)==0);
+  assert(disk[0].uint32_type==0xDEADBEEF && disk[1023].uint32_type==1);
+  io_error=1;assert(!param_flash_inspect(&d));assert(writes==n);io_error=0;
+  memset(disk,0,sizeof disk);
+ }
+ {unsigned i; int n; param_t ram;
+  memset(disk,0,sizeof disk); for(i=0;i<153;i++)disk[i].uint32_type=s_rebuild_backup[i];
+  ram=g_param;n=writes;assert(!param_save()&&!param_erase()&&writes==n);
+  rebuild_ready=0;assert(!param_rebuild_current()&&writes==n);rebuild_ready=1;
+  active=1;assert(!param_rebuild_current()&&writes==n);active=0;
+  g_param.r_rate_kp=NAN;assert(!param_rebuild_current()&&writes==n);g_param=ram;
+  /* Every logical low word differs independently: no mismatched page may erase. */
+  for(i=0;i<1024;i++){disk[i].uint32_type^=1;assert(!param_rebuild_current()&&writes==n);disk[i].uint32_type^=1;}
+  assert(param_rebuild_current());assert(memcmp(&ram,&g_param,sizeof ram)==0);
+  assert(disk[0].uint32_type==PARAM_MAGIC);n=writes;assert(!param_rebuild_current()&&writes==n);
+  /* Ordinary save works after explicit recovery. */
+ }
  assert(param_save()); g_param.r_rate_kp=123; param_init(); assert(g_param.r_rate_kp!=123);
- {int n=writes; disk[0].uint32_type=PARAM_MAGIC_LEGACY; param_init(); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE); assert(!param_save()&&!param_erase()&&writes==n);}
- {int n=writes; disk[0].uint32_type=PARAM_MAGIC_MASTER; param_init(); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE); assert(!param_save()&&!param_erase()&&writes==n);}
+ {int n=writes; disk[0].uint32_type=PARAM_MAGIC_LEGACY; param_init(); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE); assert(param_incompat_reason()==PARAM_INCOMPAT_OLD_FORMAT); assert(!param_save()&&!param_erase()&&writes==n);}
+ {int n=writes; disk[0].uint32_type=PARAM_MAGIC_MASTER; param_init(); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE); assert(param_incompat_reason()==PARAM_INCOMPAT_OLD_FORMAT); assert(!param_save()&&!param_erase()&&writes==n);}
+ {int n=writes; disk[0].uint32_type=0x12345678u; assert(!param_save()&&!param_erase()&&writes==n); assert(param_incompat_reason()==PARAM_INCOMPAT_MAGIC);}
+ memset(disk,0,sizeof disk); assert(param_save()); disk[1023].uint32_type=1;
+ {int n=writes; assert(!param_save()&&!param_erase()&&writes==n); assert(param_incompat_reason()==PARAM_INCOMPAT_TAIL);}
  memset(disk,0,sizeof disk); assert(param_save()); disk[4].uint32_type^=1;
  {int n=writes; assert(!param_save()&&!param_erase()&&writes==n); assert(param_storage_status()==PARAM_STORAGE_CORRUPT);}
  memset(disk,0,sizeof disk); assert(param_save());
  disk[2].uint32_type=0x12345678; {unsigned n=2+2*disk[1].uint32_type;disk[n].uint32_type=param_crc32_words((uint32*)disk,n);}
- {int n=writes; assert(!param_save()&&!param_erase()&&writes==n); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE);}
+ {int n=writes; assert(!param_save()&&!param_erase()&&writes==n); assert(param_storage_status()==PARAM_STORAGE_INCOMPATIBLE); assert(param_incompat_reason()==PARAM_INCOMPAT_KEY);}
  memset(disk,0,sizeof disk); assert(param_save()); fail_write=1;g_param.r_rate_kp+=1;assert(!param_save());fail_write=0;
  io_error=1;{int n=writes;assert(!param_save()&&!param_erase()&&writes==n);}
 #endif

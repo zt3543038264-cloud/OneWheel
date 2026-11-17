@@ -643,7 +643,27 @@ static vofa_cmd_result_t cfg_execute(char *line)
     if (strncmp(fields[0], "path_", 5) == 0)
     { path_cfg(fields,count,seq); return VOFA_CMD_APPLIED; }
     if (s_path_save_seq) { (void)cfg_reply(seq,"err","BUSY,Path storage pending"); return VOFA_CMD_FORMAT; }
-    if (strcmp(fields[0], "hello") == 0 && count == 2u)
+    if (strcmp(fields[0], "flash_read") == 0 && count == 3u)
+    {
+        uint32 offset = 0u, data[8];
+        uint8 i;
+        int used;
+        if (!cfg_stopped() || s_save_seq || s_schema_seq || control_ipm_pending())
+        { (void)cfg_reply(seq, "err", "BUSY,Stop and finish pending operations"); return VOFA_CMD_FORMAT; }
+        if (!fields[2][0]) return VOFA_CMD_FORMAT;
+        for (p = fields[2]; *p; ++p) {
+            if (*p < '0' || *p > '9') return VOFA_CMD_FORMAT;
+            offset = offset * 10u + (uint32)(*p - '0');
+            if (offset > 1016u) return VOFA_CMD_FORMAT;
+        }
+        if (offset % 8u || !param_flash_read_words((uint16)offset, data, 8u))
+        { (void)cfg_reply(seq, "err", "FLASH_READ_FAILED,No data exported"); return VOFA_CMD_FORMAT; }
+        used = snprintf(payload, sizeof(payload), "flash_read,%lu", (unsigned long)offset);
+        for (i = 0; i < 8u; ++i)
+            used += snprintf(payload + used, sizeof(payload) - (uint32)used, ",%08lX", (unsigned long)data[i]);
+        (void)cfg_reply(seq, "ok", payload);
+    }
+    else if (strcmp(fields[0], "hello") == 0 && count == 2u)
     {
         s_station_att = 1;
         (void)cfg_reply(seq, "ok", "hello,1,tc264-cfg1-task1-path1-sign2,63");
