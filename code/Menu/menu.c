@@ -249,6 +249,7 @@ static const menu_param_item_t s_beacon_items[] = {
     { "Line Offset", "beacon_line_offset", 1.000f, 1 },
     { "Search Err", "beacon_search_error", 1.000f, 1 },
     { "Search Frames", "beacon_search_frames", 1.000f, 0 },
+    { "Search s", "beacon_search_ms", 100.0f, 0 },
 };
 
 static const menu_group_t s_groups[] =
@@ -448,12 +449,22 @@ static float parameter_step(const menu_param_item_t *item,const Menu_Item *node)
  int fixed=integer&&d->vmin>=-1&&d->vmax<=1;
  return Menu_Edit_Step(node,item->step,integer,fixed);
 }
+/* Preserve the millisecond parameter used by control, Flash and telemetry. */
+static uint8 parameter_displays_seconds(const menu_param_item_t *item)
+{
+    return (uint8)(strcmp(item->name, "beacon_search_ms") == 0);
+}
+
 static float current_edit_step(void)
 {
  if(!s_folder||!s_folder->cursor)return 0;
  if(s_page==MENU_PAGE_PATH)return Menu_Edit_Step(s_folder->cursor,.05f,0,0);
  if(s_page==MENU_PAGE_GROUP&&s_folder->cursor->kind==MENU_Parameter)
-  return parameter_step((const menu_param_item_t *)s_folder->cursor->data,s_folder->cursor);
+ {
+    const menu_param_item_t *item = (const menu_param_item_t *)s_folder->cursor->data;
+    float step = parameter_step(item, s_folder->cursor);
+    return parameter_displays_seconds(item) ? step / 1000.0f : step;
+ }
  return 0;
 }
 static void cycle_edit_step(void)
@@ -781,7 +792,16 @@ static void draw_param_row(uint8 row, uint8 absolute_index, const menu_param_ite
                    (s_editing && absolute_index == s_cursor) ? '*' :
                    ((absolute_index == s_cursor) ? '>' : ' '),
                    item->label);
-    (void)snprintf(value, sizeof(value), "%.*f", (int)Menu_Edit_Decimals(parameter_step(item,Menu_Tree_Child(s_folder,absolute_index)),item->decimals), (double)current);
+    float step = parameter_step(item, Menu_Tree_Child(s_folder, absolute_index));
+    unsigned minimum_decimals = item->decimals;
+    if (parameter_displays_seconds(item))
+    {
+        current /= 1000.0f;
+        step /= 1000.0f;
+        minimum_decimals = 2u;
+    }
+    (void)snprintf(value, sizeof(value), "%.*f",
+                   (int)Menu_Edit_Decimals(step, minimum_decimals), (double)current);
 
     ui_clear_line(y);
     ui_text(0, y, label, label_color);

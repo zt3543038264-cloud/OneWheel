@@ -12,4 +12,5 @@ void beacon_defaults(beacon_config_t *c)
     c->line_kp=BEACON_LINE_KP_DEFAULT; c->line_offset=BEACON_LINE_OFFSET_DEFAULT;
     c->search_error_px=BEACON_SEARCH_ERROR_DEFAULT;
     c->search_frames=BEACON_SEARCH_FRAMES_DEFAULT;
+    c->search_ms=BEACON_SEARCH_TIMEOUT_DEFAULT_MS;
 }

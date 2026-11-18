@@ -10,6 +10,7 @@ typedef struct {
     float weight_dist, weight_angle, weight_continuity;
     int track_row, turn_row, search_frames;
     float line_kp, line_offset, search_error_px;
+    int search_ms;            /* CPU0 budget from the first accepted search command. */
 } beacon_config_t;
 typedef enum {
     BEACON_FOLLOW_HOLD = 0,

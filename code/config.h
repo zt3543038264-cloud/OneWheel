@@ -341,6 +341,11 @@
 #define BEACON_LINE_OFFSET_DEFAULT     (41.0f)
 #define BEACON_SEARCH_ERROR_DEFAULT    (60.0f)
 #define BEACON_SEARCH_FRAMES_DEFAULT   (20)
+#define BEACON_SEARCH_TIMEOUT_DEFAULT_MS (7000) // 30°/s 转半圈需 6 秒，再留出响应余量
+#define BEACON_SEARCH_TIMEOUT_MIN_MS      (500)
+#define BEACON_SEARCH_TIMEOUT_MAX_MS    (12000)
+#define BEACON_SEARCH_WAIT_MAX_MS       (1200) // 已看见过信标，等待有效搜索指令的最长期限
+#define BEACON_SEARCH_SPEED_MAX_MPS    (0.20f) // 丢标搜索期间的前进速度上限
 
 // 大津阈值保护
 #define OTSU_TH_MIN             30             // 阈值下限
@@ -376,7 +381,7 @@
 #define VISION_LINK_TIMEOUT_MS  100            // 视觉结果超时，停止前进但继续保持平衡
 #define RUN_LOST_STOP_MS        600            // 连续丢线超过这么久就停车
 #define RUN_STOP_SPEED_CNT      3              // 判"车已停住"的 20ms 编码器增量阈值
-#define RUN_SPEED_MAX_MPS       (1.50f)         // 正式跑车绝对速度上限(m/s)
+#define RUN_SPEED_MAX_MPS       (2.00f)         // 正式跑车绝对速度上限(m/s)
 
 #define RUN_SPEED_STRAIGHT_DEFAULT     (1.199999f)
 #define RUN_SPEED_CURVE_DEFAULT        (0.8000002f)
@@ -520,7 +525,7 @@ typedef enum
 #define REMOTE_STEER_INPUT_LIMIT    (90.0f)
 #define REMOTE_SPEED_INPUT_LIMIT    (90.0f)
 #define REMOTE_SPEED_INPUT_DIVISOR  (40.0f)     // 速度输入除以 40 得到 m/s
-#define REMOTE_SPEED_LIMIT_MPS      RUN_SPEED_MAX_MPS
+#define REMOTE_SPEED_LIMIT_MPS      (1.50f)
 #define REMOTE_CMD_TIMEOUT_MS       (1000u)
 
 // ===== WiFi 公共配置 =====

@@ -163,7 +163,7 @@ def test_run_requires_fresh_matching_source_but_beacon_not_lane_ipm(tmp_path):
 param_t g_param;
 uint8 start_flag=START_STOP,g_track_valid=1,g_vision_ipm_ok=0,g_vision_source_mode=0;
 static uint8 s_run_active,s_run_stop,s_direction_last_mode,s_zebra_stop_latched,s_run_vision_armed,g_vision_stop_request;
-static int s_test_status,s_run_lost_ms,s_zebra_stop_start_count,g_vofa_mode,g_target_distance;
+static int s_test_status,s_run_lost_ms,s_run_search_ms=4000,s_zebra_stop_start_count,g_vofa_mode,g_target_distance;
 static float g_run_speed_target_mps,s_direction_offset,s_direction_last_error,s_direction_yaw_rate_target,s_direction_yaw_rate_cmd,g_yaw_target;
 static int state=VISION_CORE_READY,lost=0,allowed=1,starts=0;
 #define CTRL_TEST_STATUS_INVALID 99
@@ -182,7 +182,7 @@ int main(void){
  lost=0;g_track_valid=0;assert(!control_run_start() && starts==0);
  g_track_valid=1;state=VISION_CORE_FAILED;assert(!control_run_start() && starts==0);
  state=VISION_CORE_READY;allowed=0;assert(!control_run_start() && starts==1);
- allowed=1;assert(control_run_start() && starts==2 && s_run_active && !s_run_vision_armed && g_target_distance==0);
+ allowed=1;assert(control_run_start() && starts==2 && s_run_active && !s_run_vision_armed && g_target_distance==0 && s_run_search_ms==0);
  return 0;
 }
 '''
@@ -204,13 +204,15 @@ static pid_t p_vel_pid, y_rate_pid;
 static run_stop_t s_run_stop;
 static uint8 s_run_active=1, s_run_vision_armed=1, g_track_valid=1;
 static uint8 s_direction_last_mode, g_vision_stop_request, s_zebra_stop_latched;
-static uint16 s_run_lost_ms;
+static uint16 s_run_lost_ms, s_run_search_ms;
+static beacon_result_t g_beacon_result;
 static int32 s_zebra_stop_start_count;
 static float g_run_speed_target_mps=.1f, g_target_distance, s_speed_ramp;
 static float s_direction_yaw_rate_target, s_direction_yaw_rate_cmd;
 static float s_direction_offset, s_direction_last_error, g_lean_offset, s_lean_speed_mps;
 static float g_yaw_target, s_balance_yaw_ref, s_yaw_desat_offset;
 static uint8 vision_link_lost(void){return 0;}
+static uint8 beacon_can_search(void){return 0;}
 static uint8 beacon_search_active(void){return 0;}
 static float run_speed_limit(float speed){return speed;}
 static float speed_target_from_mps(float speed){return speed*100;}
@@ -251,8 +253,9 @@ int main(void){
  param_init();assert(g_param.beacon.mode==0 && g_param.r_rate_kp==45 && g_param.r_rate_ki==.05f);
  g_param.r_rate_kp=42;g_param.enc_dir_a=-1;assert(param_save());
  assert(param_set_by_name("beacon_mode",3));assert(param_set_by_name("beacon_threshold",90));
- assert(param_set_by_name("beacon_speed_mps",.12f));assert(param_save_names(names,3));
- param_init();assert(g_param.beacon.mode==3 && g_param.beacon.threshold==90 && g_param.beacon.speed_mps==.12f);
+ assert(param_set_by_name("beacon_speed_mps",2.5f));assert(g_param.beacon.speed_mps==2.0f);
+ assert(param_set_by_name("beacon_speed_mps",2.0f));assert(param_save_names(names,3));
+ param_init();assert(g_param.beacon.mode==3 && g_param.beacon.threshold==90 && g_param.beacon.speed_mps==2.0f);
  assert(g_param.r_rate_kp==42 && g_param.enc_dir_a==-1);
  return 0;
 }

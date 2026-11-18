@@ -79,7 +79,7 @@ def test_follow_flash_roundtrip_rejects_inverted_rows_preserves_roll(tmp_path):
     _compile_run(tmp_path, param_host_source() + r'''
 int main(void){
  const char *names[]={"beacon_track_row","beacon_turn_row","beacon_line_kp",
- "beacon_line_offset","beacon_search_error","beacon_search_frames"};
+ "beacon_line_offset","beacon_search_error","beacon_search_frames","beacon_search_ms"};
  param_init();g_param.r_rate_kp=42;assert(param_save());
  assert(g_param.beacon.track_row==50 && g_param.beacon.turn_row==110);
  assert(!param_set_by_name("beacon_track_row",110));
@@ -87,7 +87,12 @@ int main(void){
  assert(param_set_by_name("beacon_track_row",55));assert(param_set_by_name("beacon_turn_row",108));
  assert(param_set_by_name("beacon_line_kp",.7f));assert(param_set_by_name("beacon_line_offset",38));
  assert(param_set_by_name("beacon_search_error",45));assert(param_set_by_name("beacon_search_frames",12));
- assert(param_save_names(names,6));param_init();
+ assert(g_param.beacon.search_ms==7000);
+ assert(param_set_by_name("beacon_search_ms",100));assert(g_param.beacon.search_ms==500);
+ assert(param_set_by_name("beacon_search_ms",99999));assert(g_param.beacon.search_ms==12000);
+ assert(param_set_by_name("beacon_search_ms",7500));
+ assert(param_save_names(names,7));param_init();
+ assert(g_param.beacon.search_ms==7500);
  assert(g_param.r_rate_kp==42 && g_param.beacon.track_row==55 && g_param.beacon.turn_row==108);
  assert(g_param.beacon.line_kp==.7f && g_param.beacon.line_offset==38);
  assert(g_param.beacon.search_error_px==45 && g_param.beacon.search_frames==12);
@@ -117,7 +122,7 @@ typedef uint8 run_stop_t;
 static uint8 s_run_active=1,s_run_vision_armed=1,g_track_valid=0,g_vision_source_mode=1;
 static uint8 s_run_stop,g_vision_stop_request,s_zebra_stop_latched,s_direction_last_mode;
 static uint8 g_vision_track_mode=TRACK_MODE_MIDDLE;
-static uint16 s_run_lost_ms,g_vision_age_ms;
+static uint16 s_run_lost_ms,s_run_search_ms,g_vision_age_ms;
 static int32 s_zebra_stop_start_count;
 static int g_target_distance;
 static float g_run_speed_target_mps,s_speed_ramp,s_direction_yaw_rate_target,s_direction_yaw_rate_cmd;
@@ -135,7 +140,7 @@ static int speed_target_from_mps(float v){return (int)(v*10000.0f+.5f);}
 static int func_abs(int v){return v<0?-v:v;}
 static int ctrl_is_finite(float v){return v==v && v<=3e38f && v>=-3e38f;}
 '''
-    for name in ['run_speed_limit','run_hold_balance','beacon_search_active',
+    for name in ['run_speed_limit','run_hold_balance','beacon_can_search','beacon_search_active',
                  'run_target_update','direction_balance_Control','direction_control_update',
                  'direction_yaw_rate_update']:
         source += _function(control, name)+'\n'
@@ -143,6 +148,7 @@ static int ctrl_is_finite(float v){return v==v && v<=3e38f && v>=-3e38f;}
 int main(void){
  g_param.run_speed_straight=.1f;g_param.run_speed_lost=.2f;
  g_param.beacon.mode=1;g_param.beacon.speed_mps=.08f;g_param.beacon.yaw_limit_dps=10;
+ g_param.beacon.search_error_px=60;g_param.beacon.search_ms=7000;
  g_param.steer_dir=1;g_param.direction_pixel_kp=1;
  g_beacon_result.searching=g_beacon_result.steer_valid=1;
  g_vision_direction_camera=60*DIRECTION_CAMERA_WEIGHT_SUM;
@@ -160,11 +166,40 @@ int main(void){
  /* Even after permission has been lost, cached search mode cannot steer. */
  g_vision_age_ms=VISION_LINK_TIMEOUT_MS;assert(!beacon_search_active());
  run_target_update();assert(!s_run_active && g_target_distance==0 && s_run_stop==RUN_STOP_VISION);
- s_run_active=s_run_vision_armed=1;g_vision_age_ms=0;s_run_lost_ms=RUN_LOST_STOP_MS-1;
- run_target_update();assert(!s_run_active && g_target_distance==0 && s_run_stop==RUN_STOP_LOST);
+ s_run_active=s_run_vision_armed=1;g_vision_age_ms=0;
+ g_beacon_result.searching=0;g_beacon_result.missed_frames=1;
+ for(int i=0;i<1000;i++)run_target_update();
+ assert(s_run_active && s_run_lost_ms==1000 && s_run_search_ms==0 && g_target_distance==0);
+ g_param.beacon.speed_mps=2;g_param.run_speed_straight=2;g_param.run_speed_lost=2;
+ g_param.beacon.yaw_limit_dps=30;g_param.direction_pixel_kp=1.6f;
+ g_beacon_result.searching=1;g_vision_track_mode=TRACK_MODE_MIDDLE;
+ /* A 20 FPS frame wait consumes none of the search time. The default command
+  * has room to sweep a half turn including the configured yaw-rate ramp. */
+ float commanded_sweep=0;
+ for(int i=0;i<6999;i++){
+   run_target_update();
+   if(i%20==0)direction_control_update();
+   direction_yaw_rate_update();commanded_sweep+=fabsf(s_direction_yaw_rate_cmd)*.001f;
+ }
+ assert(s_run_active && s_run_search_ms==6999 && g_target_distance==2000);
+ assert(commanded_sweep>180 && commanded_sweep<211);
+ /* A valid target cancels the budget, even at its last tick. */
+ g_track_valid=1;g_run_speed_target_mps=.3f;run_target_update();
+ assert(s_run_active && !s_run_search_ms && !s_run_lost_ms && g_target_distance==3000);
+ /* A brief return to HOLD during the same loss does not rearm the timer. */
+ g_track_valid=0;g_param.beacon.search_ms=500;run_target_update();
+ assert(s_run_search_ms==1);
+ g_beacon_result.searching=0;
+ for(int i=0;i<498;i++)run_target_update();
+ assert(s_run_active && s_run_search_ms==499 && g_target_distance==0);
+ run_target_update();assert(!s_run_active && g_target_distance==0 && s_run_stop==RUN_STOP_LOST && !s_run_search_ms);
+ /* Confirmed frame waiting expires, even if Search Frames is too high. */
+ s_run_active=s_run_vision_armed=1;s_run_lost_ms=BEACON_SEARCH_WAIT_MAX_MS-1;
+ run_target_update();assert(!s_run_active && s_run_stop==RUN_STOP_LOST);
  /* Lane lost-track behavior is unchanged. */
- s_run_active=1;s_run_lost_ms=0;g_param.beacon.mode=0;
- run_target_update();assert(g_target_distance==1000);
+ s_run_active=1;s_run_lost_ms=RUN_LOST_STOP_MS-2;g_param.beacon.mode=0;g_param.run_speed_lost=.1f;
+ run_target_update();assert(s_run_active && g_target_distance==1000);
+ run_target_update();assert(!s_run_active && s_run_stop==RUN_STOP_LOST);
  return 0;
 }
 '''

@@ -2,6 +2,13 @@
 
 Read [ASC_PORT.md](ASC_PORT.md) for this vehicle, [validation](ASC_PORT_VALIDATION.md), and the retained upstream guide below. This revision uses the original reference menu, 8x16 LCD font, layered application and station protocol. Hardware pins, physical zeros, driver text protocol and local network configuration are Qcar adaptations.
 
+2026-11-18：信标 Run 更新了丢标搜索和行进速度设置。
+
+- **搜索时长**：停车进入 `Params → Beacon → Search s`，默认 **7.00 秒**，范围 **0.50～12.00 秒**，默认步长 **0.10 秒**，可用该页 `Save` 保存。`Search Frames` 负责等待触发，`Search s` 从开始转向搜索时计时。重新识别到有效目标就恢复追踪，搜索超时或摄像头失帧超时则退出 Run，回到 Balance。
+- **速度上限**：`Params → Beacon → Speed m/s` 的可调上限从 **0.50 提高到 2.00 m/s**，正式 Run 的速度上限同步提高到 **2.00 m/s**。信标追踪仍受 `Params → Run → Straight` 约束，丢标搜索期间前进上限为 **0.20 m/s**。若需只给搜索转向目标，将 `Params → Run → Lost` 设为 **0**。
+
+菜单和搜索行为详见 [信标识别与运行](docs/guides/信标识别与运行.md)。
+
 2026-11-12：项目公共配置统一到 [`code/config.h`](code/config.h)，包含原 board/direction/中断/WiFi 公共参数。热点名、密码和电脑目标 IP 仅填写未跟踪的 `code/config_private.h`，模板为 [`config_private.example.h`](code/config_private.example.h)。公共端口为电脑1349、模块6666。本次保留原参数数值与控制逻辑。ADS工程改为UTF-8，原GBK库按目录/文件保留编码；打开旧编辑页时请先保存自己的修改，再关闭重开。详见 [配置与编码说明](docs/guides/配置与编码说明.md)。
 
 2026-11-09：Roll角速度内环改为1ms增量式PI，独立配置左右编码器反馈极性，统一Speed回收方向及单轴测试目标。旧Rate KD固定为0，其他Flash参数继续加载。当前逻辑、验证边界和上板顺序见 [Roll方向与增量PI修订](docs/design/Roll方向与增量PI修订.md)；下方历史说明中的位置式Roll Rate和回收减号以该修订为准。
@@ -22,7 +29,7 @@ Read [ASC_PORT.md](ASC_PORT.md) for this vehicle, [validation](ASC_PORT_VALIDATI
 
 TC264D 双核 Q 型独轮车工程，包含三轴平衡、视觉循迹、路径示教与惯性航向导航、车身菜单和 Windows 上位机。
 
-> 更新日期：2026-11-10；当前源码为95项参数（含15项Beacon），本轮摄像头诊断选项不增加Flash参数。方向菜单 +1 代表当前已调好的车辆基准；详见 [方向基准整理](docs/design/方向基准整理.md)。编译默认值来自 `code/config.h`，上电实际参数以 Flash 加载后的 `g_param` 和 MCU Schema 为准。
+> 2026-11-10 的摄像头诊断版本包含 95 项参数（其中 15 项 Beacon），诊断选项未增加 Flash 参数。方向菜单 +1 代表当前已调好的车辆基准；详见 [方向基准整理](docs/design/方向基准整理.md)。编译默认值来自 `code/config.h`，上电实际参数以 Flash 加载后的 `g_param` 和 MCU Schema 为准。
 
 ## 文档入口
 
@@ -60,7 +67,7 @@ TC264D 双核 Q 型独轮车工程，包含三轴平衡、视觉循迹、路径�
 | 图像诊断 | 50帧/512曝光可选原始采图、灰度统计、采集/显示帧号、曝光应答；诊断状态不允许视觉Run启动 |
 | 元素 | 斑马线、十字、左右环岛、坡道；没有路障实现 |
 | 通信 | cfg v1 / task1；att、run、stat、par、rsp、task、taskevt |
-| 参数 | 102 项运行参数（含 21 项 Beacon）、按名称及类型键保存、CRC 与逐字回读校验 |
+| 参数 | 运行参数及范围见 MCU Schema，按名称和类型保存，支持 CRC 与逐字回读校验 |
 
 当前 Roll rate 为增量 PI，默认 `(45, 0.05, 0)`；Angle 为 `(30, 0, 20)`；Speed 为 `(0.0001, 0, 0)`，Rate 陷波 45Hz/Q3/dB0（旁路）。Pitch rate 约为 `(20, 0.64, 0)`，Yaw rate 界面为 `(56, 0, 0)`。上电 Flash 可覆盖默认值，Reset 恢复当前源码默认值。历史文档中的 Roll 位置式 Rate 与旧参数不再适用。
 

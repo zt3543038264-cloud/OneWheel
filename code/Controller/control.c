@@ -93,7 +93,8 @@ static float           s_remote_yaw_rate_cmd;    // 普通 Remote 的斜坡后�
 // 正式跑车(Run)状态。目标更新在 1ms 中断，菜单只负责启停和显示
 static volatile uint8  s_run_active;             // 1=Run 已启动
 static volatile run_stop_t s_run_stop;           // 停车原因，菜单读走显示
-static volatile uint16 s_run_lost_ms;            // 连续丢线时间(ms)
+static volatile uint16 s_run_lost_ms;            // 搜索触发前的连续丢标或丢线时间(ms)
+static volatile uint16 s_run_search_ms;                   // 本次丢标首次开始搜索后的时间(ms)
 static float           s_direction_offset;       // 滤波后的平均像素偏差
 static float           s_direction_last_error;   // 方向PD上一拍滤波误差
 static float           s_direction_yaw_rate_target; // 视觉生成的目标横摆角速度
@@ -280,6 +281,7 @@ static void remote_state_reset(void)
     s_run_active = 0;
     s_run_vision_armed = 0;
     s_run_lost_ms = 0;
+    s_run_search_ms = 0;
     g_run_speed_target_mps = 0.0f;
     s_zebra_stop_latched = 0;
     s_zebra_stop_start_count = 0;
@@ -335,6 +337,7 @@ static void run_hold_balance(run_stop_t reason)
     s_run_active = 0;
     s_run_vision_armed = 0;
     s_run_lost_ms = 0;
+    s_run_search_ms = 0;
     g_run_speed_target_mps = 0.0f;
     g_target_distance = 0;
     s_speed_ramp = 0.0f;
@@ -421,15 +424,19 @@ static void run_vision_target_update(void)
 // 返回参数     void
 // 使用示例     run_target_update();
 //-------------------------------------------------------------------------------------------------------------------
-/* A fresh CPU1 search command is distinct from a detected target. It may only
- * steer within this Run's existing loss window; a frozen camera cannot search. */
+/* Only fresh, mode-matched frames from this Run can start or maintain search. */
+static uint8 beacon_can_search(void)
+{
+    return (uint8)(s_run_active && s_run_vision_armed && !g_track_valid &&
+        g_param.beacon.mode >= 1 && g_param.beacon.mode <= 3 &&
+        g_vision_source_mode == g_param.beacon.mode && !vision_link_lost() &&
+        g_param.beacon.search_error_px > 0.0f && g_param.beacon.yaw_limit_dps > 0.0f);
+}
+
 static uint8 beacon_search_active(void)
 {
-    return (uint8)(s_run_active && s_run_vision_armed &&
-        g_param.beacon.mode>=1 && g_param.beacon.mode<=3 &&
-        g_vision_source_mode==g_param.beacon.mode &&
-        !g_track_valid && g_beacon_result.searching && g_beacon_result.steer_valid &&
-        !vision_link_lost() && s_run_lost_ms<RUN_LOST_STOP_MS);
+    return (uint8)(beacon_can_search() && g_beacon_result.searching &&
+                   g_beacon_result.steer_valid);
 }
 
 static void run_target_update(void)
@@ -474,25 +481,42 @@ static void run_target_update(void)
 
     if (!g_track_valid)
     {
-        if (s_run_lost_ms < 0xFFFFu) s_run_lost_ms++;
-        if (s_run_lost_ms >= RUN_LOST_STOP_MS)
+        uint8 searching = beacon_search_active();
+        if (searching || s_run_search_ms != 0u)
         {
-            run_hold_balance(RUN_STOP_LOST);
-            return;
+            /* Count from the first search request until reacquisition or stop.
+             * An intervening HOLD must not restart the same search budget. */
+            if (++s_run_search_ms >= (uint16)g_param.beacon.search_ms)
+            {
+                run_hold_balance(RUN_STOP_LOST);
+                return;
+            }
+        }
+        else
+        {
+            uint16 wait_ms = RUN_LOST_STOP_MS;
+            /* A nonzero miss count confirms CPU1 has seen a beacon in this Run.
+             * Give the frame wait a bounded window at lower camera frame rates. */
+            if (beacon_can_search() && g_beacon_result.missed_frames != 0u)
+                wait_ms = BEACON_SEARCH_WAIT_MAX_MS;
+            if (++s_run_lost_ms >= wait_ms)
+            {
+                run_hold_balance(RUN_STOP_LOST);
+                return;
+            }
         }
         speed_mps = run_speed_limit(RUN_SPEED_LOST);
         if (g_param.beacon.mode != 0)
         {
-            /* Losing a slow beacon must not accelerate to the lane Lost
-             * default. Wait stationary, or search at the capped Lost speed. */
-            float cap = run_speed_limit(g_param.beacon.speed_mps);
-            if (!beacon_search_active()) speed_mps = 0.0f;
-            else if (speed_mps > cap) speed_mps = cap;
+            if (!searching) speed_mps = 0.0f;
+            else speed_mps = fminf(speed_mps, fminf(run_speed_limit(g_param.beacon.speed_mps),
+                                                  BEACON_SEARCH_SPEED_MAX_MPS));
         }
     }
     else
     {
         s_run_lost_ms = 0;
+        s_run_search_ms = 0;
         speed_mps = g_run_speed_target_mps;
     }
 
@@ -1802,6 +1826,7 @@ uint8 control_run_start(void)
     s_run_active = 1;
     s_run_stop = RUN_STOP_NONE;
     s_run_lost_ms = 0;
+    s_run_search_ms = 0;
     g_run_speed_target_mps = 0.0f;
     s_direction_offset = 0.0f;
     s_direction_last_error = 0.0f;

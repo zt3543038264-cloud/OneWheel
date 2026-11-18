@@ -110,7 +110,7 @@ const param_desc_t g_param_table[] =
     { "beacon_min_ratio", &g_param.beacon.min_ratio, 1, 0.000000f, 10.000000f },
     { "beacon_near_area", &g_param.beacon.near_area, 1, 0.000000f, 2000.000000f },
     { "beacon_match_px", &g_param.beacon.match_px, 1, 0.000000f, 50.000000f },
-    { "beacon_speed_mps", &g_param.beacon.speed_mps, 1, 0.000000f, 0.500000f },
+    { "beacon_speed_mps", &g_param.beacon.speed_mps, 1, 0.000000f, RUN_SPEED_MAX_MPS },
     { "beacon_yaw_limit_dps", &g_param.beacon.yaw_limit_dps, 1, 0.000000f, 60.000000f },
     { "beacon_mid_x", &g_param.beacon.mid_x, 1, 0.000000f, 187.000000f },
     { "beacon_weight_dist", &g_param.beacon.weight_dist, 1, 0.000000f, 10.000000f },
@@ -122,6 +122,7 @@ const param_desc_t g_param_table[] =
     { "beacon_line_offset", &g_param.beacon.line_offset, 1, 0.0f, 187.0f },
     { "beacon_search_error", &g_param.beacon.search_error_px, 1, 0.0f, 94.0f },
     { "beacon_search_frames", &g_param.beacon.search_frames, 0, 1.0f, 100.0f },
+    { "beacon_search_ms", &g_param.beacon.search_ms, 0, BEACON_SEARCH_TIMEOUT_MIN_MS, BEACON_SEARCH_TIMEOUT_MAX_MS },
 
 };
 

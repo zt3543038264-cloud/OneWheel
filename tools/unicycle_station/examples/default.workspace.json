@@ -1108,7 +1108,15 @@
         "step": 1.0,
         "decimals": 0,
         "default": 20,
-        "description": "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。600ms丢标保护仍有效。"
+        "description": "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。等待有独立上限。"
+      },
+      "beacon_search_ms": {
+        "label": "转向搜索时长",
+        "step": 100.0,
+        "decimals": 0,
+        "default": 7000,
+        "description": "从开始搜索到退出Run的最长时间，单位毫秒。重新识别目标后清零。",
+        "unit": "ms"
       }
     },
     "parameter_groups": [
@@ -1130,7 +1138,7 @@
         "name": "run_speed_straight",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 1.199999,
         "group": "Run",
         "step": 0.01,
@@ -1140,7 +1148,7 @@
         "name": "run_speed_curve",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 0.8000002,
         "group": "Run",
         "step": 0.01,
@@ -1150,7 +1158,7 @@
         "name": "run_speed_cross",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 0.8000002,
         "group": "Run",
         "step": 0.01,
@@ -1160,7 +1168,7 @@
         "name": "run_speed_ring",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 0.9999994,
         "group": "Run",
         "step": 0.01,
@@ -1170,7 +1178,7 @@
         "name": "run_speed_ramp",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 1.0,
         "group": "Run",
         "step": 0.01,
@@ -1180,7 +1188,7 @@
         "name": "run_speed_lost",
         "type": "float",
         "min": 0.0,
-        "max": 1.5,
+        "max": 2.0,
         "value": 0.2,
         "group": "Run",
         "step": 0.01,
@@ -2030,7 +2038,7 @@
         "name": "beacon_speed_mps",
         "type": "float",
         "min": 0.0,
-        "max": 0.5,
+        "max": 2.0,
         "value": 0.15,
         "group": "Beacon",
         "step": 0.01,
@@ -2144,6 +2152,16 @@
         "value": 20,
         "group": "Beacon",
         "step": 1.0,
+        "flags": 6
+      },
+      {
+        "name": "beacon_search_ms",
+        "type": "int",
+        "min": 500.0,
+        "max": 12000.0,
+        "value": 7000,
+        "group": "Beacon",
+        "step": 100.0,
         "flags": 6
       }
     ],
