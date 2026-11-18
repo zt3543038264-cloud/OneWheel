@@ -60,7 +60,7 @@
 // UART3：CYT2BL3 双路无刷驱动，运行在 CPU0
 #define	UART3_INT_SERVICE       IfxSrc_Tos_cpu0
 #define UART3_TX_INT_PRIO       19
-#define UART3_RX_INT_PRIO       20
+#define UART3_RX_INT_PRIO       35 /* transport-only, preempts 1ms control */
 #define UART3_ER_INT_PRIO       21
 
 #endif

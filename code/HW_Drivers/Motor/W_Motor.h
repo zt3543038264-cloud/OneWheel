@@ -16,11 +16,35 @@ void W_Motor_OrdinaryService(void);
  * while BenchBusy: an unexpected call aborts the pulse, rather than ignoring it. */
 void W_Motor_KeepZero(void);
 void W_Motor_RxHandler(void);
+void W_Motor_RxErrorHandler(void); /* latch transport loss before vendor clear */
 void W_Motor_TxHandler(void);
 void W_Motor_Tick1ms(void);
 int16 W_Motor_GetSpeed1(void);
 int16 W_Motor_GetSpeed2(void);
 uint8 W_Motor_LinkLost(void); /* Legacy RPM age; never evidence of SAFE identity. */
+
+/* Passive UART observation; reading never sends, arms, resets or writes Flash.
+ * Counters saturate. age_ms=0xffffffff means no accepted SAFE status/clock. */
+typedef struct {
+    uint32 rx_bytes, tx_bytes, lines, safe_ok, safe_bad, bad_lines, rpm_frames, age_ms;
+    uint8 cap2, ordinary_failed, text_mode, line_is_safe;
+    char last_line[72];
+    /* Rejection-only latch: good SAFE/RPM traffic cannot replace this line.
+     * reason: 1 format/range, 2 version field, 3 capability field, 4 state rules.
+     * field: 1..6 numeric field or preceding delimiter; 0 whole-line/rule. */
+    uint32 reject_format, reject_version, reject_capability, reject_state, reject_age_ms;
+    uint8 reject_reason, reject_field;
+    char reject_line[72];
+} w_motor_uart_diag_t;
+void W_Motor_UartDiag(w_motor_uart_diag_t *out);
+/* Sticky library error flags since UART initialization; read-only, not counts.
+ * This does not sample/clear hardware FLAGS registers or correlate a BAD line. */
+typedef struct {
+    uint8 rx_overflow, frame_error, parity_error, rx_underflow, tx_overflow;
+    uint16 queued, high_water;
+    uint32 dropped;
+} w_motor_uart_hw_diag_t;
+void W_Motor_UartHardwareDiag(w_motor_uart_hw_diag_t *out);
 
 #define W_BENCH_IDLE          0u
 #define W_BENCH_WAIT_ZERO     1u

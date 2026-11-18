@@ -291,6 +291,9 @@ static const char * const s_param_page_names[] =
     "Reset",
     "Flash Inspect",
     "Flash Rebuild",
+    "Fly UART Diag",
+    "Fly Reject Diag",
+    "Fly HW Diag",
     "Back"
 };
 
@@ -654,6 +657,75 @@ static void inspect_flash_action(void)
     menu_status(text);
 }
 
+/* Nine short presses show one coherent passive snapshot. No motion/storage call. */
+static void fly_uart_diag_action(void)
+{
+    static uint8 field;
+    static w_motor_uart_diag_t d;
+    char text[40];
+    if (s_enter_event_long) return;
+    if (field == 0u) W_Motor_UartDiag(&d);
+    switch (field) {
+    case 0: (void)snprintf(text,sizeof(text),"D1 RX%lu",(unsigned long)d.rx_bytes); break;
+    case 1: (void)snprintf(text,sizeof(text),"D2 TX%lu LN%lu",(unsigned long)d.tx_bytes,(unsigned long)d.lines); break;
+    case 2: (void)snprintf(text,sizeof(text),"D3 OK%lu BAD%lu",(unsigned long)d.safe_ok,(unsigned long)d.safe_bad); break;
+    case 3: (void)snprintf(text,sizeof(text),"D4 AGE%lu C%u F%u",(unsigned long)d.age_ms,(unsigned)d.cap2,(unsigned)d.ordinary_failed); break;
+    case 4: (void)snprintf(text,sizeof(text),"D5 E%lu RPM%lu",(unsigned long)d.bad_lines,(unsigned long)d.rpm_frames); break;
+    case 5: (void)snprintf(text,sizeof(text),"D6 TEXT%u SAFE%u",(unsigned)d.text_mode,(unsigned)d.line_is_safe); break;
+    case 6: (void)snprintf(text,sizeof(text),"D7 %.24s",d.last_line); break;
+    case 7: (void)snprintf(text,sizeof(text),"D8 %.24s",d.last_line+24); break;
+    default:(void)snprintf(text,sizeof(text),"D9 %.23s",d.last_line+48); break;
+    }
+    field=(uint8)((field+1u)%9u);
+    menu_status(text);
+}
+
+/* Seven short presses: rejection-only latch; no UART TX/storage/motion. */
+static void fly_reject_diag_action(void)
+{
+    static uint8 field;
+    static w_motor_uart_diag_t d;
+    char text[40];
+    if (s_enter_event_long) return;
+    if (field == 0u) W_Motor_UartDiag(&d);
+    switch (field) {
+    case 0: (void)snprintf(text,sizeof(text),"B1 BAD%lu R%u F%u",(unsigned long)d.safe_bad,(unsigned)d.reject_reason,(unsigned)d.reject_field); break;
+    case 1: (void)snprintf(text,sizeof(text),"B2 AGE%lu ms",(unsigned long)d.reject_age_ms); break;
+    case 2: (void)snprintf(text,sizeof(text),"B3 FM%lu VR%lu",(unsigned long)d.reject_format,(unsigned long)d.reject_version); break;
+    case 3: (void)snprintf(text,sizeof(text),"B4 CAP%lu ST%lu",(unsigned long)d.reject_capability,(unsigned long)d.reject_state); break;
+    case 4: (void)snprintf(text,sizeof(text),"B5 %.24s",d.reject_line); break;
+    case 5: (void)snprintf(text,sizeof(text),"B6 %.24s",d.reject_line+24); break;
+    default:(void)snprintf(text,sizeof(text),"B7 %.23s",d.reject_line+48); break;
+    }
+    field=(uint8)((field+1u)%7u);
+    menu_status(text);
+}
+
+/* Six read-only screens. Flags and timing are consecutive snapshots, not
+ * a hardware-event correlation. Timing covers control_loop, not full ISR. */
+static void fly_hw_diag_action(void)
+{
+    static uint8 field;
+    static w_motor_uart_hw_diag_t h;
+    static control_timing_diag_t t;
+    char text[40];
+    if (s_enter_event_long) return;
+    if (field == 0u) {
+        W_Motor_UartHardwareDiag(&h);
+        control_timing_status(&t);
+    }
+    switch (field) {
+    case 0: (void)snprintf(text,sizeof(text),"H1 RXOV%u FR%u PA%u",(unsigned)h.rx_overflow,(unsigned)h.frame_error,(unsigned)h.parity_error); break;
+    case 1: (void)snprintf(text,sizeof(text),"H2 RXUN%u TXOV%u",(unsigned)h.rx_underflow,(unsigned)h.tx_overflow); break;
+    case 2: (void)snprintf(text,sizeof(text),"H3 W%lu M%lu us",(unsigned long)t.work_us,(unsigned long)t.max_work_us); break;
+    case 3: (void)snprintf(text,sizeof(text),"H4 P%lu M%lu us",(unsigned long)t.period_us,(unsigned long)t.max_period_us); break;
+    case 4: (void)snprintf(text,sizeof(text),"H5 VALID%u OVER%lu",(unsigned)t.valid,(unsigned long)t.overrun_count); break;
+    default:(void)snprintf(text,sizeof(text),"H6 Q%u M%u D%lu",(unsigned)h.queued,(unsigned)h.high_water,(unsigned long)h.dropped); break;
+    }
+    field=(uint8)((field+1u)%6u);
+    menu_status(text);
+}
+
 static void rebuild_flash_action(void)
 {
     uint32 now = g_control_uptime_ms;
@@ -1002,11 +1074,20 @@ static void render_run_test(void)
 //-------------------------------------------------------------------------------------------------------------------
 static void render_params(void)
 {
-    uint8 i;
+    uint8 row;
+    uint8 index;
 
     ui_header("Params", s_cursor, PARAM_PAGE_COUNT);
-    for (i = 0; i < PARAM_PAGE_COUNT; i++)
-        draw_action_row(i, i, s_param_page_names[i]);
+    /* Use the same viewport maintained by Menu_Tree_Move as parameter groups.
+     * row is physical; index remains absolute for highlighting and dispatch. */
+    for (row = 0; row < UI_VISIBLE_ROWS; row++)
+    {
+        index = (uint8)(s_top + row);
+        if (index < PARAM_PAGE_COUNT)
+            draw_action_row(row, index, s_param_page_names[index]);
+        else
+            ui_clear_line((uint16)(UI_LIST_Y + (uint16)row * UI_ROW_H));
+    }
     draw_status();
     ui_footer();
 }
@@ -2008,6 +2089,18 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     else if (s_cursor == (uint8)(GROUP_COUNT + 4u))
     {
         rebuild_flash_action();
+    }
+    else if (s_cursor == (uint8)(GROUP_COUNT + 5u))
+    {
+        fly_uart_diag_action();
+    }
+    else if (s_cursor == (uint8)(GROUP_COUNT + 6u))
+    {
+        fly_reject_diag_action();
+    }
+    else if (s_cursor == (uint8)(GROUP_COUNT + 7u))
+    {
+        fly_hw_diag_action();
     }
     else
     {

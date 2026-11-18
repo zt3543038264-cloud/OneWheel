@@ -145,9 +145,8 @@ IFX_INTERRUPT(uart3_tx_isr, 0, UART3_TX_INT_PRIO)
 //-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart3_rx_isr, 0, UART3_RX_INT_PRIO)
 {
-    // 同 uart2_rx_isr：不开嵌套。W_Motor_RxHandler() 要原子地更新
-    // w_motor_rx_buffer / w_motor_rx_length / w_motor_speed_*，
-    // 被 1ms 中断(优先级 30 > 本中断 20)从中间打断会拆散一帧的组包状态
+    /* Priority 35: bounded FIFO-to-ring transport only, no nested interrupt.
+     * Protocol parsing remains in the lower-priority 1ms control context. */
     W_Motor_RxHandler();
 }
 
@@ -159,6 +158,7 @@ IFX_INTERRUPT(uart3_rx_isr, 0, UART3_RX_INT_PRIO)
 //-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart3_er_isr, 0, UART3_ER_INT_PRIO)
 {
+    W_Motor_RxErrorHandler(); /* Capture even errors with no RX byte before clear. */
     interrupt_global_enable(0);
     IfxAsclin_Asc_isrError(&uart3_handle);
 }
