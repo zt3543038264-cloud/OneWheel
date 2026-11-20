@@ -1,11 +1,11 @@
 #ifndef STORAGE_PROFILE_H_
 #define STORAGE_PROFILE_H_
-/* Parameter manual save enabled; startup read remains off pending board test. */
+/* Parameter save/readback validated on board; load validated parameters at boot. */
 #ifndef STORAGE_FLASH_VALIDATED
 #define STORAGE_FLASH_VALIDATED 1
 #endif
 #ifndef STORAGE_BOOT_LOAD
-#define STORAGE_BOOT_LOAD 0
+#define STORAGE_BOOT_LOAD 1
 #endif
 /* Route persistence needs a separate RAM/storage validation. RAM routes remain usable. */
 #ifndef STORAGE_PATH_FLASH_ENABLED

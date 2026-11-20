@@ -289,11 +289,6 @@ static const char * const s_param_page_names[] =
     "Odometry",
     "Save",
     "Reset",
-    "Flash Inspect",
-    "Flash Rebuild",
-    "Fly UART Diag",
-    "Fly Reject Diag",
-    "Fly HW Diag",
     "Back"
 };
 
@@ -316,8 +311,6 @@ static uint8       s_test_on;                       // 当前页开着 Test
 static uint8       s_active_test;                   // 开着的是哪一个动作行，0xFF 表示没有
 static uint8       s_dirty;                         // 1=重绘本页 2=先整屏清再重绘
 static uint8       s_image_ok;                      // 图像页看到的摄像头就绪状态
-static uint32      s_rebuild_armed_until_ms;
-static uint32      s_rebuild_revision;
 static uint32      s_reset_armed_until_ms;          // Reset 二次确认截止时刻，0=未进入确认态
 static uint32      s_balance_armed_until_ms;        // Balance 二次确认截止时刻，0=未进入确认态
 static uint32      s_remote_armed_until_ms;         // Remote 二次确认截止时刻，0=未进入确认态
@@ -632,119 +625,6 @@ static const char *storage_failure_text(void)
         case PARAM_STORAGE_EMPTY:        return "FLASH EMPTY";
         default:                         return "FLASH ACTION FAILED";
     }
-}
-
-/* Repeated presses show one read-only snapshot. No Save/Reset is invoked. */
-static void inspect_flash_action(void)
-{
-    static param_flash_inspect_t snapshot;
-    static uint8 field;
-    char text[30];
-    if (save_blocked()) return;
-    if (field == 0u && !param_flash_inspect(&snapshot)) {
-        menu_status(storage_failure_text());
-        return;
-    }
-    if (field < 4u)
-        (void)snprintf(text, sizeof(text), "FLASH W%u=%08lX", (unsigned)field,
-                       (unsigned long)snapshot.word[field]);
-    else if (field == 4u)
-        (void)snprintf(text, sizeof(text), "FLASH NZ=%u/1024", (unsigned)snapshot.nonzero_count);
-    else
-        (void)snprintf(text, sizeof(text), "FLASH FIRST=%u LAST=%u",
-                       (unsigned)snapshot.first_nonzero, (unsigned)snapshot.last_nonzero);
-    field = (uint8)((field + 1u) % 6u);
-    menu_status(text);
-}
-
-/* Nine short presses show one coherent passive snapshot. No motion/storage call. */
-static void fly_uart_diag_action(void)
-{
-    static uint8 field;
-    static w_motor_uart_diag_t d;
-    char text[40];
-    if (s_enter_event_long) return;
-    if (field == 0u) W_Motor_UartDiag(&d);
-    switch (field) {
-    case 0: (void)snprintf(text,sizeof(text),"D1 RX%lu",(unsigned long)d.rx_bytes); break;
-    case 1: (void)snprintf(text,sizeof(text),"D2 TX%lu LN%lu",(unsigned long)d.tx_bytes,(unsigned long)d.lines); break;
-    case 2: (void)snprintf(text,sizeof(text),"D3 OK%lu BAD%lu",(unsigned long)d.safe_ok,(unsigned long)d.safe_bad); break;
-    case 3: (void)snprintf(text,sizeof(text),"D4 AGE%lu C%u F%u",(unsigned long)d.age_ms,(unsigned)d.cap2,(unsigned)d.ordinary_failed); break;
-    case 4: (void)snprintf(text,sizeof(text),"D5 E%lu RPM%lu",(unsigned long)d.bad_lines,(unsigned long)d.rpm_frames); break;
-    case 5: (void)snprintf(text,sizeof(text),"D6 TEXT%u SAFE%u",(unsigned)d.text_mode,(unsigned)d.line_is_safe); break;
-    case 6: (void)snprintf(text,sizeof(text),"D7 %.24s",d.last_line); break;
-    case 7: (void)snprintf(text,sizeof(text),"D8 %.24s",d.last_line+24); break;
-    default:(void)snprintf(text,sizeof(text),"D9 %.23s",d.last_line+48); break;
-    }
-    field=(uint8)((field+1u)%9u);
-    menu_status(text);
-}
-
-/* Seven short presses: rejection-only latch; no UART TX/storage/motion. */
-static void fly_reject_diag_action(void)
-{
-    static uint8 field;
-    static w_motor_uart_diag_t d;
-    char text[40];
-    if (s_enter_event_long) return;
-    if (field == 0u) W_Motor_UartDiag(&d);
-    switch (field) {
-    case 0: (void)snprintf(text,sizeof(text),"B1 BAD%lu R%u F%u",(unsigned long)d.safe_bad,(unsigned)d.reject_reason,(unsigned)d.reject_field); break;
-    case 1: (void)snprintf(text,sizeof(text),"B2 AGE%lu ms",(unsigned long)d.reject_age_ms); break;
-    case 2: (void)snprintf(text,sizeof(text),"B3 FM%lu VR%lu",(unsigned long)d.reject_format,(unsigned long)d.reject_version); break;
-    case 3: (void)snprintf(text,sizeof(text),"B4 CAP%lu ST%lu",(unsigned long)d.reject_capability,(unsigned long)d.reject_state); break;
-    case 4: (void)snprintf(text,sizeof(text),"B5 %.24s",d.reject_line); break;
-    case 5: (void)snprintf(text,sizeof(text),"B6 %.24s",d.reject_line+24); break;
-    default:(void)snprintf(text,sizeof(text),"B7 %.23s",d.reject_line+48); break;
-    }
-    field=(uint8)((field+1u)%7u);
-    menu_status(text);
-}
-
-/* Six read-only screens. Flags and timing are consecutive snapshots, not
- * a hardware-event correlation. Timing covers control_loop, not full ISR. */
-static void fly_hw_diag_action(void)
-{
-    static uint8 field;
-    static w_motor_uart_hw_diag_t h;
-    static control_timing_diag_t t;
-    char text[40];
-    if (s_enter_event_long) return;
-    if (field == 0u) {
-        W_Motor_UartHardwareDiag(&h);
-        control_timing_status(&t);
-    }
-    switch (field) {
-    case 0: (void)snprintf(text,sizeof(text),"H1 RXOV%u FR%u PA%u",(unsigned)h.rx_overflow,(unsigned)h.frame_error,(unsigned)h.parity_error); break;
-    case 1: (void)snprintf(text,sizeof(text),"H2 RXUN%u TXOV%u",(unsigned)h.rx_underflow,(unsigned)h.tx_overflow); break;
-    case 2: (void)snprintf(text,sizeof(text),"H3 W%lu M%lu us",(unsigned long)t.work_us,(unsigned long)t.max_work_us); break;
-    case 3: (void)snprintf(text,sizeof(text),"H4 P%lu M%lu us",(unsigned long)t.period_us,(unsigned long)t.max_period_us); break;
-    case 4: (void)snprintf(text,sizeof(text),"H5 VALID%u OVER%lu",(unsigned)t.valid,(unsigned long)t.overrun_count); break;
-    default:(void)snprintf(text,sizeof(text),"H6 Q%u M%u D%lu",(unsigned)h.queued,(unsigned)h.high_water,(unsigned long)h.dropped); break;
-    }
-    field=(uint8)((field+1u)%6u);
-    menu_status(text);
-}
-
-static void rebuild_flash_action(void)
-{
-    uint32 now = g_control_uptime_ms;
-    if (s_enter_event_long) return; /* Holding Enter must not count as consent. */
-    if (save_blocked() || !control_path_storage_ready() ||
-        control_c_bench_running() || control_run_running() || control_remote_running()) {
-        s_rebuild_armed_until_ms = 0;
-        menu_status("REBUILD BLOCKED: BUSY");
-        return;
-    }
-    if (!s_rebuild_armed_until_ms || (int32)(now - s_rebuild_armed_until_ms) >= 0 ||
-        s_rebuild_revision != g_param_revision) {
-        s_rebuild_armed_until_ms = now + UI_RESET_CONFIRM_MS;
-        s_rebuild_revision = g_param_revision;
-        menu_status("AGAIN: REPLACE OLD FLASH");
-        return;
-    }
-    s_rebuild_armed_until_ms = 0;
-    menu_status(param_rebuild_current() ? "REBUILT, READBACK OK" : "REBUILD FAILED: NO RETRY");
 }
 
 static void save_params_action(void)
@@ -2046,7 +1926,6 @@ static void handle_run_test(uint8 up, uint8 down, uint8 enter, uint8 back)
 //-------------------------------------------------------------------------------------------------------------------
 static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
 {
-    if (back) s_rebuild_armed_until_ms = 0;
     if (back)
     {
         menu_back();
@@ -2055,7 +1934,7 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     if (up) move_cursor(-1);
     if (down) move_cursor(1);
     // 光标一离开 Reset 行就撤销确认态，避免停在别处按确认时误擦
-    if (up || down) { s_reset_armed_until_ms = 0; s_rebuild_armed_until_ms = 0; }
+    if (up || down) { s_reset_armed_until_ms = 0; }
     if (!enter) return;
 
     if (s_cursor == 0)
@@ -2081,26 +1960,6 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     else if (s_cursor == (uint8)(GROUP_COUNT + 2u))
     {
         reset_params_action();
-    }
-    else if (s_cursor == (uint8)(GROUP_COUNT + 3u))
-    {
-        inspect_flash_action();
-    }
-    else if (s_cursor == (uint8)(GROUP_COUNT + 4u))
-    {
-        rebuild_flash_action();
-    }
-    else if (s_cursor == (uint8)(GROUP_COUNT + 5u))
-    {
-        fly_uart_diag_action();
-    }
-    else if (s_cursor == (uint8)(GROUP_COUNT + 6u))
-    {
-        fly_reject_diag_action();
-    }
-    else if (s_cursor == (uint8)(GROUP_COUNT + 7u))
-    {
-        fly_hw_diag_action();
     }
     else
     {

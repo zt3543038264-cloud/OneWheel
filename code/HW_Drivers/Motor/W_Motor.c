@@ -28,22 +28,14 @@
 /* RX ISR is the sole head writer; control Tick is the sole tail writer.
  * All cells are published before head using dsync; only a short pop is locked. */
 static volatile uint8 wm_rx_queue[WM_RX_QUEUE_SIZE];
-static volatile uint16 wm_rx_head, wm_rx_tail, wm_rx_high_water;
+static volatile uint16 wm_rx_head, wm_rx_tail;
 static volatile uint8 wm_rx_fault;
-static volatile uint32 wm_rx_dropped;
+/* Startup telemetry is drained without building a queue before control exists. */
+static volatile uint8 wm_rx_started;
 static uint8 wm_rx_resync;
 #if QCAR_DRIVER_TEXT_DUTY
 static volatile uint64 wm_rx_arrival[WM_RX_QUEUE_SIZE];
 static uint64 wm_received_at;
-#endif
-static volatile uint32 wd_rx, wd_tx, wd_lines, wd_ok, wd_bad, wd_bad_lines;
-static char wd_last_line[72];
-static uint8 wd_safe_seen;
-static volatile uint32 wd_reject_count[4];
-static char wd_reject_line[72];
-static uint8 wd_reject_reason, wd_reject_field;
-#if QCAR_DRIVER_TEXT_DUTY
-static uint64 wd_reject_at;
 #endif
 static uint8 w_motor_rx_buffer[W_MOTOR_FRAME_SIZE], w_motor_rx_length;
 static volatile int16 w_motor_speed_1, w_motor_speed_2;
@@ -73,7 +65,6 @@ static volatile uint32 wm_status_count, wm_stage_status_count;
 static volatile uint64 wm_status_at, wm_stage_at, wm_pulse_at, wm_command_at, wm_ack_at;
 #endif
 #pragma section all restore
-static void wd_inc(volatile uint32 *v) { if (*v != 0xffffffffu) ++*v; }
 
 #if QCAR_DRIVER_TEXT_DUTY
 static uint64 wm_now(void)
@@ -181,7 +172,6 @@ static void wm_tx_pump_locked(void)
             } else break;
         }
         IfxAsclin_writeTxData(uart3_handle.asclin, wm_tx_current[wm_tx_pos++]);
-        wd_inc(&wd_tx);
     }
     wm_tx_enable((uint8)(wm_tx_pos < wm_tx_len || wm_pending_kind || wm_status_pending || wm_query_pending));
 }
@@ -244,29 +234,24 @@ static uint8 wm_parse_rpm(const uint8 **p, int16 *out)
 static void wm_status_line(const uint8 *p)
 {
     uint32 values[6], i;
-    uint8 reject_reason = 1u, reject_field = 0u;
     const uint32 limits[6] = {1u, 4u, 0xffffffffu, 0xffffffffu, 10u, 2u};
     uint64 now;
     for (i = 0; i < 6u; ++i) {
-        reject_field = (uint8)(i + 1u);
         if (!wm_parse_u32(&p, limits[i], &values[i])) {
-            reject_reason = (uint8)(i == 0u ? 2u : (i == 5u ? 3u : 1u));
             goto invalid;
         }
         if (i < 5u) { if (*p++ != ',') goto invalid; }
     }
-    reject_field = 0u;
     if (*p) goto invalid;
-    if (values[0] != 1u) { reject_reason = 2u; reject_field = 1u; goto invalid; }
-    if (values[5] != 2u) { reject_reason = 3u; reject_field = 6u; goto invalid; }
+    if (values[0] != 1u) { goto invalid; }
+    if (values[5] != 2u) { goto invalid; }
     if ((values[1] >= 1u && values[1] <= 3u) && (!values[2] || values[4])) {
-        reject_reason = 4u; goto invalid;
+        goto invalid;
     }
     if ((values[1] == 1u || values[1] == 2u) && values[3]) {
-        reject_reason = 4u; goto invalid;
+        goto invalid;
     }
     now = wm_now();
-    wd_inc(&wd_ok);
     wm_cap2_seen = 1; wm_identity = 1; wm_driver_state = (uint8)values[1]; wm_driver_session = values[2];
     wm_driver_seq = values[3]; wm_driver_reason = (uint8)values[4];
     wm_status_at = wm_received_at; ++wm_status_count;
@@ -287,14 +272,6 @@ static void wm_status_line(const uint8 *p)
     }
     return;
 invalid:
-    wd_inc(&wd_bad);
-    wd_inc(&wd_reject_count[reject_reason-1u]);
-    wd_reject_reason = reject_reason; wd_reject_field = reject_field;
-    wd_reject_at = wm_now();
-    /* wm_text_rx terminates this bounded ASCII line before calling us. */
-    memset(wd_reject_line, 0, sizeof(wd_reject_line));
-    for (i = 0; i < wm_rx_used && i < sizeof(wd_reject_line)-1u; ++i)
-        wd_reject_line[i] = (char)wm_rx_line[i];
     wm_cap2_seen = 0; wm_identity = 0;
     if (wm_busy()) wm_queue_stop_locked(W_BENCH_REASON_PROTOCOL);
 }
@@ -303,17 +280,6 @@ static void wm_text_rx(uint8 byte)
     const uint8 *p;
     int16 a, b;
     if (byte == '\n') {
-        uint8 safe_line = (uint8)(wm_rx_used >= 5u && !memcmp(wm_rx_line, "SAFE-", 5u));
-        wd_inc(&wd_lines);
-        /* Prefer latest SAFE line over RPM chatter; truncate to fixed buffer. */
-        if (safe_line || !wd_safe_seen) {
-            uint8 i;
-            memset(wd_last_line,0,sizeof(wd_last_line));
-            for (i = 0; i < wm_rx_used && i < sizeof(wd_last_line)-1u; ++i)
-                wd_last_line[i] = (char)wm_rx_line[i];
-            wd_last_line[i] = 0;
-            if (safe_line) wd_safe_seen = 1;
-        }
         if (!wm_rx_overflow) {
             wm_rx_line[wm_rx_used] = 0;
             if (wm_rx_used >= 12u && !memcmp(wm_rx_line, "SAFE-STATUS,", 12u))
@@ -326,7 +292,6 @@ static void wm_text_rx(uint8 byte)
                 }
             }
         } else {
-            wd_inc(&wd_bad_lines);
             wm_identity = 0;
             if (wm_busy()) wm_queue_stop_locked(W_BENCH_REASON_PROTOCOL);
         }
@@ -356,18 +321,11 @@ static void W_Motor_SendFrame(uint8 command)
 }
 void W_Motor_Init(void)
 {
-    wm_rx_head = wm_rx_tail = wm_rx_high_water = 0;
-    wm_rx_fault = wm_rx_resync = 0; wm_rx_dropped = 0;
+    wm_rx_head = wm_rx_tail = 0;
+    wm_rx_fault = wm_rx_resync = 0;
+    wm_rx_started = 0;
 #if QCAR_DRIVER_TEXT_DUTY
     wm_received_at = 0;
-#endif
-    wd_rx = wd_tx = wd_lines = wd_ok = wd_bad = wd_bad_lines = 0;
-    wd_safe_seen = 0; memset(wd_last_line, 0, sizeof(wd_last_line));
-    memset((void *)wd_reject_count, 0, sizeof(wd_reject_count));
-    memset(wd_reject_line, 0, sizeof(wd_reject_line));
-    wd_reject_reason = wd_reject_field = 0;
-#if QCAR_DRIVER_TEXT_DUTY
-    wd_reject_at = 0;
 #endif
     w_motor_rx_length = 0; w_motor_speed_1 = w_motor_speed_2 = 0;
     w_motor_rx_frames = w_motor_seen_frames = 0;
@@ -594,21 +552,21 @@ void W_Motor_RxHandler(void)
     /* Do not clear hardware flags; existing error ISR still owns that. */
     W_Motor_RxErrorHandler();
     while (budget-- && uart_query_byte(W_MOTOR_UART, &byte)) {
-        uint16 head = wm_rx_head;
-        uint16 next = (uint16)((head + 1u) & (WM_RX_QUEUE_SIZE-1u));
-        wd_inc(&wd_rx);
+        uint16 head, next;
+        if (!wm_rx_started) {
+            continue;
+        }
+        head = wm_rx_head;
+        next = (uint16)((head + 1u) & (WM_RX_QUEUE_SIZE-1u));
         if (wm_rx_fault || next == wm_rx_tail) {
-            wm_rx_fault = 1; wd_inc(&wm_rx_dropped); continue;
+            wm_rx_fault = 1; continue;
         }
         wm_rx_queue[head] = byte;
 #if QCAR_DRIVER_TEXT_DUTY
         wm_rx_arrival[head] = received_at;
 #endif
         __dsync(); wm_rx_head = next;
-        {
-            uint16 used = (uint16)((next - wm_rx_tail) & (WM_RX_QUEUE_SIZE-1u));
-            if (used > wm_rx_high_water) wm_rx_high_water = used;
-        }
+
     }
     interrupt_global_enable(irq);
 }
@@ -682,6 +640,21 @@ static void wm_rx_consume(void)
 void W_Motor_Tick1ms(void)
 {
     uint32 frames;
+    if (!wm_rx_started) {
+        uint32 irq = interrupt_global_disable();
+        /* First control tick follows initialization/calibration. The early STOP
+         * and TX remain unchanged. Never accept a startup frame fragment. */
+        wm_rx_tail = wm_rx_head;
+        w_motor_rx_length = 0;
+#if QCAR_DRIVER_TEXT_DUTY
+        wm_rx_used = wm_rx_overflow = wm_rx_cr = 0;
+        wm_cap2_seen = wm_identity = 0;
+        wm_rx_resync = 1;
+#endif
+        /* Preserve any real error event and library flags collected at boot. */
+        __dsync(); wm_rx_started = 1;
+        interrupt_global_enable(irq);
+    }
     wm_rx_consume();
     frames = w_motor_rx_frames;
     if (frames != w_motor_seen_frames) { w_motor_seen_frames = frames; w_motor_link_age_ms = 0; }
@@ -708,51 +681,4 @@ uint8 W_Motor_LinkLost(void) {
 #else
  return 1;
 #endif
-}
-/* Short fixed-size snapshot only: no formatting, UART transmission or state reset. */
-void W_Motor_UartDiag(w_motor_uart_diag_t *out)
-{
-    uint32 irq;
-    if (!out) return;
-    irq = interrupt_global_disable();
-    memset(out, 0, sizeof(*out));
-    out->rx_bytes=wd_rx; out->tx_bytes=wd_tx; out->lines=wd_lines;
-    out->safe_ok=wd_ok; out->safe_bad=wd_bad; out->bad_lines=wd_bad_lines;
-    out->rpm_frames=w_motor_rx_frames; out->age_ms=0xffffffffu;
-    out->line_is_safe=wd_safe_seen;
-    memcpy(out->last_line,wd_last_line,sizeof(out->last_line));
-    out->reject_format=wd_reject_count[0]; out->reject_version=wd_reject_count[1];
-    out->reject_capability=wd_reject_count[2]; out->reject_state=wd_reject_count[3];
-    out->reject_reason=wd_reject_reason; out->reject_field=wd_reject_field;
-    out->reject_age_ms=0xffffffffu;
-    memcpy(out->reject_line,wd_reject_line,sizeof(out->reject_line));
-#if QCAR_DRIVER_TEXT_DUTY
-    out->text_mode=1; out->cap2=wm_cap2_seen; out->ordinary_failed=wm_ordinary_failed;
-    if (wd_bad && wm_ticks_per_ms) {
-        uint64 age=(wm_now()-wd_reject_at)/wm_ticks_per_ms;
-        out->reject_age_ms=(uint32)(age>0xfffffffeu ? 0xfffffffeu : age);
-    }
-    if (wd_ok && wm_ticks_per_ms) {
-        uint64 age=(wm_now()-wm_status_at)/wm_ticks_per_ms;
-        out->age_ms=(uint32)(age>0xfffffffeu ? 0xfffffffeu : age);
-    }
-#endif
-    interrupt_global_enable(irq);
-}
-
-/* Read the same software latches maintained by the existing error ISR.
- * Do not clear flags: that would destroy evidence from earlier errors. */
-void W_Motor_UartHardwareDiag(w_motor_uart_hw_diag_t *out)
-{
-    uint32 irq;
-    if (!out) return;
-    irq = interrupt_global_disable();
-    out->rx_overflow = (uint8)uart3_handle.errorFlags.flags.rxFifoOverflow;
-    out->frame_error = (uint8)uart3_handle.errorFlags.flags.frameError;
-    out->parity_error = (uint8)uart3_handle.errorFlags.flags.parityError;
-    out->rx_underflow = (uint8)uart3_handle.errorFlags.flags.rxFifoUnderflow;
-    out->tx_overflow = (uint8)uart3_handle.errorFlags.flags.txFifoOverflow;
-    out->queued = (uint16)((wm_rx_head-wm_rx_tail) & (WM_RX_QUEUE_SIZE-1u));
-    out->high_water = wm_rx_high_water; out->dropped = wm_rx_dropped;
-    interrupt_global_enable(irq);
 }
