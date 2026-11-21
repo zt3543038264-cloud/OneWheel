@@ -12,6 +12,7 @@ from app.services.requests import RequestManager
 from app.services.remote import RemoteControl
 from app.services.routes import RouteService
 from app.services.pitch_preview import PitchPreview
+from app.services.right_trace import RightTraceDownload
 from app.transports.serial_transport import SerialTransport
 from app.transports.mock import MockTransport
 from app.transports.wifi_transport import WifiTransport
@@ -79,6 +80,7 @@ class StationEngine:
         self.remote = RemoteControl(self)
         self.routes = RouteService(self)
         self.pitch_preview = PitchPreview(self)
+        self.right_trace = RightTraceDownload(self)
 
     def event(self, kind, message):
         self.store.event(kind, message)
@@ -130,6 +132,7 @@ class StationEngine:
         self.status_time = 0
         self.pitch_preview.reset()
         self.requests.cancel("DISCONNECTED")
+        self.right_trace.tick()
         self.routes.reset()
         while not self.actions.empty():
             try:
@@ -381,6 +384,12 @@ class StationEngine:
         if action == 'record_stop':
             self.stop_recording()
             return
+        if action == "right_trace_export":
+            self.right_trace.start(*args)
+            return
+        if self.right_trace.busy:
+            self.event("BUSY", "正在导出右飞轮记录，请等待读取结束")
+            return
         if not self.protocol_ready:
             self.event("LOCKED", "请先连接支持 cfg v1 的固件")
             return
@@ -507,6 +516,7 @@ class StationEngine:
                         self._handshake()
                     if self.stop_requested.is_set():
                         self.pitch_preview.cancel_for_stop()
+                        self.right_trace.tick()
                         self.requests.cancel("STOP")
                         while not self.actions.empty():
                             self.actions.get_nowait()
@@ -527,6 +537,7 @@ class StationEngine:
                         pass
                     if self.requests.pending and self.requests.pending.operation in ("set", "save") and time.monotonic()-self.status_time >= .7:
                         self.requests.cancel("STALE_STATUS")
+                    self.right_trace.tick()
                     self.remote.tick()
                     self.routes.tick()
                     self.pitch_preview.tick()
@@ -545,6 +556,7 @@ class StationEngine:
                     self.status_time = 0
                     self.pitch_preview.reset()
                     self.requests.cancel("DISCONNECTED")
+                    self.right_trace.tick()
                     while not self.actions.empty():
                         self.actions.get_nowait()
                     self.transport.close()

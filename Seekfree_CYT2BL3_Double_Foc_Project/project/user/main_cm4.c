@@ -76,6 +76,7 @@ int main(void)
         driver_gpio_loop();                                                     // 驱动 GPIO 循环检测函数
         
         driver_trace_service();
+        driver_right_trace_service();
         driver_cmd_loop();                                                      // 驱动 控制指令 循环响应函数
 
         system_delay_ms(DRIVER_RESPONSE_CYCLE);                                 // 主循环延时

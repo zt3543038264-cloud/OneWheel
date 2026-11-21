@@ -204,3 +204,34 @@ void driver_trace_service(void) {
     } else add("TR,X,%lu,index",(unsigned long)id);
     finish();
 }
+
+#ifndef DRIVER_TRACE_HOST
+static uint8_t driver_right_trace_flags(void)
+{
+    return (uint8_t)((motor_right.encoder_state==ENCODER_ERROR ? 4u : 0u) |
+        ((battery_value.protect_flag && battery_value.battery_state==BATTERY_ERROR) ? 8u : 0u) |
+        (motor_right.motor_protect_state==PROTECT_MODE
+            ? (16u | ((unsigned)motor_right.motor_protect_cause<<5)) : 0u));
+}
+static int driver_right_trace_quiet(void)
+{
+    /* Screen out reported rotation, without claiming a physical stop sensor. */
+    return motor_left.motor_speed_filter > -10.0f && motor_left.motor_speed_filter < 10.0f &&
+           motor_right.motor_speed_filter > -10.0f && motor_right.motor_speed_filter < 10.0f &&
+           motor_left.encoder_state != ENCODER_ERROR && motor_right.encoder_state != ENCODER_ERROR;
+}
+/* Existing SDK UART accessor is not declared in its legacy public header. */
+extern volatile stc_SCB_t *get_scb_module(uart_index_enum uart_n);
+static int driver_right_trace_try_tx(const char *s,unsigned n)
+{
+    volatile stc_SCB_t *p=get_scb_module(MOTOR_DRIVER_UART);
+    unsigned i;
+    uint32_t size=Cy_SCB_GetFifoSize(p), used=Cy_SCB_GetNumInTxFifo(p);
+    /* Caller checked STOP with IRQs masked; never wait for serial wire. Keep
+     * space for the next legacy sender's first byte. FIFO preserves ordering. */
+    if (used>=size || size-used<=n) return 0;
+    for (i=0;i<n;i++) Cy_SCB_WriteTxFifo(p,(uint8_t)s[i]);
+    return 1;
+}
+#include "driver_right_trace.inc"
+#endif

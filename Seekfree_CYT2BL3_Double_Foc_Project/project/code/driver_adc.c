@@ -34,6 +34,7 @@
 ********************************************************************************************************************/
 
 #include "driver_adc.h"
+#include "driver_trace.h"
 
 
 float battery_voltage_data = 0;
@@ -104,6 +105,7 @@ void driver_adc_loop(void)
     battery_value.battery_voltage  = adc_data * VOLTAGE_CONVERSION_COEFFICIENT * battery_value.voltage_rectify_coefficient;     // 计算实际电压  ADC数据 * 转换系数 * 矫正系数
     
     battery_value.battery_state    = battery_check(battery_value.battery_voltage);                                              // 根据电压判断当前电池状态
+    driver_right_trace_adc(adc_data,battery_value.battery_voltage);
 }
 
 

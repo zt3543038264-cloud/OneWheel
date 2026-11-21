@@ -47,6 +47,11 @@ static volatile uint8 w_motor_brake_locked;
 /* Fixed storage, no heap. A complete line already in the UART/current buffer
  * must finish before emergency DISARM; unsent pending commands are discarded.
  * Stop cannot retract bytes already queued in the UART FIFO or on the wire. */
+static uint8 wm_btr_wait, wm_btr_ready, wm_btr_queued, wm_btr_sent;
+static uint8 (*wm_btr_allowed)(void);
+static uint8 wm_btr_request[21];
+static char wm_btr_prefix[20], wm_btr_reply[72];
+static uint8 wm_btr_prefix_len;
 static uint8 wm_tx_current[WM_LINE_SIZE], wm_tx_pending[WM_LINE_SIZE];
 static volatile uint8 wm_tx_len, wm_tx_pos, wm_tx_kind, wm_pending_len, wm_pending_kind;
 static volatile uint8 wm_query_pending, wm_status_pending, wm_status_query_ms;
@@ -162,6 +167,13 @@ static void wm_tx_pump_locked(void)
             if (wm_pending_kind >= WM_TX_SAFE) {
                 memcpy(wm_tx_current, wm_tx_pending, wm_pending_len);
                 wm_tx_len = wm_pending_len; wm_tx_kind = wm_pending_kind; wm_pending_kind = 0;
+            } else if (wm_btr_queued && !wm_pending_kind && !wm_busy() && !wm_ordinary &&
+                       !wm_rx_fault && !wm_rx_resync && wm_btr_allowed()) {
+                /* Allow a single read before periodic status/RPM, never before
+                 * pending SAFE/STOP/zero. Recheck foreground STOP gate here. */
+                wm_tx_len = wm_btr_prefix_len + 2u;
+                memcpy(wm_tx_current, wm_btr_request, wm_tx_len);
+                wm_btr_queued = 0; wm_btr_sent = 1;
             } else if (wm_status_pending) {
                 memcpy(wm_tx_current, "SAFE-STATUS,1\r\n", 15u); wm_tx_len = 15u; wm_status_pending = 0;
             } else if (wm_pending_kind) {
@@ -275,6 +287,18 @@ invalid:
     wm_cap2_seen = 0; wm_identity = 0;
     if (wm_busy()) wm_queue_stop_locked(W_BENCH_REASON_PROTOCOL);
 }
+/* Only capture an exact expected echo; PC validates CRC and Base64 end-to-end. */
+static uint8 wm_btr_rx(void)
+{
+    uint8 len = wm_btr_prefix_len;
+    if (wm_rx_used < 3u || memcmp(wm_rx_line, "BT,", 3u)) return 0;
+    if (wm_btr_wait && wm_btr_sent && !wm_btr_ready && wm_rx_used == len + 37u &&
+        wm_rx_line[len + 32u] == '*' && !memcmp(wm_rx_line, wm_btr_prefix, len)) {
+        memcpy(wm_btr_reply, wm_rx_line, wm_rx_used + 1u);
+        wm_btr_ready = 1;
+    }
+    return 1;
+}
 static void wm_text_rx(uint8 byte)
 {
     const uint8 *p;
@@ -284,7 +308,7 @@ static void wm_text_rx(uint8 byte)
             wm_rx_line[wm_rx_used] = 0;
             if (wm_rx_used >= 12u && !memcmp(wm_rx_line, "SAFE-STATUS,", 12u))
                 wm_status_line(wm_rx_line + 12u);
-            else {
+            else if (!wm_btr_rx()) {
                 p = wm_rx_line;
                 if (wm_parse_rpm(&p, &a) && *p++ == ',' && wm_parse_rpm(&p, &b) && !*p) {
                     w_motor_speed_1 = (int16)(a * MOTOR_DIR_A);
@@ -338,6 +362,7 @@ void W_Motor_Init(void)
         wm_clock_ok = (uint8)(hz >= 1000.0f && hz <= 1000000000.0f);
         wm_ticks_per_ms = wm_clock_ok ? (uint32)(hz / 1000.0f) : 0u;
     }
+    wm_btr_wait = wm_btr_ready = wm_btr_queued = wm_btr_sent = 0;
     wm_tx_len = wm_tx_pos = wm_tx_kind = wm_pending_len = wm_pending_kind = 0;
     wm_query_pending = wm_status_pending = wm_status_query_ms = 0;
     wm_rx_used = wm_rx_overflow = wm_rx_cr = 0;
@@ -680,5 +705,69 @@ uint8 W_Motor_LinkLost(void) {
  interrupt_global_enable(irq);return lost;
 #else
  return 1;
+#endif
+}
+
+/* Foreground read-only request, never inserted ahead of a SAFE/STOP line.
+ * There is no retry or persistent diagnostic TX queue. */
+uint8 W_Motor_RightTraceRequest(const char *key, uint8 (*allowed)(void))
+{
+#if QCAR_DRIVER_TEXT_DUTY
+    uint8 n, i;
+    uint32 irq;
+    if (!key || !allowed) return W_TRACE_BAD_KEY;
+    if (!strcmp(key, "M")) n = 1u;
+    else {
+        if (strlen(key) != 15u || key[0] != 'D' || key[1] != ',' || key[10] != ',') return W_TRACE_BAD_KEY;
+        for (i = 2u; i < 15u; ++i)
+            if (i != 10u && !((key[i] >= '0' && key[i] <= '9') ||
+                              (key[i] >= 'A' && key[i] <= 'F'))) return W_TRACE_BAD_KEY;
+        n = 15u;
+    }
+    irq = interrupt_global_disable();
+    if (wm_btr_wait || wm_busy() || wm_ordinary || !allowed()) {
+        interrupt_global_enable(irq); return W_TRACE_BUSY;
+    }
+    if (!wm_rx_started || wm_rx_fault || wm_rx_resync) {
+        interrupt_global_enable(irq); return W_TRACE_RX;
+    }
+    memcpy(wm_btr_prefix, "BT,", 3u);
+    memcpy(wm_btr_prefix + 3u, key, n);
+    wm_btr_prefix[n + 3u] = ',';
+    wm_btr_prefix_len = n + 4u;
+    wm_btr_wait = wm_btr_queued = 1; wm_btr_ready = wm_btr_sent = 0;
+    wm_btr_allowed = allowed;
+    memcpy(wm_btr_request, "BTR,", 4u);
+    memcpy(wm_btr_request + 4u, key, n);
+    wm_btr_request[n + 4u] = '\r'; wm_btr_request[n + 5u] = '\n';
+    wm_tx_pump_locked();
+    interrupt_global_enable(irq);
+    return W_TRACE_ACCEPTED;
+#else
+    (void)key; (void)allowed; return W_TRACE_RX;
+#endif
+}
+
+uint8 W_Motor_RightTraceTake(char out[72])
+{
+#if QCAR_DRIVER_TEXT_DUTY
+    uint8 ready;
+    uint32 irq = interrupt_global_disable();
+    ready = wm_btr_wait && wm_btr_ready && !wm_busy() && !wm_ordinary && !wm_rx_fault;
+    if (ready) { memcpy(out, wm_btr_reply, sizeof(wm_btr_reply)); wm_btr_wait = wm_btr_ready = wm_btr_queued = wm_btr_sent = 0; }
+    interrupt_global_enable(irq);
+    return ready;
+#else
+    (void)out; return 0;
+#endif
+}
+
+void W_Motor_RightTraceCancel(void)
+{
+#if QCAR_DRIVER_TEXT_DUTY
+    uint32 irq = interrupt_global_disable();
+    wm_btr_wait = wm_btr_ready = wm_btr_queued = wm_btr_sent = 0;
+    /* An already-started UART line must finish. No further request is queued. */
+    interrupt_global_enable(irq);
 #endif
 }

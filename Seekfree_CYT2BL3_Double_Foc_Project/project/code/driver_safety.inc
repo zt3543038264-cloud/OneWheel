@@ -24,9 +24,18 @@ static int safe_fault(void)
            motor_left.encoder_state==ENCODER_ERROR || motor_right.encoder_state==ENCODER_ERROR ||
            (battery_value.protect_flag && battery_value.battery_state==BATTERY_ERROR);
 }
+#ifndef DRIVER_SAFETY_HOST
+uint8_t driver_right_trace_safe_status(void)
+{
+    return (uint8_t)(safe_state | ((unsigned)safe_reason<<4));
+}
+#endif
 static void safe_zero_outputs(void)
 {
     motor_left.motor_duty=0.0f; motor_right.motor_duty=0.0f;
+#ifndef DRIVER_SAFETY_HOST
+    driver_right_trace_zero();
+#endif
     motor_value.receive_left_duty_data=0; motor_value.receive_right_duty_data=0;
     motor_value.immediate_command=NULL_CMD; motor_value.refresh_flag=CMD_NULL;
     motor_output_inhibit();
@@ -193,6 +202,9 @@ static int safe_wire(const char *s)
             motor_left.motor_duty=(float)left/10000.0f;motor_right.motor_duty=(float)right/10000.0f;
             motor_left.lose_control_protect_count=0;motor_right.lose_control_protect_count=0;
             driver_trace_on_command(left,right);
+#ifndef DRIVER_SAFETY_HOST
+            driver_right_trace_command(right,seq);
+#endif
             if(!left && !right) motor_output_inhibit();
             if(seq==UINT32_MAX) safe_stop(DRIVER_SAFE_SEQUENCE_EXHAUSTED);
         }

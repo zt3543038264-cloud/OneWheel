@@ -82,9 +82,9 @@
 
 // 角度环输出由角速度环统一限幅，积分只限制累计状态。
 #define R_ANGLE_IMAX            (2000.0f)      // 横滚角度环积分限幅
-#define R_RATE_KP_DEFAULT       (20.0f)       // 横滚角速度环 P
-#define R_RATE_KI_DEFAULT       (0.0f)         // 横滚角速度环 I
-#define R_RATE_KD_DEFAULT       (8.0f)        // 横滚角速度环 D
+#define R_RATE_KP_DEFAULT       (45.0f)        // 横滚角速度环 P(增量式，master 2026-11-09 实车值)
+#define R_RATE_KI_DEFAULT       (0.05f)        // 横滚角速度环 I(增量式，每 1ms 累加)
+#define R_RATE_KD_DEFAULT       (0.0f)         // 横滚角速度环 D(增量式，先置 0)
 #define R_RATE_IMAX             (100.0f)       // 横滚角速度环积分限幅
 // Roll 角速度反馈陷波：默认旁路(db=0)，只滤陀螺反馈，不改变前向通路
 #define R_RATE_NOTCH_HZ_DEFAULT (47.0f)        // 机械共振中心频率(Hz)

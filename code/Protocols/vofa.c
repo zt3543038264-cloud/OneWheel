@@ -83,6 +83,7 @@ static uint16 s_schema_seq, s_schema_index, s_save_seq;
 static uint32 s_schema_next_ms, s_stop_since, s_cfg_last_status;
 static uint8 s_stop_seen;
 static volatile uint8 s_station_att;
+static uint32 s_idle_fly_last_ms;
 static char s_save_group[24];
 
 /* The run: tag is a diagnostic frame, not a requirement to start visual Run.
@@ -592,6 +593,33 @@ uint8 vofa_link_probe_active(void)
     return (uint8)(s_link_probe.state == 1u || s_link_probe.state == 2u);
 }
 
+/* One outstanding, no automatic retransmission. The driver additionally
+ * checks its own STOP/zero/output-inhibit state before serving a read. */
+static uint16 s_rtrace_seq;
+static uint32 s_rtrace_at;
+
+static uint8 rtrace_stopped(void)
+{
+    return (uint8)(cfg_stopped() && !s_save_seq && !s_path_save_seq && !control_ipm_pending() &&
+        abs((int)W_Motor_GetSpeed1()) <= 50 && abs((int)W_Motor_GetSpeed2()) <= 50 &&
+        Y_Motor_GetSpeed20ms() == 0);
+}
+
+static void rtrace_poll(void)
+{
+    char line[79] = "rtrace,";
+    const char *error = 0;
+    uint16 seq = s_rtrace_seq;
+    if (!seq) return;
+    if (!rtrace_stopped()) error = "STOP_REQUIRED,Read cancelled";
+    else if ((uint32)(g_control_uptime_ms - s_rtrace_at) >= 350u)
+        error = "TIMEOUT,No matching driver response";
+    else if (!W_Motor_RightTraceTake(line + 7u)) return;
+    s_rtrace_seq = 0;
+    if (error) { W_Motor_RightTraceCancel(); (void)cfg_reply(seq, "err", error); }
+    else (void)cfg_reply(seq, "ok", line);
+}
+
 static vofa_cmd_result_t cfg_execute(char *line)
 {
     char *fields[9];
@@ -625,6 +653,33 @@ static vofa_cmd_result_t cfg_execute(char *line)
     }
     if (seq32 == 0u) return VOFA_CMD_FORMAT;
     seq = (uint16)seq32;
+    if (!strcmp(fields[0], "rtrace")) {
+        char key[16];
+        uint8 result;
+        if (count == 3u && !strcmp(fields[2], "M")) memcpy(key, "M", 2u);
+        else if (count == 5u && !strcmp(fields[2], "D") &&
+                 strlen(fields[3]) == 8u && strlen(fields[4]) == 4u)
+            (void)snprintf(key, sizeof(key), "D,%s,%s", fields[3], fields[4]);
+        else { (void)cfg_reply(seq, "err", "BAD_FORMAT,Expected M or D with hex ID/index"); return VOFA_CMD_FORMAT; }
+        irq = interrupt_global_disable();
+        if (s_rtrace_seq) {
+            interrupt_global_enable(irq);
+            (void)cfg_reply(seq, "err", "BUSY,Trace request outstanding");
+            return VOFA_CMD_FORMAT;
+        }
+        if (!rtrace_stopped()) {
+            interrupt_global_enable(irq);
+            (void)cfg_reply(seq, "err", "STOP_REQUIRED,Inactive controls and stopped wheels required");
+            return VOFA_CMD_FORMAT;
+        }
+        result = W_Motor_RightTraceRequest(key, rtrace_stopped);
+        if (result == W_TRACE_ACCEPTED) { s_rtrace_seq = seq; s_rtrace_at = g_control_uptime_ms; }
+        interrupt_global_enable(irq);
+        if (result == W_TRACE_BAD_KEY) (void)cfg_reply(seq, "err", "BAD_FORMAT,Require uppercase hex");
+        else if (result == W_TRACE_RX) (void)cfg_reply(seq, "err", "RX_NOT_READY,Flywheel UART startup or resync");
+        else if (result != W_TRACE_ACCEPTED) (void)cfg_reply(seq, "err", "BUSY,Flywheel safety session still active");
+        return VOFA_CMD_APPLIED;
+    }
     if (strncmp(fields[0], "klog_", 5) == 0)
     { keep_log_cfg(fields,count,seq); return VOFA_CMD_APPLIED; }
     s_cfg_reply_priority = (uint8)(strncmp(fields[0], "cbench_", 7) == 0);
@@ -767,6 +822,7 @@ static void cfg_poll(void)
     uint32 now = g_control_uptime_ms;
     uint8 physically_stopped = (uint8)(cfg_stopped() && !W_Motor_LinkLost() &&
         abs((int)W_Motor_GetSpeed1()) <= 50 && abs((int)W_Motor_GetSpeed2()) <= 50 && Y_Motor_GetSpeed20ms() == 0);
+    rtrace_poll();
     path_cfg_poll();
     if (!physically_stopped) s_stop_seen = 0;
     else if (!s_stop_seen) { s_stop_seen = 1; s_stop_since = now; }
@@ -914,6 +970,38 @@ void vofa_snapshot(void)
     s_seq++;                                    // 偶数表示写入完成
 }
 
+/* Existing Station wire format. Leave room for configuration and status replies. */
+static void vofa_push_fly(uint32 ms, int16 rpm_a, int16 rpm_b, uint8 link_ok)
+{
+    char line[48];
+    int len = snprintf(line, sizeof(line), "fly:%lu,%d,%d,%u\n",
+                       (unsigned long)ms, (int)rpm_a, (int)rpm_b, (unsigned int)link_ok);
+    if (len > 0 && len < (int)sizeof(line) &&
+        (uint32)(s_tx_head - s_tx_tail) + (uint32)len <= VOFA_TX_SIZE - 384u)
+        (void)tx_push((const uint8 *)line, (uint32)len);
+}
+
+/* A Station session also needs a baseline and tail when the vehicle is
+ * stopped. This observes existing motor feedback; it does not request
+ * motion, change telemetry mode, or add traffic to the motor UART. */
+static void vofa_idle_fly_poll(void)
+{
+    uint32 ms, irq;
+    int16 rpm_a, rpm_b;
+    uint8 link_ok;
+    if (!s_station_att || (uint32)(g_control_uptime_ms - s_idle_fly_last_ms) < 20u) return;
+
+    irq = interrupt_global_disable();
+    ms = g_control_uptime_ms;
+    rpm_a = W_Motor_GetSpeed1();
+    rpm_b = W_Motor_GetSpeed2();
+    link_ok = (uint8)!W_Motor_LinkLost();
+    interrupt_global_enable(irq);
+
+    s_idle_fly_last_ms = ms;
+    vofa_push_fly(ms, rpm_a, rpm_b, link_ok);
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     按发送分频输出最新波形快照
 // 参数说明     void
@@ -936,6 +1024,7 @@ void vofa_poll(void)
     #endif
     cfg_poll();
     task_poll();
+    if (mode != VOFA_RUN) vofa_idle_fly_poll();
     if (mode == VOFA_OFF) { last_seq = s_seq; last_mode = mode; return; }
     if (mode != last_mode)
     {
@@ -1009,13 +1098,8 @@ void vofa_poll(void)
     {
         /* Same snapshot/time as run:, actual signed RPM, never PID targets.
          * link_ok=0 marks retained feedback stale; do not interpret as live RPM. */
-        len = snprintf(line, sizeof(line), "fly:%lu,%d,%d,%u\n",
-                       (unsigned long)run.uptime_ms,
-                       (int)run.flywheel_a_rpm, (int)run.flywheel_b_rpm,
-                       (unsigned int)run.flywheel_link_ok);
-        if (len > 0 && len < (int)sizeof(line) &&
-            (uint32)(s_tx_head - s_tx_tail) + (uint32)len <= VOFA_TX_SIZE - 384u)
-            (void)tx_push((const uint8 *)line, (uint32)len);
+        s_idle_fly_last_ms = run.uptime_ms;
+        vofa_push_fly(run.uptime_ms, run.flywheel_a_rpm, run.flywheel_b_rpm, run.flywheel_link_ok);
     }
 }
 
@@ -1032,6 +1116,7 @@ void vofa_init(void)
     s_schema_seq = s_schema_index = s_save_seq = 0;
     s_schema_next_ms = s_stop_since = s_cfg_last_status = 0;
     s_stop_seen = s_station_att = 0;
+    s_idle_fly_last_ms = 0u;
     task_reset();
     path_transfer_cancel(); s_path_stream=0;
     #if STATION_WIFI_ENABLED
@@ -1042,6 +1127,8 @@ void vofa_init(void)
 
     s_tx_head = 0; s_tx_tail = 0;
     s_cfg_reply_priority = 0;
+    s_rtrace_seq = 0; s_rtrace_at = 0;
+    W_Motor_RightTraceCancel();
 #if STATION_WIFI_ENABLED
     s_ack_head = 0; s_ack_tail = 0;
 #endif

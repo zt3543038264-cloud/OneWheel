@@ -59,6 +59,10 @@ void motor_driver_parse_statement(small_device_value_struct *device_value, uint8
      * Trace capture is passive and cannot renew the motion watchdog. */
     else if(strncmp(s,"SET-TRACE,",10)==0 || strncmp(s,"GET-TRACE,",10)==0)
         (void)driver_trace_text(statement_buffer);
+#ifndef DRIVER_SAFETY_HOST
+    else if(strncmp(s,"BTR,",4)==0)
+        (void)driver_right_trace_read_request(statement_buffer);
+#endif
 }
 
 void motor_driver_receive_byte(uint8_t byte)

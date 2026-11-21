@@ -394,6 +394,7 @@ void motor_right_update_isr(void)
         {
             motor_right_duty_set(motor_right_foc_driver.ouput_duty[0], motor_right_foc_driver.ouput_duty[1], motor_right_foc_driver.ouput_duty[2]);     // 输出三相占空比
         }
+        driver_right_trace_sample(motor_right.menc15a_value_now,motor_right.menc15a_value_offset);
     }
     else if(motor_right.driver_mode == HALL_SIX_STEP)
     {

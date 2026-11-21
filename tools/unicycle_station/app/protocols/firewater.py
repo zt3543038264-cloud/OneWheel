@@ -114,14 +114,19 @@ class FireWaterParser:
         if operation == "stop":
             return b"stop\r\n"
         path_arity = {"path_status":0,"path_begin":1,"path_point":4,"path_commit":2,"path_cancel":0,"path_get":2,"path_arm":1,"path_start":2,"path_save":0,"path_load":0}
-        if operation not in ("hello", "schema", "get", "set", "save", "status", "remote", "preview_status", "preview_start", "preview_stop") and operation not in path_arity:
+        if operation not in ("hello", "schema", "get", "set", "save", "status", "remote", "preview_status", "preview_start", "preview_stop", "rtrace") and operation not in path_arity:
             raise ValueError("UNKNOWN_COMMAND / remote starts are forbidden")
         if not 1 <= seq <= 65535:
             raise ValueError("INVALID_SEQ")
         arity = {"hello": 0, "schema": 0, "get": 1, "set": 2, "save": 1, "status": 0, "remote": 0}
         arity.update(path_arity)
         arity.update(preview_status=0, preview_start=2, preview_stop=0)
-        if len(args) != arity[operation]:
+        if operation == "rtrace":
+            if not (args == ("M",) or (len(args) == 3 and args[0] == "D" and
+                    re.fullmatch(r"[0-9A-F]{8}", str(args[1])) and
+                    re.fullmatch(r"[0-9A-F]{4}", str(args[2])))):
+                raise ValueError("BAD_RIGHT_TRACE_REQUEST")
+        elif len(args) != arity[operation]:
             raise ValueError("BAD_FORMAT")
         values = [str(v) for v in args]
         if any(any(c in s for c in ",\r\n\x00") or not s for s in values):

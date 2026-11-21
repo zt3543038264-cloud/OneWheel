@@ -44,6 +44,16 @@ class LogPage(W.QWidget):
         self.position.sliderPressed.connect(lambda:setattr(self,"dragging",True));self.position.sliderReleased.connect(self.seek);layout.addWidget(self.position)
         self.info=W.QLabel("原始字节 + 结构化 JSONL + 会话元数据；图表暂停不影响记录")
         layout.addWidget(self.info)
+        self.right_trace_button=W.QPushButton("导出右飞轮诊断")
+        self.right_trace_button.clicked.connect(self.export_right_trace)
+        self.right_trace_info=W.QLabel(engine.right_trace.message)
+        self.right_trace_info.setWordWrap(True)
+        if engine.profile.data.get("id")=="tc264_unicycle":
+            layout.addWidget(self.right_trace_button)
+            layout.addWidget(self.right_trace_info)
+        else:
+            self.right_trace_button.hide()
+            self.right_trace_info.hide()
         rangebar=W.QHBoxLayout();self.start=W.QDoubleSpinBox();self.end=W.QDoubleSpinBox()
         for label,field in [("区间起点 / 秒",self.start),("终点 / 秒",self.end)]:
             field.setRange(0,1e8);rangebar.addWidget(W.QLabel(label));rangebar.addWidget(field)
@@ -69,7 +79,15 @@ class LogPage(W.QWidget):
         if not self.engine.replay:return
         path,_=W.QFileDialog.getSaveFileName(self,"导出选定区间","selection.jsonl","JSONL (*.jsonl)")
         if path:self.engine.replay.export(path,self.start.value(),self.end.value() or self.engine.replay.duration)
+    def export_right_trace(self):
+        if self.engine.replay or not self.engine.stopped() or self.engine.right_trace.busy:return
+        path,_=W.QFileDialog.getSaveFileName(self,"导出右飞轮诊断","right_flywheel_trace.csv","CSV (*.csv)")
+        if path:self.engine.submit("right_trace_export",path)
     def update_data(self):
+        self.right_trace_button.setEnabled(not self.engine.replay and self.engine.stopped()
+                                           and self.engine.mode in ("wifi","serial")
+                                           and not self.engine.right_trace.busy)
+        self.right_trace_info.setText(self.engine.right_trace.message)
         replay=self.engine.replay
         if replay:
             if not self.dragging:self.position.setValue(int(replay.position/max(.001,replay.duration)*10000))

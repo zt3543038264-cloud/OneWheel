@@ -846,17 +846,19 @@ static float roll_recovery_offset(uint8 run20)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     跑一拍 Roll 角速度内环(1ms)，位置式 + 输出限幅
+// 函数简介     跑一拍 Roll 角速度内环(1ms)，增量式 PI + 输出限幅
 // 参数说明     limit           输出限幅，Test 用 BAL_TEST_FLY_LIMIT，三轴串级用 FLYWHEEL_OUT_LIMIT
 // 返回参数     float           限幅后的占空比输出
 // 使用示例     return roll_rate_ctrl((float)BAL_TEST_FLY_LIMIT);
 //-------------------------------------------------------------------------------------------------------------------
 static float roll_rate_ctrl(float limit)
 {
-    // 位置式内环在误差回零时同步撤销输出，并在 PID 内完成抗饱和。
+    // 增量式 PI(与 master 2026-11-09 一致)：驱动接收占空比，恒定占空比下飞轮力矩随转速衰减，
+    // 位置式 P/PD 在恒定角度误差下无法持续输出力矩，车体无法回正；增量式的 KI*e 持续累加占空比。
+    // KP 作用于误差增量，KD 作用于误差二阶差分；抗饱和在 pid_inc_calc_limited 内完成。
     // 只滤测量反馈：陀螺 Roll 角速度先过可旁路 notch，角度环输出保持原样。
     float rate = roll_rate_notch_apply(att.roll_rate);
-    return pid_loc_calc_limited(&r_rate_pid, rate + r_angle_pid.out, -limit, limit);
+    return pid_inc_calc_limited(&r_rate_pid, rate + r_angle_pid.out, -limit, limit);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

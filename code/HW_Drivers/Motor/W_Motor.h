@@ -18,6 +18,16 @@ void W_Motor_KeepZero(void);
 void W_Motor_RxHandler(void);
 void W_Motor_RxErrorHandler(void); /* latch transport loss before vendor clear */
 void W_Motor_TxHandler(void);
+/* STOP-only BTR read transport. Foreground validates STOP before requesting. */
+#define W_TRACE_ACCEPTED 1u
+#define W_TRACE_BAD_KEY  2u
+#define W_TRACE_BUSY     3u
+#define W_TRACE_RX       4u
+/* allowed is a read-only STOP predicate, called with interrupts locked,
+ * potentially in UART TX IRQ. It must not format text or communicate. */
+uint8 W_Motor_RightTraceRequest(const char *key, uint8 (*allowed)(void));
+uint8 W_Motor_RightTraceTake(char out[72]);
+void W_Motor_RightTraceCancel(void);
 void W_Motor_Tick1ms(void);
 int16 W_Motor_GetSpeed1(void);
 int16 W_Motor_GetSpeed2(void);

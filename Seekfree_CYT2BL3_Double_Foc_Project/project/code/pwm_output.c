@@ -40,8 +40,27 @@
 #endif
 
 #include "driver_safety.h"
+#include "driver_trace.h"
 static uint8_t safe_right_connected;
 static uint8_t safe_left_connected;
+#ifndef DRIVER_SAFETY_HOST
+/* Sample active compare widths, not next-cycle PWM targets or measured pins.
+ * Caller masks IRQs; double-read rejects an intervening hardware reload. */
+int driver_right_trace_pwm(uint16_t width[3])
+{
+    volatile stc_TCPWM_GRP_CNT_t *p[3]={MOTOR_RIGHT_A_PHASE_TCPWM_TIMER,
+        MOTOR_RIGHT_B_PHASE_TCPWM_TIMER,MOTOR_RIGHT_C_PHASE_TCPWM_TIMER};
+    uint32_t lo[3],hi[3];
+    unsigned i;
+    if (!safe_right_connected) return 0;
+    for(i=0;i<3u;i++) { lo[i]=p[i]->unCC0.u32Register; hi[i]=p[i]->unCC1.u32Register; }
+    for(i=0;i<3u;i++)
+        if (lo[i]!=p[i]->unCC0.u32Register || hi[i]!=p[i]->unCC1.u32Register ||
+            hi[i]<lo[i] || hi[i]>PWM_PRIOD_LOAD) return 0;
+    for(i=0;i<3u;i++) width[i]=(uint16_t)(hi[i]-lo[i]);
+    return 1;
+}
+#endif
 static void safe_pin_low(volatile stc_GPIO_PRT_t *port,uint32_t pin)
 {
     Cy_GPIO_Clr(port,pin);
