@@ -1,5 +1,7 @@
 /* Host contract test only. Never link or flash this file to the TC264. */
 #include "zf_common_headfile.h"
+#define MT9V03X_W 188
+#define MT9V03X_H 120
 #define PATH_HOST_TEST 1
 #include "../../../../code/Controller/Planner/path_nav.h"
 uint8 control_path_start(float speed);
@@ -15,6 +17,21 @@ param_t g_param;
 volatile uint32 g_param_revision;
 start_state_t start_flag;
 attitude_t att;
+static int mock_gate_seen;
+int gate_get(gate_observation_t *out)
+{
+    if (!mock_gate_seen) return 0;
+    memset(out, 0, sizeof(*out));
+    out->sample_seq = 17;
+    out->age_ms = 3;
+    out->available = 1;
+    out->flags = 4096;
+    out->bearing_deg = -12.5f;
+    out->field_norm = 0.25f;
+    out->raw[2] = 1023;
+    out->filtered[2] = 999.5f;
+    return 1;
+}
 att_diag_t att_diag;
 imu_data_t imu;
 float g_yaw_target, g_flywheel_common_rpm, g_pwm_yaw;
@@ -22,10 +39,6 @@ float imu_get_angle_yaw(void) { return att.yaw; }
 volatile uint8 g_imu_ok=1;
 uint8 g_cam_ok=1;
 volatile uint32 g_control_uptime_ms;
-uint8 g_track_valid=1,g_vision_active_elem,g_vision_island_state,g_vision_track_mode;
-volatile uint16 g_vision_age_ms;
-volatile uint32 g_vision_frame_seq=1;
-float g_vision_curvature,g_vision_quality=1;
 float Y_Motor_GetSpeedMps(void) { return 0.0f; }
 static uint8 mock_test, mock_jog, mock_run, mock_remote;
 static float remote_turn, remote_speed;
@@ -60,10 +73,10 @@ const param_desc_t g_param_table[] = {
     {"r_rate_kp", &g_param.r_rate_kp, 1, -2000,2000},
     {"r_angle_kp", &g_param.r_angle_kp, 1,-2000,2000},
     {"motor_dir_a", &g_param.motor_dir_a, 0,-1,1},
-    {"cam_exposure", &g_param.cam_exposure, 0,4,1600},
-    {"run_speed_straight", &g_param.run_speed_straight,1,0,1.5f},
+    {"fly_speed_limit", &g_param.fly_speed_limit, 0,4,1600},
+    {"run_accel_mps2", &g_param.run_accel_mps2,1,0,1.5f},
     {"lean_speed_kp", &g_param.lean_speed_kp,1,0,2},
-    {"direction_rate_kd", &g_param.direction_balance_kd,1,0,1},
+    {"lean_turn_kp", &g_param.lean_turn_kp,1,0,1},
     {"yaw_hold_deg", &g_param.yaw_hold_deg,1,-180,180},
     {"imu_forward_dir", &g_param.imu_forward_dir,0,-1,1}
 };
@@ -160,6 +173,10 @@ int main(void) {
 #endif
     vofa_init();start_flag=START_STOP;g_param.imu_forward_dir=1;
     feed("cfg:hello,1\r\n");assert(strstr(drain(),"rsp:1,ok,hello,1,"));
+    feed("cfg:gate_status,62\n");assert(strstr(drain(),"rsp:62,ok,gate_status,NONE\n"));
+    mock_gate_seen = 1;
+    feed("cfg:gate_status,63\n");
+    assert(strstr(drain(),"rsp:63,ok,gate_status,17,3,1,4096,-12.50,0.25,0,0,1023,0,0.0,0.0,999.5,0.0,0.0,0.0,0.0\n"));
     feed("cfg:imu_status,58\n");assert(strstr(drain(),"rsp:58,ok,imu_status,0,1,0,NONE,"));
     feed("cfg:imu_fault_raw,60\n");assert(strstr(drain(),"rsp:60,ok,imu_fault_raw,NONE"));
     mock_saturation=1;
@@ -193,7 +210,7 @@ int main(void) {
     }
     feed("cfg:set,2,r_rate_kp,9999\r\n");assert(g_param.r_rate_kp==2000);assert(strstr(drain(),"2000,CLAMPED"));
     feed("cfg:set,3,r_rate_kp,nan\n");assert(g_param.r_rate_kp==2000);assert(strstr(drain(),"INVALID_VALUE"));
-    feed("cfg:set,4,cam_exposure,4.5\n");assert(strstr(drain(),"INVALID_VALUE"));
+    feed("cfg:set,4,fly_speed_limit,4.5\n");assert(strstr(drain(),"INVALID_VALUE"));
     feed("cfg:set,5,motor_dir_a,0\n");assert(strstr(drain(),"OUT_OF_RANGE"));
     feed("cfg:set,50,imu_forward_dir,0\n");assert(strstr(drain(),"OUT_OF_RANGE"));
     feed("cfg:set,51,imu_forward_dir,-1\n");assert(g_param.imu_forward_dir==-1);assert(strstr(drain(),"RESTART_REQUIRED"));
@@ -218,21 +235,6 @@ int main(void) {
     assert(strstr(response,"motor_c_deadzone_fwd,int,850,0,2000,Motor,1,6"));
     g_control_uptime_ms+=600;cfg_poll();drain();
     feed("cfg:save,16,all\n");s_rx_idle_ms=101;cfg_poll();assert(save_count==1);assert(strstr(drain(),"save,all,VERIFIED"));
-    /* Diagnostic state capture continues with ordinary VOFA output disabled. */
-    task_reset();s_station_att=1;g_vofa_mode=VOFA_OFF;
-    g_control_uptime_ms=1000;g_vision_active_elem=ELEM_NONE;g_vision_age_ms=0;
-    g_vision_curvature=0;vofa_snapshot();assert(s_task.state==1 && s_task_head==1);
-    g_vision_curvature=.04f;g_control_uptime_ms=1010;task_capture();assert(s_task.state==1);
-    g_control_uptime_ms=1160;task_capture();assert(s_task.state==2);
-    g_vision_curvature=.025f;g_control_uptime_ms=1200;task_capture();assert(s_task.state==2);
-    g_vision_active_elem=ELEM_CROSS;g_control_uptime_ms=1201;task_capture();assert(s_task.state==4);
-    task_poll();assert(strstr(drain(),"taskevt:1,1000,0,1,"));
-    g_vision_active_elem=ELEM_RING_LEFT;g_vision_island_state=1;g_control_uptime_ms=1400;task_capture();
-    g_vision_island_state=2;g_control_uptime_ms++;task_capture();assert(s_task.phase==2);
-    g_vision_age_ms=VISION_LINK_TIMEOUT_MS+1;g_control_uptime_ms++;task_capture();assert(s_task.state==10);
-    for(unsigned i=0;i<40;i++){g_vision_age_ms=(i&1)?0:VISION_LINK_TIMEOUT_MS+1;g_control_uptime_ms++;task_capture();}
-    assert(s_task_dropped>0 && s_task_head-s_task_tail==TASK_EVENT_CAPACITY);
-    g_control_uptime_ms+=200;task_poll();assert(strstr(drain(),"task:"));
     assert(save_count==1 && stop_count==2);
     /* Handshake enables diagnostic frames in Balance/Remote and single-axis
        Test without modifying menu telemetry selection or setting Run active. */
@@ -267,10 +269,10 @@ int main(void) {
     /* Runtime permission is advertised and rechecked on the MCU per write. */
     start_flag=START_BALANCE;mock_test=mock_jog=0;mock_run=1;
     assert((cfg_pid_mask() & 0x01000000u)!=0);
-    feed("cfg:set,40,run_speed_straight,0.25\n");assert(g_param.run_speed_straight==.25f);assert(strstr(drain(),"APPLIED"));
+    feed("cfg:set,40,run_accel_mps2,0.25\n");assert(g_param.run_accel_mps2==.25f);assert(strstr(drain(),"APPLIED"));
     feed("cfg:set,41,lean_speed_kp,200\n");assert(g_param.lean_speed_kp==2);assert(strstr(drain(),"CLAMPED"));
-    feed("cfg:set,42,direction_rate_kd,0.5\n");assert(g_param.direction_balance_kd==.5f);assert(strstr(drain(),"APPLIED"));
-    feed("cfg:set,43,cam_exposure,80\n");assert(strstr(drain(),"RUNNING_LOCKED"));
+    feed("cfg:set,42,lean_turn_kp,0.5\n");assert(g_param.lean_turn_kp==.5f);assert(strstr(drain(),"APPLIED"));
+    feed("cfg:set,43,fly_speed_limit,80\n");assert(strstr(drain(),"UNSAFE_PARAM"));
     feed("cfg:set,44,motor_dir_a,1\n");assert(strstr(drain(),"UNSAFE_PARAM"));
     feed("cfg:save,45,all\n");assert(strstr(drain(),"SAVE_BLOCKED"));
     mock_run=0;mock_remote=1;
@@ -280,13 +282,13 @@ int main(void) {
     assert((cfg_pid_mask() & 0x01000000u)==0);
     feed("cfg:set,47,lean_speed_kp,1.5\n");assert(g_param.lean_speed_kp==1.25f);assert(strstr(drain(),"RUNNING_LOCKED"));
     mock_test=0;mock_jog=1;assert(cfg_pid_mask()==0);
-    feed("cfg:set,48,run_speed_straight,0.4\n");assert(g_param.run_speed_straight==.25f);assert(strstr(drain(),"RUNNING_LOCKED"));
+    feed("cfg:set,48,run_accel_mps2,0.4\n");assert(g_param.run_accel_mps2==.25f);assert(strstr(drain(),"RUNNING_LOCKED"));
     mock_jog=0;start_flag=START_STOP;
     start_flag=START_BALANCE;
     feed("cfg:set,56,yaw_hold_deg,2\n");assert(g_param.yaw_hold_deg==2);assert(strstr(drain(),"APPLIED"));
     g_yaw_target=12;att.yaw=11;imu.gyro_z=3;
     cfg_yaw_hold_report();assert(strstr(drain(),",12.000,11.000,3.00,"));
-    mock_run=1;feed("cfg:set,57,yaw_hold_deg,0\n");assert(g_param.yaw_hold_deg==2);assert(strstr(drain(),"RUNNING_LOCKED"));mock_run=0;
+    mock_path_active=1;feed("cfg:set,57,yaw_hold_deg,0\n");assert(g_param.yaw_hold_deg==2);assert(strstr(drain(),"RUNNING_LOCKED"));mock_path_active=0;
     start_flag=START_STOP;
     feed("cfg:schema,49\n");
     {int found=0;for(unsigned i=0;i<param_count();i++){g_control_uptime_ms+=31;cfg_poll();if(strstr(drain(),"lean_speed_kp,float,1.25,0,2,Lean,0.0001,21"))found=1;}assert(found);}

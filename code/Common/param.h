@@ -3,7 +3,6 @@
 
 #include "zf_common_headfile.h"
 #include "config.h"
-#include "Estimation/Beacon/beacon_core.h"
 
 #define PARAM_MAGIC_LEGACY      (0x51434145u)   // 旧绝对符号参数
 #define PARAM_MAGIC             (0x51434146u)   // 2026-09-21 相对基准符号参数
@@ -12,22 +11,8 @@
 typedef struct
 {
     // 正式跑车与循迹
-    float run_speed_straight;           // 直道速度(m/s)
-    float run_speed_curve;              // 弯道最低速度(m/s)
-    float run_speed_cross;              // 十字速度(m/s)
-    float run_speed_ring;               // 环岛速度(m/s)
-    float run_speed_ramp;               // 坡道速度(m/s)
-    float run_speed_lost;               // 低质量或短时丢线速度(m/s)
     float run_accel_mps2;               // 正式跑车加速度上限(m/s^2)
     float run_decel_mps2;               // 正式跑车减速度上限(m/s^2)
-    float direction_pixel_kp;           // 横向像素误差反馈
-    float direction_heading_kp;         // 赛道航向误差反馈
-    float direction_curve_kff;          // 速度-曲率前馈
-    float direction_balance_kd;         // 方向偏差 D
-    float zebra_stop_offset_m;          // 识别斑马线后的前行距离(m)
-    int   err_front_row;                // 前瞻行，拟合线在这一行求值
-    float ipm_h[9];                     // 逆透视矩阵，行优先。不进菜单，由 Calib IPM 写
-    int   cam_exposure;                 // 摄像头曝光时间
     float odom_counts_per_m;            // C 轮每行进 1m 的编码器脉冲数
     float odom_test_speed;              // 1m 里程验证速度(m/s)
 
@@ -72,14 +57,7 @@ typedef struct
     float lean_max_angle;               // 压弯动态零点最大值(°)
 
     // 元素使能，0=关 1=开。默认全关，普通循迹跑稳后一次只开一个
-    int   elem_en_zebra;                // 斑马线
-    int   elem_en_cross;                // 十字
-    int   elem_en_ring;                 // 环岛
-    int   elem_en_ramp;                 // 坡道
     // 现场需要调整的元素路径参数
-    int   ring_angle;                   // 环岛转角阈值
-    int   ring_s2_cnt_l;                // 左环编码器阈值
-    int   ring_s2_cnt_r;                // 右环编码器阈值
 
     // 零点、标定与保护
     int   imu_forward_dir;             // +1 当前前向 / -1 相对反向；保存重启生效
@@ -102,7 +80,6 @@ typedef struct
     int   jog_duty_drive;               // C 架空点动占空比，满量程 10000
     int   fly_speed_limit;              // A/B 转速上限(RPM)，超了停测试，0=关闭
     int   fly_slew;                     // A/B 占空比变化率上限(每1ms)，0=不限
-    beacon_config_t beacon; // CPU1 beacon settings; persisted by individual name
 } param_t;
 
 extern param_t g_param;                 // 运行参数
@@ -110,21 +87,8 @@ extern volatile uint32 g_param_revision;// 参数修订号
 
 // 运行参数映射
 // 正式跑车与循迹
-#define RUN_SPEED_STRAIGHT      (g_param.run_speed_straight)
-#define RUN_SPEED_CURVE         (g_param.run_speed_curve)
-#define RUN_SPEED_CROSS         (g_param.run_speed_cross)
-#define RUN_SPEED_RING          (g_param.run_speed_ring)
-#define RUN_SPEED_RAMP          (g_param.run_speed_ramp)
-#define RUN_SPEED_LOST          (g_param.run_speed_lost)
 #define RUN_ACCEL_MPS2          (g_param.run_accel_mps2)
 #define RUN_DECEL_MPS2          (g_param.run_decel_mps2)
-#define DIRECTION_PIXEL_KP      (g_param.direction_pixel_kp)
-#define DIRECTION_HEADING_KP    (g_param.direction_heading_kp)
-#define DIRECTION_CURVE_KFF     (g_param.direction_curve_kff)
-#define DIRECTION_BALANCE_KD    (g_param.direction_balance_kd)
-#define ZEBRA_STOP_OFFSET_M     (g_param.zebra_stop_offset_m)
-#define ERR_FRONT_ROW           (g_param.err_front_row)
-#define CAM_EXPOSURE            (g_param.cam_exposure)
 #define ODOM_COUNTS_PER_M       (g_param.odom_counts_per_m)
 #define ODOM_TEST_SPEED         (g_param.odom_test_speed)
 

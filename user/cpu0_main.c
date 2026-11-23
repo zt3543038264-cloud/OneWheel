@@ -3,6 +3,7 @@
 #include "config.h"
 #include "Common/param.h"
 #include "Controller/control.h"
+#include "Estimation/Gate/gate.h"
 #include "Menu/menu.h"
 #include "Protocols/vofa.h"
 
@@ -26,16 +27,17 @@ int core0_main(void)
     ips200_show_string(5, 5, "SYSTEM INIT");
     ips200_show_string(5, 25, "Keep car still...");
 
+    gate_init();
     control_init();                     // 内部会做 IMU 静止标定，这几秒车必须不动
     menu_init();
 
     cpu_wait_event_ready();             // 等 CPU1 也初始化完
     while (TRUE)
     {
+        gate_poll();
         vofa_cmd_poll();                // 先接受 Run Test 命令，避免屏幕刷新增加转向基准延迟
         menu_run();                     // 按键与刷屏
         control_imu_recovery_poll();     // 先画初始化提示，再做前台传感器配置/姿态对齐
-        (void)control_ipm_flush();      // 标定完成后在主循环写 Flash
         vofa_poll();                    // 按分频把波形快照格式化进上行环
         // 串口字节的实际收发在 1ms 中断的 vofa_tick1ms() 里，不受上面刷屏拖累
     }

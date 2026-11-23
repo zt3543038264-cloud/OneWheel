@@ -27,7 +27,7 @@ static uint8 menu_imu_recovery_intercept(void)
 static void menu_imu_discard_confirmations(void)
 {
     uint8 i;
-    s_balance_armed_until_ms = s_remote_armed_until_ms = s_run_armed_until_ms = 0;
+    s_balance_armed_until_ms = s_remote_armed_until_ms = 0;
     s_reset_armed_until_ms = s_path_armed_until = 0;
     s_path_armed_action = 0xffu;
     s_enter_event_long = 0;
@@ -68,7 +68,7 @@ static uint8 menu_imu_recovery_guard(void)
         s_menu_imu_wait_release = 1;
         s_menu_imu_release_since = now;
         menu_imu_discard_confirmations();
-        s_balance_on = s_test_on = s_run_on = s_editing = 0;
+        s_balance_on = s_test_on = s_editing = 0;
         s_active_test = 0xffu;
         s_status[0] = '\0';
         if (state == CTRL_IMU_FAILED)

@@ -364,172 +364,18 @@
     ]
   },
   "parameters": {
-    "run_speed_straight": {
-      "label": "直道速度",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 1.199999,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "run_speed_curve": {
-      "label": "弯道速度",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.8000002,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "run_speed_cross": {
-      "label": "跑车 · run_speed_cross",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.8000002,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "run_speed_ring": {
-      "label": "跑车 · run_speed_ring",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.9999994,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "run_speed_ramp": {
-      "label": "跑车 · run_speed_ramp",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 1.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "run_speed_lost": {
-      "label": "跑车 · run_speed_lost",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.2,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
     "run_accel_mps2": {
       "label": "跑车 · run_accel_mps2",
-      "step": 0.05,
-      "decimals": 2,
+      "step": 0.0001,
+      "decimals": 6,
       "default": 0.5,
       "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "run_decel_mps2": {
       "label": "跑车 · run_decel_mps2",
-      "step": 0.05,
-      "decimals": 2,
-      "default": 1.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "direction_pixel_kp": {
-      "label": "跑车 · direction_pixel_kp",
-      "step": 0.05,
-      "decimals": 3,
-      "default": 1.599999,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "direction_heading_kp": {
-      "label": "跑车 · direction_heading_kp",
-      "step": 0.05,
-      "decimals": 3,
-      "default": 0.9999999,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "direction_curve_kff": {
-      "label": "跑车 · direction_curve_kff",
-      "step": 0.25,
-      "decimals": 2,
-      "default": 60.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "direction_rate_kd": {
-      "label": "跑车 · direction_rate_kd",
-      "step": 0.001,
-      "decimals": 4,
-      "default": 0.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "zebra_stop_offset_m": {
-      "label": "元素 · zebra_stop_offset_m",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.15,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "err_front_row": {
-      "label": "前瞻行",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 67,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h0": {
-      "label": "逆透视 · ipm_h0",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": 2.532712,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h1": {
-      "label": "逆透视 · ipm_h1",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": -0.1793851,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h2": {
-      "label": "逆透视 · ipm_h2",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": -225.105,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h3": {
-      "label": "逆透视 · ipm_h3",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": -3.285259e-07,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h4": {
-      "label": "逆透视 · ipm_h4",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": 3.455418,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h5": {
-      "label": "逆透视 · ipm_h5",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": -306.3803,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h6": {
-      "label": "逆透视 · ipm_h6",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": -3.525401e-10,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h7": {
-      "label": "逆透视 · ipm_h7",
-      "step": 0.0001,
-      "decimals": 6,
-      "default": 0.03943732,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ipm_h8": {
-      "label": "逆透视 · ipm_h8",
       "step": 0.0001,
       "decimals": 6,
       "default": 1.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "cam_exposure": {
-      "label": "摄像头曝光",
-      "step": 2.0,
-      "decimals": 0,
-      "default": 48,
       "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
     },
     "odom_counts_per_m": {
@@ -775,55 +621,6 @@
       "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。",
       "unit": "°"
     },
-    "elem_en_zebra": {
-      "label": "元素 · elem_en_zebra",
-      "step": 1,
-      "decimals": 0,
-      "default": 1,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "elem_en_cross": {
-      "label": "元素 · elem_en_cross",
-      "step": 1,
-      "decimals": 0,
-      "default": 1,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "elem_en_ring": {
-      "label": "元素 · elem_en_ring",
-      "step": 1,
-      "decimals": 0,
-      "default": 0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "elem_en_ramp": {
-      "label": "元素 · elem_en_ramp",
-      "step": 1,
-      "decimals": 0,
-      "default": 1,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ring_angle": {
-      "label": "元素 · ring_angle",
-      "step": 5.0,
-      "decimals": 0,
-      "default": 340,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ring_s2_cnt_l": {
-      "label": "元素 · ring_s2_cnt_l",
-      "step": 10.0,
-      "decimals": 0,
-      "default": 300,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "ring_s2_cnt_r": {
-      "label": "元素 · ring_s2_cnt_r",
-      "step": 10.0,
-      "decimals": 0,
-      "default": 400,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
     "imu_forward_dir": {
       "label": "IMU 前向",
       "step": 2.0,
@@ -896,6 +693,20 @@
         "1": "当前实车基准 +1"
       }
     },
+    "motor_c_deadzone_fwd": {
+      "label": "电机 · motor_c_deadzone_fwd",
+      "step": 1,
+      "decimals": 0,
+      "default": 0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
+    "motor_c_deadzone_rev": {
+      "label": "电机 · motor_c_deadzone_rev",
+      "step": 1,
+      "decimals": 0,
+      "default": 0,
+      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
+    },
     "enc_dir_a": {
       "label": "Flywheel A encoder polarity",
       "step": 2.0,
@@ -959,153 +770,6 @@
       "decimals": 0,
       "default": 0,
       "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_mode": {
-      "label": "Beacon · beacon_mode",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_threshold": {
-      "label": "Beacon · beacon_threshold",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 60,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_radius": {
-      "label": "Beacon · beacon_radius",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 3,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_min_gray": {
-      "label": "Beacon · beacon_min_gray",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 100,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_max_miss": {
-      "label": "Beacon · beacon_max_miss",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 5,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_min_std": {
-      "label": "Beacon · beacon_min_std",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 20.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_min_ratio": {
-      "label": "Beacon · beacon_min_ratio",
-      "step": 0.1,
-      "decimals": 2,
-      "default": 1.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_near_area": {
-      "label": "Beacon · beacon_near_area",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 20.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_match_px": {
-      "label": "Beacon · beacon_match_px",
-      "step": 0.5,
-      "decimals": 1,
-      "default": 3.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_speed_mps": {
-      "label": "Beacon · beacon_speed_mps",
-      "step": 0.01,
-      "decimals": 2,
-      "default": 0.15,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_yaw_limit_dps": {
-      "label": "Beacon · beacon_yaw_limit_dps",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 30.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_mid_x": {
-      "label": "Beacon · beacon_mid_x",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 93.0,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_weight_dist": {
-      "label": "Beacon · beacon_weight_dist",
-      "step": 0.1,
-      "decimals": 2,
-      "default": 0.5,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_weight_angle": {
-      "label": "Beacon · beacon_weight_angle",
-      "step": 0.1,
-      "decimals": 2,
-      "default": 0.5,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_weight_continuity": {
-      "label": "Beacon · beacon_weight_continuity",
-      "step": 0.1,
-      "decimals": 2,
-      "default": 0.2,
-      "description": "当前范围、类型与权限由 MCU Schema 确认；默认值仅供参考。"
-    },
-    "beacon_track_row": {
-      "label": "动态中线起始行",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 50,
-      "description": "目标cy达到此原图行号后使用动态中线；必须小于Turn Row。"
-    },
-    "beacon_turn_row": {
-      "label": "近处转弯行",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 110,
-      "description": "目标cy达到此原图行号后锁存转向；丢标时沿该方向搜索。"
-    },
-    "beacon_line_kp": {
-      "label": "动态中线斜率",
-      "step": 0.05,
-      "decimals": 2,
-      "default": 0.8,
-      "description": "近处中线偏移=Line Kp×cy−Line Offset，左右方向相反。"
-    },
-    "beacon_line_offset": {
-      "label": "动态中线偏移",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 41.0,
-      "description": "与Line Kp一起确定近处追踪中线，单位为原图像素。"
-    },
-    "beacon_search_error": {
-      "label": "搜索像素偏差",
-      "step": 1.0,
-      "decimals": 1,
-      "default": 60.0,
-      "description": "搜索时送给当前方向控制器的偏差绝对值；仍受Yaw Max约束，0关闭搜索。"
-    },
-    "beacon_search_frames": {
-      "label": "搜索等待帧数",
-      "step": 1.0,
-      "decimals": 0,
-      "default": 20,
-      "description": "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。600ms丢标保护仍有效。"
     }
   },
   "parameter_groups": [
@@ -1114,75 +778,11 @@
     "Yaw",
     "Lean",
     "Run",
-    "Camera",
-    "Element",
     "Motor",
     "Zero",
-    "Odometry",
-    "IPM",
-    "Beacon"
+    "Odometry"
   ],
   "mock_parameters": [
-    {
-      "name": "run_speed_straight",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 1.199999,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
-    {
-      "name": "run_speed_curve",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 0.8000002,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
-    {
-      "name": "run_speed_cross",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 0.8000002,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
-    {
-      "name": "run_speed_ring",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 0.9999994,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
-    {
-      "name": "run_speed_ramp",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 1.0,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
-    {
-      "name": "run_speed_lost",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.5,
-      "value": 0.2,
-      "group": "Run",
-      "step": 0.01,
-      "flags": 21
-    },
     {
       "name": "run_accel_mps2",
       "type": "float",
@@ -1190,7 +790,7 @@
       "max": 10.0,
       "value": 0.5,
       "group": "Run",
-      "step": 0.05,
+      "step": 0.0001,
       "flags": 21
     },
     {
@@ -1200,168 +800,8 @@
       "max": 10.0,
       "value": 1.0,
       "group": "Run",
-      "step": 0.05,
+      "step": 0.0001,
       "flags": 21
-    },
-    {
-      "name": "direction_pixel_kp",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 1.599999,
-      "group": "Run",
-      "step": 0.05,
-      "flags": 21
-    },
-    {
-      "name": "direction_heading_kp",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 0.9999999,
-      "group": "Run",
-      "step": 0.05,
-      "flags": 21
-    },
-    {
-      "name": "direction_curve_kff",
-      "type": "float",
-      "min": 0.0,
-      "max": 100.0,
-      "value": 60.0,
-      "group": "Run",
-      "step": 0.25,
-      "flags": 21
-    },
-    {
-      "name": "direction_rate_kd",
-      "type": "float",
-      "min": 0.0,
-      "max": 1.0,
-      "value": 0.0,
-      "group": "Run",
-      "step": 0.001,
-      "flags": 21
-    },
-    {
-      "name": "zebra_stop_offset_m",
-      "type": "float",
-      "min": 0.0,
-      "max": 2.0,
-      "value": 0.15,
-      "group": "Element",
-      "step": 0.01,
-      "flags": 4
-    },
-    {
-      "name": "err_front_row",
-      "type": "int",
-      "min": 10.0,
-      "max": 115.0,
-      "value": 67,
-      "group": "Camera",
-      "step": 1.0,
-      "flags": 4
-    },
-    {
-      "name": "ipm_h0",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": 2.532712,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h1",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": -0.1793851,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h2",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": -225.105,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h3",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": -3.285259e-07,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h4",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": 3.455418,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h5",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": -306.3803,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h6",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": -3.525401e-10,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h7",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": 0.03943732,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "ipm_h8",
-      "type": "float",
-      "min": -100000000.0,
-      "max": 100000000.0,
-      "value": 1.0,
-      "group": "IPM",
-      "step": 0.0001,
-      "flags": 6
-    },
-    {
-      "name": "cam_exposure",
-      "type": "int",
-      "min": 4.0,
-      "max": 1600.0,
-      "value": 48,
-      "group": "Camera",
-      "step": 2.0,
-      "flags": 4
     },
     {
       "name": "odom_counts_per_m",
@@ -1704,76 +1144,6 @@
       "flags": 21
     },
     {
-      "name": "elem_en_zebra",
-      "type": "int",
-      "min": 0.0,
-      "max": 1.0,
-      "value": 1,
-      "group": "Element",
-      "step": 1,
-      "flags": 4
-    },
-    {
-      "name": "elem_en_cross",
-      "type": "int",
-      "min": 0.0,
-      "max": 1.0,
-      "value": 1,
-      "group": "Element",
-      "step": 1,
-      "flags": 4
-    },
-    {
-      "name": "elem_en_ring",
-      "type": "int",
-      "min": 0.0,
-      "max": 1.0,
-      "value": 0,
-      "group": "Element",
-      "step": 1,
-      "flags": 4
-    },
-    {
-      "name": "elem_en_ramp",
-      "type": "int",
-      "min": 0.0,
-      "max": 1.0,
-      "value": 1,
-      "group": "Element",
-      "step": 1,
-      "flags": 4
-    },
-    {
-      "name": "ring_angle",
-      "type": "int",
-      "min": 0.0,
-      "max": 720.0,
-      "value": 340,
-      "group": "Element",
-      "step": 5.0,
-      "flags": 4
-    },
-    {
-      "name": "ring_s2_cnt_l",
-      "type": "int",
-      "min": 0.0,
-      "max": 5000.0,
-      "value": 300,
-      "group": "Element",
-      "step": 10.0,
-      "flags": 4
-    },
-    {
-      "name": "ring_s2_cnt_r",
-      "type": "int",
-      "min": 0.0,
-      "max": 5000.0,
-      "value": 400,
-      "group": "Element",
-      "step": 10.0,
-      "flags": 4
-    },
-    {
       "name": "imu_forward_dir",
       "type": "int",
       "min": -1.0,
@@ -1854,6 +1224,26 @@
       "flags": 6
     },
     {
+      "name": "motor_c_deadzone_fwd",
+      "type": "int",
+      "min": 0.0,
+      "max": 2000.0,
+      "value": 0,
+      "group": "Motor",
+      "step": 1,
+      "flags": 6
+    },
+    {
+      "name": "motor_c_deadzone_rev",
+      "type": "int",
+      "min": 0.0,
+      "max": 2000.0,
+      "value": 0,
+      "group": "Motor",
+      "step": 1,
+      "flags": 6
+    },
+    {
       "name": "enc_dir_a",
       "type": "int",
       "min": -1.0,
@@ -1931,216 +1321,6 @@
       "value": 0,
       "group": "Motor",
       "step": 100.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_mode",
-      "type": "int",
-      "min": 0.0,
-      "max": 3.0,
-      "value": 0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_threshold",
-      "type": "int",
-      "min": 1.0,
-      "max": 254.0,
-      "value": 60,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_radius",
-      "type": "int",
-      "min": 1.0,
-      "max": 4.0,
-      "value": 3,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_min_gray",
-      "type": "int",
-      "min": 0.0,
-      "max": 255.0,
-      "value": 100,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_max_miss",
-      "type": "int",
-      "min": 0.0,
-      "max": 40.0,
-      "value": 5,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_min_std",
-      "type": "float",
-      "min": 0.0,
-      "max": 128.0,
-      "value": 20.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_min_ratio",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 1.0,
-      "group": "Beacon",
-      "step": 0.1,
-      "flags": 6
-    },
-    {
-      "name": "beacon_near_area",
-      "type": "float",
-      "min": 0.0,
-      "max": 2000.0,
-      "value": 20.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_match_px",
-      "type": "float",
-      "min": 0.0,
-      "max": 50.0,
-      "value": 3.0,
-      "group": "Beacon",
-      "step": 0.5,
-      "flags": 6
-    },
-    {
-      "name": "beacon_speed_mps",
-      "type": "float",
-      "min": 0.0,
-      "max": 0.5,
-      "value": 0.15,
-      "group": "Beacon",
-      "step": 0.01,
-      "flags": 6
-    },
-    {
-      "name": "beacon_yaw_limit_dps",
-      "type": "float",
-      "min": 0.0,
-      "max": 60.0,
-      "value": 30.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_mid_x",
-      "type": "float",
-      "min": 0.0,
-      "max": 187.0,
-      "value": 93.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_weight_dist",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 0.5,
-      "group": "Beacon",
-      "step": 0.1,
-      "flags": 6
-    },
-    {
-      "name": "beacon_weight_angle",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 0.5,
-      "group": "Beacon",
-      "step": 0.1,
-      "flags": 6
-    },
-    {
-      "name": "beacon_weight_continuity",
-      "type": "float",
-      "min": 0.0,
-      "max": 10.0,
-      "value": 0.2,
-      "group": "Beacon",
-      "step": 0.1,
-      "flags": 6
-    },
-    {
-      "name": "beacon_track_row",
-      "type": "int",
-      "min": 25.0,
-      "max": 118.0,
-      "value": 50,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_turn_row",
-      "type": "int",
-      "min": 26.0,
-      "max": 119.0,
-      "value": 110,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_line_kp",
-      "type": "float",
-      "min": 0.0,
-      "max": 2.0,
-      "value": 0.8,
-      "group": "Beacon",
-      "step": 0.05,
-      "flags": 6
-    },
-    {
-      "name": "beacon_line_offset",
-      "type": "float",
-      "min": 0.0,
-      "max": 187.0,
-      "value": 41.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_search_error",
-      "type": "float",
-      "min": 0.0,
-      "max": 94.0,
-      "value": 60.0,
-      "group": "Beacon",
-      "step": 1.0,
-      "flags": 6
-    },
-    {
-      "name": "beacon_search_frames",
-      "type": "int",
-      "min": 1.0,
-      "max": 100.0,
-      "value": 20,
-      "group": "Beacon",
-      "step": 1.0,
       "flags": 6
     }
   ],

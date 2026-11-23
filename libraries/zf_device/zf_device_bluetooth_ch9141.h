@@ -66,7 +66,7 @@
 uint32  bluetooth_ch9141_send_byte          (const uint8 data);                             // 蓝牙转串口模块 发送数据
 uint32  bluetooth_ch9141_send_buffer        (const uint8 *buff, uint32 len);                // 蓝牙转串口模块 发送数组
 uint32  bluetooth_ch9141_send_string        (const char *str);                              // 蓝牙转串口模块 发送字符串
-void    bluetooth_ch9141_send_image         (const uint8 *image_addr, uint32 image_size);   // 蓝牙转串口模块 发送摄像头图像至上位机查看图像
+   // 蓝牙转串口模块 发送摄像头图像至上位机查看图像
 uint32  bluetooth_ch9141_read_buffer        (uint8 *buff, uint32 len);                      // 蓝牙转串口模块 读取函数
 void    bluetooth_ch9141_uart_callback      (void);                                         // 蓝牙转串口模块 串口中断回调函数
 uint8   bluetooth_ch9141_init               (void);                                         // 蓝牙转串口模块 初始化

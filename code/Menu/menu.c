@@ -9,13 +9,13 @@
 #include "HW_Drivers/Motor/W_Motor.h"
 #include "HW_Drivers/Motor/Y_Motor.h"
 #include "Estimation/Attitude/attitude.h"
+#include "Estimation/Gate/gate.h"
+#include "Estimation/Gate/bearing_candidate.h"
 #include "config.h"
 #include "Common/param.h"
 #include "Controller/control.h"
-#include "Menu/display.h"
 #include "HW_Drivers/IMU/imu.h"
 #include "Common/param.h"
-#include "Estimation/Vision/vision_core.h"
 #include "Protocols/vofa.h"
 #include "zf_device_ips200.h"
 #include "zf_device_key.h"
@@ -50,7 +50,6 @@
 #define UI_RESET_CONFIRM_MS    (3000u)   // Reset 二次确认窗口
 #define UI_IPM_AUTO_MS         (2000u)   // 标定页 READY 连续保持这么久就自动标定
 #define UI_BALANCE_CONFIRM_MS  (3000u)   // Balance 二次确认窗口
-#define UI_MAIN_ITEM_COUNT     (5u)
 #define UI_RUN_TEST_ITEM_COUNT (3u)
 #define UI_MAX_GROUP_ITEMS     (24u)     // 单页参数行上限，子页 Save 组名字表用
 #define UI_CAM_FRAME_TIMEOUT_MS (100u)   // 超过该时间没有新帧视为摄像头帧失联
@@ -61,11 +60,10 @@ typedef enum
     MENU_PAGE_PARAMS,
     MENU_PAGE_ATTITUDE,
     MENU_PAGE_GROUP,
-    MENU_PAGE_IMAGE,
-    MENU_PAGE_IPM,          // 逆透视标定页，看着屏幕摆车
     MENU_PAGE_RUN_TEST,
     MENU_PAGE_PATH,
     MENU_PAGE_PATH_MAP,
+    MENU_PAGE_GATE,
     MENU_PAGE_COUNT
 } menu_page_t;
 
@@ -73,14 +71,10 @@ typedef enum
 typedef enum
 {
     GROUP_KIND_AXIS = 0,    // 分环 Test，闭环驱动对应轴
-    GROUP_KIND_CAMERA,      // 循迹参数、视觉状态与逆透视标定入口
     GROUP_KIND_MOTOR,       // 架空点动，验证转向与转速回读符号
     GROUP_KIND_ZERO,        // 手动调整机械零点与保护角参数
-    GROUP_KIND_ELEMENT,     // 元素使能与阈值，实时显示识别到的元素，无动作行
     GROUP_KIND_ODOMETRY,    // C 轮每米脉冲标定与 1m 验证
     GROUP_KIND_LEAN,        // 压弯动态零点，纯参数页，无动作行也无实时行
-    GROUP_KIND_BEACON, // restored beacon detection and route selection
-    GROUP_KIND_RUN,         // 正式跑车速度规划与视觉转向参数
 } group_kind_t;
 
 // 一个可编辑参数行
@@ -150,41 +144,10 @@ static const menu_param_item_t s_lean_items[] =
     { "Lean Max",    "lean_max_angle", 0.1f, 2 }
 };
 
-static const menu_param_item_t s_camera_items[] =
-{
-    { "Exposure",  "cam_exposure",  2.0f, 0 },
-    { "Front Row", "err_front_row", 1.0f, 0 }
-};
 
 // 正式 Run 页面只显示现场需要反复调整的参数，其余保护与识别阈值为编译期常量。
-static const menu_param_item_t s_run_items[] =
-{
-    { "Straight", "run_speed_straight", 0.01f, 2 },
-    { "Curve",    "run_speed_curve",    0.01f, 2 },
-    { "Cross",    "run_speed_cross",    0.01f, 2 },
-    { "Ring",     "run_speed_ring",     0.01f, 2 },
-    { "Ramp",     "run_speed_ramp",     0.01f, 2 },
-    { "Lost",     "run_speed_lost",     0.01f, 2 },
-    { "Accel",    "run_accel_mps2",       0.05f,   2 },
-    { "Decel",    "run_decel_mps2",       0.05f,   2 },
-    { "Pixel Kp", "direction_pixel_kp",   0.05f, 3 },
-    { "Head Kp",  "direction_heading_kp", 0.05f, 3 },
-    { "Curve FF", "direction_curve_kff",  0.25f, 2 },
-    { "Dir Kd",   "direction_rate_kd", 0.001f,  4 }
-};
 
 // 元素页只保留现场需要调整的使能、停车距离和环岛路径参数。
-static const menu_param_item_t s_element_items[] =
-{
-    { "En Zebra",   "elem_en_zebra",    2.0f, 0 },
-    { "En Cross",   "elem_en_cross",    2.0f, 0 },
-    { "En Ring",    "elem_en_ring",     2.0f, 0 },
-    { "En Ramp",    "elem_en_ramp",     2.0f, 0 },
-    { "Zebra Stop", "zebra_stop_offset_m", 0.01f, 2 },
-    { "Ring Angle", "ring_angle",       5.0f, 0 },
-    { "Ring CntL",  "ring_s2_cnt_l",   10.0f, 0 },
-    { "Ring CntR",  "ring_s2_cnt_r",   10.0f, 0 }
-};
 
 // 极性取值只有 ±1，步长给 2 保证一次按键就翻符号。
 static const menu_param_item_t s_motor_items[] =
@@ -227,29 +190,6 @@ static const char * const s_motor_action_names[] =
 
 #define MENU_ITEMS_OF(a) ((uint8)(sizeof(a) / sizeof((a)[0])))
 
-static const menu_param_item_t s_beacon_items[] = {
-    { "Mode 0..3", "beacon_mode", 1.000f, 0 },
-    { "Threshold", "beacon_threshold", 1.000f, 0 },
-    { "Radius", "beacon_radius", 1.000f, 0 },
-    { "Min Gray", "beacon_min_gray", 1.000f, 0 },
-    { "Max Miss", "beacon_max_miss", 1.000f, 0 },
-    { "Min Std", "beacon_min_std", 1.000f, 1 },
-    { "Min Ratio", "beacon_min_ratio", 0.100f, 2 },
-    { "Near Area", "beacon_near_area", 1.000f, 1 },
-    { "Match px", "beacon_match_px", 0.500f, 1 },
-    { "Speed m/s", "beacon_speed_mps", 0.010f, 2 },
-    { "Yaw Max", "beacon_yaw_limit_dps", 1.000f, 1 },
-    { "Mid X", "beacon_mid_x", 1.000f, 1 },
-    { "W Distance", "beacon_weight_dist", 0.100f, 2 },
-    { "W Turn", "beacon_weight_angle", 0.100f, 2 },
-    { "W Continue", "beacon_weight_continuity", 0.100f, 2 },
-    { "Track Row", "beacon_track_row", 1.000f, 0 },
-    { "Turn Row", "beacon_turn_row", 1.000f, 0 },
-    { "Line Kp", "beacon_line_kp", 0.050f, 2 },
-    { "Line Offset", "beacon_line_offset", 1.000f, 1 },
-    { "Search Err", "beacon_search_error", 1.000f, 1 },
-    { "Search Frames", "beacon_search_frames", 1.000f, 0 },
-};
 
 static const menu_group_t s_groups[] =
 {
@@ -257,13 +197,9 @@ static const menu_group_t s_groups[] =
     { "Pitch",  s_pitch_items,  MENU_ITEMS_OF(s_pitch_items),  TUNE_AXIS_PITCH, 3, GROUP_KIND_AXIS   },
     { "Yaw",    s_yaw_items,    MENU_ITEMS_OF(s_yaw_items),    TUNE_AXIS_YAW,   2, GROUP_KIND_AXIS   },
     { "Lean",    s_lean_items,    MENU_ITEMS_OF(s_lean_items),    TUNE_AXIS_ROLL, 0, GROUP_KIND_LEAN },
-    { "Run",     s_run_items,     MENU_ITEMS_OF(s_run_items),     TUNE_AXIS_YAW,  0, GROUP_KIND_RUN     },
-    { "Camera",  s_camera_items,  MENU_ITEMS_OF(s_camera_items),  TUNE_AXIS_YAW,  3, GROUP_KIND_CAMERA  },
-    { "Element", s_element_items, MENU_ITEMS_OF(s_element_items), TUNE_AXIS_YAW,  0, GROUP_KIND_ELEMENT },
     { "Motor",   s_motor_items,   MENU_ITEMS_OF(s_motor_items),   TUNE_AXIS_ROLL, 6, GROUP_KIND_MOTOR   },
     { "Zero",    s_zero_items,    MENU_ITEMS_OF(s_zero_items),    TUNE_AXIS_ROLL, 0, GROUP_KIND_ZERO    },
     { "Odometry",s_odometry_items,MENU_ITEMS_OF(s_odometry_items),TUNE_AXIS_PITCH,2, GROUP_KIND_ODOMETRY},
-    { "Beacon",s_beacon_items,MENU_ITEMS_OF(s_beacon_items),TUNE_AXIS_YAW,2,GROUP_KIND_BEACON }
 };
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -290,14 +226,11 @@ static uint8 group_item_count(const menu_group_t *group)
 
 // save_group_action() 在栈上开 UI_MAX_GROUP_ITEMS 个名字指针，任何一页的行数超了都会越界写
 typedef char menu_group_items_fit[
-    (MENU_ITEMS_OF(s_beacon_items) <= UI_MAX_GROUP_ITEMS &&
+    (
      MENU_ITEMS_OF(s_roll_items)    <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_pitch_items)   <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_yaw_items)     <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_lean_items)    <= UI_MAX_GROUP_ITEMS &&
-     MENU_ITEMS_OF(s_run_items)     <= UI_MAX_GROUP_ITEMS &&
-     MENU_ITEMS_OF(s_camera_items)  <= UI_MAX_GROUP_ITEMS &&
-     MENU_ITEMS_OF(s_element_items) <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_motor_items)   <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_zero_items)    <= UI_MAX_GROUP_ITEMS &&
      MENU_ITEMS_OF(s_odometry_items)<= UI_MAX_GROUP_ITEMS) ? 1 : -1];
@@ -309,13 +242,9 @@ static const char * const s_param_page_names[] =
     "Pitch",
     "Yaw",
     "Lean",
-    "Run",
-    "Camera",
-    "Element",
     "Motor",
     "Zero",
     "Odometry",
-    "Beacon",
     "Save",
     "Reset",
     "Back"
@@ -326,7 +255,6 @@ static const char * const s_param_page_names[] =
 
 static Menu_Item *s_root,*s_folder,*s_views[MENU_PAGE_COUNT],*s_group_nodes[GROUP_COUNT];
 static int menu_tree_build(void);
-static void run_action(void);
 static void menu_enter(void);
 static void menu_back(void);
 static uint8 menu_imu_recovery_intercept(void);
@@ -341,28 +269,15 @@ static uint8       s_editing;                       // 正在编辑参数值
 static uint8       s_test_on;                       // 当前页开着 Test
 static uint8       s_active_test;                   // 开着的是哪一个动作行，0xFF 表示没有
 static uint8       s_dirty;                         // 1=重绘本页 2=先整屏清再重绘
-static uint8       s_image_ok;                      // 图像页看到的摄像头就绪状态
 static uint32      s_reset_armed_until_ms;          // Reset 二次确认截止时刻，0=未进入确认态
 static uint32      s_balance_armed_until_ms;        // Balance 二次确认截止时刻，0=未进入确认态
 static uint32      s_remote_armed_until_ms;         // Remote 二次确认截止时刻，0=未进入确认态
-static uint32      s_run_armed_until_ms;            // Run 二次确认截止时刻，0=未进入确认态
-static uint8       s_run_on;                        // 菜单侧记录的跑车运行标志
-static uint8       s_ipm_pick;                      // 标定页：上一帧取角点的结果，ipm_pick_t
 static uint8       s_balance_on;                    // 上次看到的三轴平衡运行状态，用来发现安全闸自动停机
 static uint8       s_long_active[KEY_NUMBER];       // 该键正处于长按状态
 static uint32      s_last_repeat_ms[KEY_NUMBER];    // 该键上次长按连发的时刻
 static uint32      s_last_live_ms;                  // 上次刷新实时行的时刻
-static uint32      s_last_image_draw_ms;            // 上次刷新横屏图像的时刻
-static uint32      s_last_image_frame_seq;          // 上次提交显示的视觉帧序号
 static uint32      s_last_param_revision;           // 上次看到的参数修订号
 static uint32      s_status_until_ms;               // 状态行到期时刻
-static uint8       s_image_redraw_pending;          // 图像页有新内容待刷
-static uint8       s_last_image_state;              // 上次显示的 CPU1 摄像头状态
-static uint32      s_ipm_ready_since;               // 标定页上 READY 连续保持的起始时刻
-static uint8       s_ipm_wait_save;                 // 已标定完，正在等 Flash 落盘
-static uint32      s_ipm_req_revision;              // 发标定请求时的参数修订号
-static uint8       s_ipm_counting;                  // 1=正在给自动标定倒计时
-static uint8       s_ipm_tried;                     // 1=已经发过标定请求但还没成功
 static char        s_status[30];                    // 限时状态行文本
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -796,7 +711,6 @@ static void draw_param_row(uint8 row, uint8 absolute_index, const menu_param_ite
 //-------------------------------------------------------------------------------------------------------------------
 static void render_main_live(void)
 {
-    vision_core_state_t camera_state = vision_core_state();
 
     if (!g_imu_ok)                                      ui_line(120, "IMU  INIT FAILED", UI_RED);
     else if (imu_forward_pending())                    ui_line(120, "IMU SAVE + REBOOT", UI_YELLOW);
@@ -810,18 +724,6 @@ static void render_main_live(void)
     if (W_Motor_LinkLost())         ui_line(144, "BLDC LINK LOST", UI_RED);
     else                            ui_line(144, "BLDC UART OK", UI_GREEN);
 
-    if (camera_state == VISION_CORE_OFF)
-        ui_line(168, "CAM  NOT INITIALIZED", UI_YELLOW);
-    else if (camera_state == VISION_CORE_STARTING)
-        ui_line(168, "CAM  STARTING", UI_YELLOW);
-    else if (camera_state == VISION_CORE_FAILED)
-        ui_line(168, "CAM  INIT FAILED", UI_RED);
-    else if (g_vision_frame_seq == 0u)
-        ui_line(168, "CAM  WAITING FRAME", UI_YELLOW);
-    else if (g_vision_age_ms > UI_CAM_FRAME_TIMEOUT_MS)
-        ui_line(168, "CAM  FRAME LOST", UI_RED);
-    else
-        ui_line(168, "CAM  READY", UI_GREEN);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -832,21 +734,12 @@ static void render_main_live(void)
 //-------------------------------------------------------------------------------------------------------------------
 static void render_main(void)
 {
-    const char *run_text;
 
-    if (control_run_running())
-        run_text = "Run: ON";
-    else if (start_flag == START_BALANCE)
-        run_text = "Run: HOLD";
-    else
-        run_text = "Run";
-
-    ui_header("MENU", s_cursor, UI_MAIN_ITEM_COUNT);
+    ui_header("MENU", s_cursor, current_count());
     draw_action_row(0, 0, "Params");
-    draw_action_row(1, 1, "Image");
-    draw_action_row(2, 2, run_text);
-    draw_action_row(3, 3, control_remote_running() ? "Run Test: ON" : "Run Test");
-    draw_action_row(4, 4, control_path_active() ? "Path: ON / HOLD" : "Path");
+    draw_action_row(1, 1, control_remote_running() ? "Run Test: ON" : "Run Test");
+    draw_action_row(2, 2, control_path_active() ? "Path: ON / HOLD" : "Path");
+    draw_action_row(3, 3, "Gate Debug");
     render_main_live();
     draw_status();
     ui_footer();
@@ -1014,23 +907,12 @@ static void render_attitude(void)
 // 返回参数     void
 // 使用示例     render_group_live();
 //-------------------------------------------------------------------------------------------------------------------
+
 static void render_group_live(void)
 {
     const menu_group_t *group = &s_groups[s_group_index];
     char line[30];
 
-    if (group->kind == GROUP_KIND_BEACON) {
-        beacon_result_t b;
-        uint32 irq=interrupt_global_disable();b=g_beacon_result;interrupt_global_enable(irq);
-        (void)snprintf(line,sizeof(line),"MODE%d N%u/%u NEXT%u",g_param.beacon.mode,(unsigned)b.count,(unsigned)b.total,(unsigned)b.next);
-        ui_line(229,line,UI_CYAN);
-        (void)snprintf(line,sizeof(line),"X%.1f Y%.1f MID%.1f",(double)b.cx,(double)b.cy,(double)b.follow_mid_x);ui_line(245,line,UI_CYAN);
-        (void)snprintf(line,sizeof(line),"ERR%+.1f TURN%u MISS%u",(double)b.error_px,(unsigned)b.turn,(unsigned)b.missed_frames);ui_line(261,line,UI_CYAN);
-        ui_line(277,b.searching?"BEACON SEARCH":
-                    b.steer_valid?(b.follow_state==BEACON_FOLLOW_NEAR?"BEACON NEAR":"BEACON TRACK"):
-                    "NO TARGET / HOLD",b.valid&&b.steer_valid?UI_GREEN:UI_YELLOW);
-        return;
-    }
 
     if (group->kind == GROUP_KIND_MOTOR)
     {
@@ -1154,13 +1036,7 @@ static const char *action_name(uint8 action_index)
 {
     const menu_group_t *group = &s_groups[s_group_index];
 
-    if (group->kind == GROUP_KIND_BEACON) return action_index==0u?"Camera On":"Run Beacon";
     if (group->kind == GROUP_KIND_MOTOR) return s_motor_action_names[action_index];
-    if (group->kind == GROUP_KIND_CAMERA) {
-        if (action_index == 1u) return "Diag 50/512";
-        if (action_index == 2u) return "Normal Camera";
-        return g_vision_ipm_ok ? "Calib IPM: OK" : "Calib IPM";
-    }
     if (group->kind == GROUP_KIND_ODOMETRY)
     {
         if (action_index == 0u) return "Reset Counter";
@@ -1237,7 +1113,7 @@ static void render_group(void)
             uint8 action = (uint8)(index - action_begin);
 
             if (group->kind == GROUP_KIND_MOTOR || group->kind == GROUP_KIND_ZERO ||
-                group->kind == GROUP_KIND_BEACON || group->kind == GROUP_KIND_CAMERA || group->kind == GROUP_KIND_ODOMETRY)
+                group->kind == GROUP_KIND_ODOMETRY)
                 (void)snprintf(label, sizeof(label), "%s", action_name(action));
             else
                 (void)snprintf(label, sizeof(label), "%s %s Test",
@@ -1267,6 +1143,73 @@ static void render_group(void)
 // 使用示例     render_page();
 //-------------------------------------------------------------------------------------------------------------------
 #include "Menu/menu_path.inc"
+
+static void render_gate_live(void)
+{
+    gate_observation_t frame;
+    char line[UI_MAX_CHARS + 1];
+    const int seen = gate_get(&frame);
+    const int valid = seen && frame.available;
+    const char *state = "WAITING FOR ADC";
+    uint16 color = UI_YELLOW;
+    unsigned i;
+
+    s_last_live_ms = g_control_uptime_ms;
+    for (i = 0; i < 4; ++i) {
+        if (seen) {
+            (void)snprintf(line, sizeof(line), "%4u   %6.1f",
+                           (unsigned)frame.raw[i], (double)frame.filtered[i]);
+        }
+        ui_text(96, (uint16)(54 + i * 20), seen ? line : "  --       --", UI_WHITE);
+    }
+    if (seen) {
+        if (valid) {
+            if (frame.flags & BC_SATURATED) state = "VALID / SATURATED";
+            else if (frame.flags & BC_FIELD_INCOHERENT) state = "VALID / POOR FIT";
+            else if (frame.flags & BC_SIGN_UNCERTAIN) state = "VALID / SIGN UNCERTAIN";
+            else if (frame.flags & BC_WEAK) state = "VALID / WEAK CHANNEL";
+            else {
+                state = "VALID";
+                color = UI_GREEN;
+            }
+        } else {
+            color = UI_RED;
+            if (frame.flags & BC_STALE) state = "INVALID / STALE";
+            else if (frame.flags & BC_NO_SIGNAL) state = "INVALID / NO SIGNAL";
+            else if (frame.flags & BC_INPUT_BAD) state = "INVALID / INPUT";
+            else state = "INVALID";
+        }
+    }
+    ui_line(150, state, color);
+    if (valid) (void)snprintf(line, sizeof(line), "%+6.1f deg", (double)frame.bearing_deg);
+    ui_text(96, 178, valid ? line : "    -- deg", UI_WHITE);
+    if (valid) (void)snprintf(line, sizeof(line), "%10.4g", (double)frame.field_norm);
+    ui_text(96, 198, valid ? line : "        --", UI_WHITE);
+    if (seen) (void)snprintf(line, sizeof(line), "%10lu ms", (unsigned long)frame.age_ms);
+    ui_text(96, 218, seen ? line : "        -- ms", UI_WHITE);
+}
+
+static void render_gate(void)
+{
+    static const char *const inputs[] = { "AN0 Up", "AN1 Front", "AN2 +120", "AN3 -120" };
+    unsigned i;
+    ui_header("Gate Debug", 0, 0);
+    ui_text(0, 32, "Input        Raw   Filtered", UI_CYAN);
+    for (i = 0; i < 4; ++i) ui_text(0, (uint16)(54 + i * 20), inputs[i], UI_WHITE);
+    ui_text(0, 178, "Bearing", UI_WHITE);
+    ui_text(0, 198, "Field norm", UI_WHITE);
+    ui_text(0, 218, "Sample age", UI_WHITE);
+    ui_text(0, 246, "Bearing + right / - left", UI_GRAY);
+    draw_status();
+    ui_text(0, UI_FOOTER_Y, "K4 Back", UI_GRAY);
+    render_gate_live();
+}
+
+static void handle_gate(uint8 up, uint8 down, uint8 enter, uint8 back)
+{
+    (void)up; (void)down; (void)enter;
+    if (back) menu_back();
+}
 
 static void render_page(void)
 {
@@ -1323,17 +1266,6 @@ static void toggle_group_action(uint8 action_index)
     if (action_index >= group->action_count)
         return;
 
-    if (group->kind == GROUP_KIND_BEACON) {
-        if(g_param.beacon.mode==0){menu_status("SET MODE:1 DIST 2 TIME 3 PRO");return;}
-        if(action_index==0u) {
-            if(start_flag!=START_STOP || control_test_running() || control_jog_running()!=MOTOR_JOG_NONE){menu_status("STOP MOTORS FIRST");return;}
-            vision_core_state_t state=vision_core_state();
-            if ((state==VISION_CORE_OFF || state==VISION_CORE_FAILED) &&
-                !vision_command_request(VISION_CMD_RESTART_CAMERA,0)) menu_status("CAMERA QUEUE FULL");
-            else menu_status(state==VISION_CORE_READY ? "CAMERA READY / IMAGE TO VIEW" : "CAMERA REQUESTED / WAIT");
-        } else run_action();
-        s_dirty=1;return;
-    }
 
     if (group->kind == GROUP_KIND_MOTOR)
     {
@@ -1406,7 +1338,7 @@ static void edit_current_parameter(float direction)
     float value = 0.0f;
 
     if (s_cursor >= group_item_count(group)) return;
-    if ((group->kind == GROUP_KIND_MOTOR || group->kind == GROUP_KIND_BEACON) && (start_flag != START_STOP ||
+    if ((group->kind == GROUP_KIND_MOTOR) && (start_flag != START_STOP ||
         control_test_running() || control_jog_running() != MOTOR_JOG_NONE)) return;
     if (group->kind == GROUP_KIND_ZERO && (start_flag != START_STOP ||
         control_test_running() || control_jog_running() != MOTOR_JOG_NONE)) return;
@@ -1422,8 +1354,6 @@ static void edit_current_parameter(float direction)
         menu_status(imu_forward_pending() ? "SAVE + REBOOT" : "IMU DIRECTION ACTIVE");
     }
     else (void)param_set_by_name(item->name, value + direction * parameter_step(item,s_folder->cursor));
-    if (strcmp(item->name, "cam_exposure") == 0)
-        display_set_exposure((uint16)g_param.cam_exposure);
     s_dirty = 1;
 }
 
@@ -1438,13 +1368,12 @@ static uint8 group_param_edit_allowed(const menu_group_t *group, uint8 item_inde
     uint8 item_ring;
 
     if (path_nav_busy() || control_path_active()) return 0;
-    if ((group->kind == GROUP_KIND_MOTOR || group->kind == GROUP_KIND_BEACON) &&
+    if ((group->kind == GROUP_KIND_MOTOR) &&
         (control_test_running() || control_jog_running() != MOTOR_JOG_NONE)) return 0;
     if (group->kind == GROUP_KIND_ZERO &&
         (control_test_running() || control_jog_running() != MOTOR_JOG_NONE)) return 0;
     if (start_flag != START_STOP &&
         (group->kind == GROUP_KIND_MOTOR ||
-         group->kind == GROUP_KIND_BEACON ||
          group->kind == GROUP_KIND_ZERO ||
          group->kind == GROUP_KIND_ODOMETRY))
         return 0;
@@ -1573,44 +1502,14 @@ static void remote_action(void)
 // 使用示例     ipm_calib_action();
 //-------------------------------------------------------------------------------------------------------------------
 // 车辆静止并位于直道中央时，CPU1 根据当前边线计算并回传矩阵。
-static void ipm_calib_action(void)
-{
-    if (g_param.beacon.mode != 0) {menu_status("IPM: SET BEACON MODE 0");return;}
-    if (start_flag != START_STOP)
-    {
-        menu_status("IPM: STOP FIRST");
-        return;
-    }
-    menu_enter();
-    (void)control_camera_debug_start();
-    s_image_ok = (uint8)(vision_core_state() == VISION_CORE_READY);
-    display_init();
-    display_image_page_enter();
-    s_last_image_draw_ms = 0u;
-    s_last_image_frame_seq = 0u;
-    s_image_redraw_pending = 1u;
-    s_last_image_state = 0xFFu;
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     把逆透视取角点的结果翻译成屏幕提示
 // 参数说明     why             ipm_pick_t
 // 返回参数     const char*     一行提示，直接告诉人该怎么摆车
-// 使用示例     ui_line(176, ipm_pick_text(s_ipm_pick), UI_RED);
 //-------------------------------------------------------------------------------------------------------------------
-static const char *ipm_pick_text(uint8 why)
-{
-    switch ((ipm_pick_t)why)
-    {
-        case IPM_PICK_OK:           return "READY - press ENTER";
-        case IPM_PICK_NO_TRACK:     return "NO TRACK - check exposure";
-        case IPM_PICK_FEW_ROWS:     return "TOO FEW BOTH-EDGE ROWS";
-        case IPM_PICK_SHORT_SPAN:   return "SPAN TOO SHORT - back off";
-        case IPM_PICK_NOT_STRAIGHT: return "NOT STRAIGHT - align car";
-        case IPM_PICK_NARROW:       return "TRACK TOO NARROW/CLOSE";
-        default:                    return "?";
-    }
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     逆透视标定页：显示图像 + 标定梯形 + 四个角点，确认键现场标定
@@ -1618,127 +1517,7 @@ static const char *ipm_pick_text(uint8 why)
 // 返回参数     void
 // 使用示例     handle_ipm(up, down, enter, back);
 //-------------------------------------------------------------------------------------------------------------------
-static void handle_ipm(uint8 up, uint8 down, uint8 enter, uint8 back)
-{
-    uint32 now = g_control_uptime_ms;
-    char   line[30];
 
-    if (back)
-    {
-        s_image_redraw_pending = 0u;
-        s_ipm_counting = 0u;
-        s_ipm_tried = 0u;
-        s_ipm_wait_save = 0u;
-        display_image_page_exit();
-        menu_back();
-        return;
-    }
-    if (up)   display_exposure_step(CAM_EXP_STEP);
-    if (down) display_exposure_step(-CAM_EXP_STEP);
-
-    s_image_ok = (uint8)(vision_core_state() == VISION_CORE_READY);
-    if (!s_image_ok)
-    {
-        ips200_full(UI_BLACK);
-        ui_line(48, "CAMERA NOT READY", UI_RED);
-        ui_line(216, "BACK Return", UI_GRAY);
-        return;
-    }
-
-    if (enter)
-    {
-        if (s_ipm_pick != (uint8)IPM_PICK_OK)
-        {
-            menu_status(ipm_pick_text(s_ipm_pick));
-        }
-        else
-        {
-            s_ipm_tried = 1u;
-            s_ipm_req_revision = g_param_revision;
-            menu_status(control_ipm_calib_request() ? "CALIBRATING..." : "CAMERA NOT READY");
-        }
-    }
-
-    if (s_ipm_pick == (uint8)IPM_PICK_OK && !g_vision_ipm_ok)
-    {
-        if (!s_ipm_counting)
-        {
-            s_ipm_counting = 1u;
-            s_ipm_ready_since = now;
-        }
-        else if ((uint32)(now - s_ipm_ready_since) >= UI_IPM_AUTO_MS)
-        {
-            s_ipm_counting = 0u;
-            s_ipm_tried = 1u;
-            s_ipm_req_revision = g_param_revision;
-            if (control_ipm_calib_request()) menu_status("AUTO CALIBRATING...");
-        }
-    }
-    else
-    {
-        s_ipm_counting = 0u;
-    }
-
-    if (s_ipm_tried && g_vision_ipm_ok && g_param_revision != s_ipm_req_revision)
-    {
-        s_ipm_tried = 0u;
-        s_ipm_wait_save = 1u;
-        menu_status("IPM CALIBRATED");
-    }
-    if (s_ipm_wait_save && !control_ipm_pending())
-    {
-        s_ipm_wait_save = 0u;
-        menu_status("IPM SAVED TO FLASH");
-    }
-
-    if (g_vision_frame_seq != 0u && g_vision_frame_seq != s_last_image_frame_seq)
-    {
-        s_last_image_frame_seq = g_vision_frame_seq;
-        s_image_redraw_pending = 1u;
-    }
-    if ((uint32)(now - s_last_image_draw_ms) >= UI_IMAGE_STALL_MS)
-        s_image_redraw_pending = 1u;
-
-    if (s_image_redraw_pending &&
-        (s_last_image_draw_ms == 0u ||
-         (uint32)(now - s_last_image_draw_ms) >= UI_IMAGE_PERIOD_MS))
-    {
-        s_last_image_draw_ms = now;
-        s_image_redraw_pending = 0u;
-        display_track_view();
-        s_ipm_pick = display_ipm_overlay();
-
-        ips200_set_color(UI_WHITE, UI_BLACK);
-        // IPM 页处于 320x240 横屏，8x16 字体最后一行只能从 y<=224 开始。
-        // 不能复用竖屏状态栏(UI_STATUS_Y=277)，也不能在 y=240/256 绘制。
-        if (s_status[0] != '\0')
-            ui_line(184, s_status, UI_YELLOW);
-        else if (s_ipm_tried && !g_vision_ipm_ok && s_ipm_pick == (uint8)IPM_PICK_OK)
-            ui_line(184, "CALIB FAILED - move car", UI_RED);
-        else
-            ui_line(184, ipm_pick_text(s_ipm_pick),
-                    (s_ipm_pick == (uint8)IPM_PICK_OK) ? UI_GREEN : UI_RED);
-
-        (void)snprintf(line, sizeof(line), "IPM %s R%d-%d W%d/%d",
-                       g_vision_ipm_ok ? (control_ipm_pending() ? "WR" : "OK") : "--",
-                       (int)display_ipm_row_far(), (int)display_ipm_row_near(),
-                       display_ipm_width(0u), display_ipm_width(1u));
-        ui_line(200, line, g_vision_ipm_ok ? UI_GREEN : UI_WHITE);
-
-        if (s_ipm_counting)
-        {
-            uint32 gone = (uint32)(now - s_ipm_ready_since);
-            uint32 left = (gone < UI_IPM_AUTO_MS) ? (UI_IPM_AUTO_MS - gone) : 0u;
-            (void)snprintf(line, sizeof(line), "HOLD STILL  %u.%us",
-                           (unsigned)(left / 1000u), (unsigned)((left % 1000u) / 100u));
-            ui_line(216, line, UI_YELLOW);
-        }
-        else
-        {
-            ui_line(216, "ENT Calib UP/DN Exp BACK Ret", UI_GRAY);
-        }
-    }
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     把跑车停车原因翻译成屏幕文本
@@ -1746,18 +1525,6 @@ static void handle_ipm(uint8 up, uint8 down, uint8 enter, uint8 back)
 // 返回参数     const char*     原因说明
 // 使用示例     menu_status(run_stop_text(control_run_stop_reason()));
 //-------------------------------------------------------------------------------------------------------------------
-static const char *run_stop_text(run_stop_t reason)
-{
-    switch (reason)
-    {
-        case RUN_STOP_ZEBRA:  return "RUN DONE: ZEBRA";
-        case RUN_STOP_LOST:   return "RUN STOP: TRACK LOST";
-        case RUN_STOP_VISION: return "RUN STOP: NO FRAME";
-        case RUN_STOP_MANUAL: return "RUN STOPPED";
-        case RUN_STOP_SAFETY: return "RUN STOP: SAFETY";
-        default:              return "RUN STOPPED";
-    }
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     主菜单 Run 行：连按两次启动正式跑车，运行中再按一次停车
@@ -1765,62 +1532,7 @@ static const char *run_stop_text(run_stop_t reason)
 // 返回参数     void
 // 使用示例     run_action();
 //-------------------------------------------------------------------------------------------------------------------
-static void run_action(void)
-{
-    uint32 now = g_control_uptime_ms;
 
-    if (control_run_running())
-    {
-        s_run_armed_until_ms = 0;
-        s_run_on = 0;
-        control_run_stop();
-        menu_status("RUN STOPPED");
-        return;
-    }
-
-    // 正式 Run 结束后仍在原地平衡，再次确认 Run 即锁停电机。
-    if (start_flag == START_BALANCE)
-    {
-        s_run_armed_until_ms = 0;
-        s_run_on = 0;
-        s_balance_on = 0;
-        control_stop();
-        menu_status("RUN HOLD STOPPED");
-        return;
-    }
-
-    if (control_test_running() || control_jog_running() != MOTOR_JOG_NONE ||
-        start_flag != START_STOP)
-    {
-        s_run_armed_until_ms = 0;
-        menu_status("RUN BLOCKED: RUNNING");
-        return;
-    }
-
-    // 正式发车会释放飞轮刹车并驱动车辆，因此采用二次确认。
-    if (s_run_armed_until_ms == 0 || (int32)(now - s_run_armed_until_ms) >= 0)
-    {
-        s_run_armed_until_ms = now + UI_BALANCE_CONFIRM_MS;
-        menu_status("PRESS AGAIN TO RUN");
-        return;
-    }
-
-    s_run_armed_until_ms = 0;
-    if (menu_imu_recovery_intercept()) return;
-    if (control_run_start())
-    {
-        s_run_on = 1;
-        menu_status("RUNNING");
-    }
-    else
-    {
-        // 区分视觉条件与通用控制安全条件。
-        if (!g_track_valid || vision_core_state() != VISION_CORE_READY)
-            menu_status("RUN BLOCKED: NO TRACK");
-        else
-            menu_status(test_status_text(control_test_last_status()));
-    }
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     处理主菜单按键
@@ -1832,35 +1544,7 @@ static void handle_main(uint8 up, uint8 down, uint8 enter)
 {
     if (up) move_cursor(-1);
     if (down) move_cursor(1);
-    if (up || down) s_run_armed_until_ms = 0;
-    if (!enter) return;
-
-    if (s_cursor == 0)
-    {
-        menu_enter();
-    }
-    else if (s_cursor == 1u)
-    {
-        menu_enter();
-        (void)control_camera_debug_start();
-        s_image_ok = (uint8)(vision_core_state() == VISION_CORE_READY);
-        display_init();
-        display_image_page_enter();
-        s_last_image_draw_ms = 0u;
-        s_last_image_frame_seq = 0u;
-        s_image_redraw_pending = 1u;
-        s_last_image_state = 0xFFu;
-        // 图像页只看屏幕，不发送波形。
-    }
-    else if (s_cursor == 2u)
-    {
-        run_action();
-    }
-    else if (s_cursor == 3u)
-    {
-        menu_enter();
-    }
-    else menu_enter();
+    if (enter) menu_enter();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1939,13 +1623,6 @@ static void handle_params(uint8 up, uint8 down, uint8 enter, uint8 back)
     {
         menu_enter();
         // Camera 与 Element 页进入时请求摄像头就绪。
-        if (s_groups[s_group_index].kind == GROUP_KIND_CAMERA ||
-            s_groups[s_group_index].kind == GROUP_KIND_ELEMENT)
-        {
-            (void)control_camera_debug_start();
-            if (vision_core_state() == VISION_CORE_FAILED)
-                menu_status("CAM INIT FAILED");
-        }
     }
     else if (s_cursor == (uint8)(GROUP_COUNT + 1u))
     {
@@ -2056,13 +1733,6 @@ static void handle_group(uint8 up, uint8 down, uint8 enter, uint8 back)
     }
     else if (s_cursor >= action_begin && s_cursor < save_index)
     {
-        if (group->kind == GROUP_KIND_CAMERA) {
-            uint8 action=(uint8)(s_cursor-action_begin);
-            if (action==0u) ipm_calib_action();
-            else menu_status(control_camera_profile_request((uint8)(action==1u)) ?
-                             "CAMERA PROFILE REQUESTED" : "CAM PROFILE BLOCKED/FULL");
-        }
-        else
             toggle_group_action((uint8)(s_cursor - action_begin));
     }
     else if (s_cursor == save_index)
@@ -2081,85 +1751,7 @@ static void handle_group(uint8 up, uint8 down, uint8 enter, uint8 back)
 // 返回参数     void
 // 使用示例     handle_image(up, down, enter, back);
 //-------------------------------------------------------------------------------------------------------------------
-static void handle_image(uint8 up, uint8 down, uint8 enter, uint8 back)
-{
-    uint8 view_dirty;
-    uint32 now = g_control_uptime_ms;
-    vision_core_state_t state;
 
-    if (back)
-    {
-        s_image_redraw_pending = 0u;
-        display_image_page_exit();
-        menu_back();
-        return;
-    }
-
-    if (up) display_exposure_step(CAM_EXP_STEP);
-    if (down) display_exposure_step(-CAM_EXP_STEP);
-    if (enter)
-    {
-        state = vision_core_state();
-        if (state == VISION_CORE_OFF || state == VISION_CORE_FAILED)
-        {
-            (void)control_camera_debug_start();
-            s_last_image_state = 0xFFu;
-        }
-        else display_next_mode();
-    }
-
-    state = vision_core_state();
-    s_image_ok = (uint8)(state == VISION_CORE_READY);
-    if ((uint8)state != s_last_image_state)
-    {
-        s_last_image_state = (uint8)state;
-        s_last_image_draw_ms = 0u;
-        s_image_redraw_pending = 1u;
-        if (!s_image_ok)
-        {
-            ips200_full(UI_BLACK);
-            ui_text(5, 2, "Image", UI_WHITE);
-            if (state == VISION_CORE_FAILED)
-            {
-                ui_line(48, "CAMERA INIT FAILED", UI_RED);
-                ui_line(72, "Check MT9V03X wiring.", UI_YELLOW);
-            }
-            else
-            {
-                ui_line(48, "CAMERA STARTING", UI_YELLOW);
-                ui_line(72, "Waiting for CPU1...", UI_GRAY);
-            }
-            ui_line(216, "ENT Retry / BACK Return", UI_GRAY);
-        }
-    }
-
-    if (!s_image_ok)
-        return;
-
-    if (g_vision_frame_seq != 0u &&
-        g_vision_frame_seq != s_last_image_frame_seq)
-    {
-        s_last_image_frame_seq = g_vision_frame_seq;
-        s_image_redraw_pending = 1u;
-    }
-
-    // 停帧时周期刷新状态栏，使 FPS 与失联状态继续更新。
-    if ((uint32)(now - s_last_image_draw_ms) >= UI_IMAGE_STALL_MS)
-        s_image_redraw_pending = 1u;
-
-    view_dirty = display_view_dirty();
-    if (view_dirty)
-        s_image_redraw_pending = 1u;
-
-    if (s_image_redraw_pending &&
-        (s_last_image_draw_ms == 0u ||
-         (uint32)(now - s_last_image_draw_ms) >= UI_IMAGE_PERIOD_MS))
-    {
-        s_last_image_draw_ms = now;
-        s_image_redraw_pending = 0u;
-        display_track_view();
-    }
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     初始化菜单状态和IPS200显示
@@ -2181,12 +1773,13 @@ static int menu_tree_build(void)
  s_root=add_folder(0,"MENU",MENU_PAGE_MAIN,0,render_main,handle_main_keys);if(!s_root)return 0;
  s_views[MENU_PAGE_MAIN]=s_root;
  params=add_folder(s_root,"Params",MENU_PAGE_PARAMS,0,render_params,handle_params);
- n=add_folder(s_root,"Image",MENU_PAGE_IMAGE,0,0,handle_image);s_views[MENU_PAGE_IMAGE]=n;
- if(!Menu_Tree_Add(s_root,"Run",MENU_Action,MENU_PAGE_MAIN,0,0))return 0;
  tests=add_folder(s_root,"Run Test",MENU_PAGE_RUN_TEST,0,render_run_test,handle_run_test);
  path=add_folder(s_root,"Path",MENU_PAGE_PATH,0,render_path,handle_path);
- if(!params||!n||!tests||!path)return 0;
+ if(!params||!tests||!path)return 0;
  s_views[MENU_PAGE_PARAMS]=params;s_views[MENU_PAGE_RUN_TEST]=tests;s_views[MENU_PAGE_PATH]=path;
+ n=add_folder(s_root,"Gate Debug",MENU_PAGE_GATE,0,render_gate,handle_gate);
+ if(!n)return 0;
+ s_views[MENU_PAGE_GATE]=n;
  attitude=add_folder(params,"Attitude",MENU_PAGE_ATTITUDE,0,render_attitude,handle_attitude);
  if(!attitude)return 0;
  s_views[MENU_PAGE_ATTITUDE]=attitude;
@@ -2200,9 +1793,7 @@ static int menu_tree_build(void)
   }
   s_group_index=(uint8)i;
   for(j=0;j<s_groups[i].action_count;++j){
-   if(s_groups[i].kind==GROUP_KIND_CAMERA && j==0u){
-    n=add_folder(group,"IPM",MENU_PAGE_IPM,(uint8)i,0,handle_ipm);if(!n)return 0;s_views[MENU_PAGE_IPM]=n;
-   }else if(!Menu_Tree_Add(group,action_name((uint8)j),MENU_Action,MENU_PAGE_GROUP,(uint8)i,0))return 0;
+   if(!Menu_Tree_Add(group,action_name((uint8)j),MENU_Action,MENU_PAGE_GROUP,(uint8)i,0))return 0;
   }
   if(!Menu_Tree_Add(group,"Save",MENU_Action,MENU_PAGE_GROUP,(uint8)i,0)||!Menu_Tree_Add(group,"Back",MENU_Back,MENU_PAGE_GROUP,(uint8)i,0))return 0;
  }
@@ -2232,15 +1823,10 @@ void menu_init(void)
     s_balance_on = 0;
     s_balance_armed_until_ms = 0;
     s_remote_armed_until_ms = 0;
-    s_image_ok = 0;
     s_dirty = 2;
     s_last_live_ms = 0;
-    s_last_image_draw_ms = 0;
-    s_last_image_frame_seq = 0;
     s_last_param_revision = g_param_revision;
     s_status_until_ms = 0;
-    s_image_redraw_pending = 0;
-    s_last_image_state = 0xFFu;
     s_status[0] = '\0';
 
     if(!menu_tree_build()){
@@ -2304,16 +1890,6 @@ void menu_run(void)
         menu_status(test_status_text(control_test_last_status()));
     }
 
-    if (s_run_on && !control_run_running())
-    {
-        run_stop_t reason = control_run_stop_reason();
-
-        s_run_on = 0;
-        menu_status(run_stop_text(reason));
-        // 斑马线终点只结束行驶，车辆继续原地平衡；其余停车原因会锁停电机。
-        s_balance_on = (uint8)(reason == RUN_STOP_ZEBRA && start_flag == START_BALANCE);
-        s_dirty = 1;
-    }
 
     if (s_balance_on && start_flag != START_BALANCE)
     {
@@ -2324,7 +1900,10 @@ void menu_run(void)
 
     if(!s_folder)return;
     if(s_folder->keys)s_folder->keys(up,down,enter,back);
-    if(s_page==MENU_PAGE_IMAGE||s_page==MENU_PAGE_IPM)return;
+
+    if (s_page == MENU_PAGE_GATE && !s_dirty &&
+        (uint32)(now - s_last_live_ms) >= UI_LIVE_PERIOD_MS)
+        render_gate_live();
 
     if ((s_page == MENU_PAGE_MAIN ||
          s_page == MENU_PAGE_ATTITUDE ||

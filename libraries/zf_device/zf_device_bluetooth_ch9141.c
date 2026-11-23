@@ -51,7 +51,6 @@
 #include "zf_driver_uart.h"
 #include "zf_driver_delay.h"
 #include "zf_device_type.h"
-#include "zf_device_camera.h"
 #include "zf_device_bluetooth_ch9141.h"
 
 static  fifo_struct     bluetooth_ch9141_fifo;                                  // fifo缓冲区结构体定义
@@ -174,13 +173,7 @@ uint32 bluetooth_ch9141_send_string (const char *str)
 // 使用示例     bluetooth_ch9141_send_image(&mt9v03x_image[0][0], MT9V03X_IMAGE_SIZE);
 // 备注信息     
 //-------------------------------------------------------------------------------------------------------------------
-void bluetooth_ch9141_send_image (const uint8 *image_addr, uint32 image_size)
-{
-    zf_assert(NULL != image_addr);
 
-    bluetooth_ch9141_send_buffer(camera_send_image_frame_header, 4);
-    bluetooth_ch9141_send_buffer((uint8 *)image_addr, image_size);
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     蓝牙转串口模块 读取函数

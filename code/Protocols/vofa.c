@@ -1,3 +1,4 @@
+#include "Estimation/Gate/gate.h"
 #include "Protocols/vofa.h"
 #include "Protocols/station_wifi.h"
 #include "Estimation/Attitude/attitude.h"
@@ -130,7 +131,7 @@ static void vofa_wifi_poll(void)
     }
     sent = station_wifi_step(s_wifi_frame, length, rx, &received, g_control_uptime_ms);
     if (sent < 0) { s_rx_overflow = 1; s_cfg_rx_error++; return; }
-    if (sent > 0) s_tx_tail = tail + (uint32)sent;
+    if (sent > 0 && queued) s_tx_tail = tail + (uint32)sent;
     if (received)
     {
         s_rx_idle_ms = 0;
@@ -398,18 +399,8 @@ static int cfg_pid_index(const char *name)
 static uint8 cfg_live_control(const char *name)
 {
     static const char *const names[] = {
-        "run_speed_straight",
-        "run_speed_curve",
-        "run_speed_cross",
-        "run_speed_ring",
-        "run_speed_ramp",
-        "run_speed_lost",
         "run_accel_mps2",
         "run_decel_mps2",
-        "direction_pixel_kp",
-        "direction_heading_kp",
-        "direction_curve_kff",
-        "direction_rate_kd",
         "lean_turn_kp",
         "lean_speed_kp",
         "lean_slew_dps",
@@ -426,17 +417,13 @@ static uint8 cfg_live_control(const char *name)
 
 static const char *cfg_group(const char *n)
 {
-    if (strncmp(n,"beacon_",7)==0) return "Beacon";
     if (strncmp(n, "r_", 2) == 0) return "Roll";
     if (strncmp(n, "p_", 2) == 0) return "Pitch";
     if (strncmp(n, "yaw_", 4) == 0) return "Yaw";
     if (strncmp(n, "y_", 2) == 0) return "Yaw";
     if (strncmp(n, "lean_", 5) == 0) return "Lean";
-    if (strncmp(n, "ipm_", 4) == 0) return "IPM";
     if (strncmp(n, "odom_", 5) == 0) return "Odometry";
     if (strncmp(n, "run_", 4) == 0 || strncmp(n, "direction_", 10) == 0) return "Run";
-    if (strncmp(n, "elem_", 5) == 0 || strncmp(n, "ring_", 5) == 0 || strncmp(n, "zebra_", 6) == 0) return "Element";
-    if (strncmp(n, "cam_", 4) == 0 || strcmp(n, "err_front_row") == 0) return "Camera";
     if (strcmp(n, "imu_forward_dir") == 0) return "Zero";
     if (strncmp(n, "roll_", 5) == 0 || strncmp(n, "pitch_", 6) == 0) return "Zero";
     if (strncmp(n, "motor_", 6) == 0 || strncmp(n, "enc_", 4) == 0 || strncmp(n, "fly_", 4) == 0 ||
@@ -453,7 +440,7 @@ static uint8 cfg_dangerous(const char *name)
 static uint8 cfg_stopped(void)
 {
     return (uint8)(!control_imu_recovery_busy() && start_flag == START_STOP && !control_test_running() &&
-        control_jog_running() == MOTOR_JOG_NONE && !control_run_running() && !control_remote_running() &&
+        control_jog_running() == MOTOR_JOG_NONE && !control_remote_running() &&
         !path_nav_busy() && !control_path_active());
 }
 
@@ -462,7 +449,7 @@ static uint8 cfg_balance_yaw_hold(void)
 {
     return (uint8)(start_flag == START_BALANCE && !control_imu_recovery_busy() &&
         !control_test_running() && control_jog_running() == MOTOR_JOG_NONE &&
-        !control_run_running() && !control_remote_running() &&
+        !control_remote_running() &&
         !path_nav_busy() && !control_path_active() &&
         control_odometry_test_state() == ODOM_TEST_IDLE);
 }
@@ -532,14 +519,14 @@ static uint8 cfg_status(void)
     irq = interrupt_global_disable();
     v[0] = g_control_uptime_ms;
     v[1] = (uint32)start_flag;
-    v[2] = control_run_running();
+    v[2] = 0;
     v[3] = control_test_running() ? 1u + (uint32)g_tune_axis * 3u + (uint32)g_tune_ring : 0u;
     v[4] = (uint32)control_jog_running();
     v[5] = (uint32)g_imu_ok | ((uint32)(imu_calib_state() == IMU_CALIB_OK) << 1) | ((uint32)!imu_link_lost() << 2);
     v[6] = (uint32)!W_Motor_LinkLost();
-    v[7] = g_cam_ok;
+    v[7] = 0; /* Reserved protocol field. */
     v[8] = (uint32)attitude_converged() | ((uint32)attitude_diverged() << 1);
-    v[9] = (uint32)control_run_stop_reason();
+    v[9] = 0;
     v[10] = (uint32)control_test_last_status();
     v[11] = g_param_revision;
     v[12] = s_cfg_rx_error;
@@ -604,6 +591,25 @@ static vofa_cmd_result_t cfg_execute(char *line)
     {
         if (cfg_status()) (void)cfg_reply(seq, "ok", "status");
         else (void)cfg_reply(seq, "err", "BUSY,Status TX unavailable");
+    }
+    else if (strcmp(fields[0], "gate_status") == 0 && count == 2u)
+    {
+        gate_observation_t gate;
+        if (!gate_get(&gate)) {
+            (void)cfg_reply(seq, "ok", "gate_status,NONE");
+        } else {
+            (void)snprintf(payload, sizeof(payload),
+                "gate_status,%lu,%lu,%u,%lu,%.2f,%.4g,%u,%u,%u,%u,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f",
+                (unsigned long)gate.sample_seq, (unsigned long)gate.age_ms,
+                (unsigned)gate.available, (unsigned long)gate.flags,
+                (double)gate.bearing_deg, (double)gate.field_norm,
+                (unsigned)gate.raw[0], (unsigned)gate.raw[1],
+                (unsigned)gate.raw[2], (unsigned)gate.raw[3],
+                (double)gate.filtered[0], (double)gate.filtered[1],
+                (double)gate.filtered[2], (double)gate.filtered[3],
+                (double)gate.pitch_deg, (double)gate.roll_deg, (double)gate.yaw_deg);
+            (void)cfg_reply(seq, "ok", payload);
+        }
     }
     else if (strcmp(fields[0], "imu_status") == 0 && count == 2u)
     {
@@ -711,7 +717,6 @@ static vofa_cmd_result_t cfg_execute(char *line)
     return VOFA_CMD_APPLIED;
 }
 
-#include "Protocols/vofa_task.inc"
 
 uint8 vofa_flash_idle(void)
 {
@@ -806,7 +811,7 @@ static void cfg_poll(void)
         uint8 ok = 0;
         char reply[80];
         s_save_seq = 0; /* Never auto retry a Flash operation. */
-        if (!physically_stopped || !s_stop_seen || (uint32)(now - s_stop_since) < 500u || control_ipm_pending())
+        if (!physically_stopped || !s_stop_seen || (uint32)(now - s_stop_since) < 500u)
         { (void)cfg_reply(seq, "err", "SAVE_BLOCKED,Require stable stopped wheels and no IPM save"); return; }
         if (strcmp(s_save_group, "all") == 0) ok = param_save();
         else
@@ -879,7 +884,6 @@ void vofa_snapshot(void)
     vofa_mode_t mode = vofa_effective_mode();
 
     trace_tick1ms();
-    task_capture();
     if (mode == VOFA_OFF) return;
 
     s_seq++;                                    // 奇数表示正在写入
@@ -921,7 +925,6 @@ void vofa_poll(void)
         period_ms = VOFA_WIFI_REMOTE_RUN_PERIOD_MS;
     #endif
     cfg_poll();
-    task_poll();
     if (mode == VOFA_OFF) { last_seq = s_seq; last_mode = mode; return; }
     if (mode != last_mode)
     {
@@ -1017,7 +1020,6 @@ void vofa_init(void)
     s_schema_seq = s_schema_index = s_save_seq = 0;
     s_schema_next_ms = s_stop_since = s_cfg_last_status = 0;
     s_stop_seen = s_station_att = 0;
-    task_reset();
     path_transfer_cancel(); s_path_stream=0;
     #if STATION_WIFI_ENABLED
     (void)station_wifi_init();
