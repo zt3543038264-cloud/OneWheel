@@ -8,6 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def test_text_mailbox_and_binary_rpm(tmp_path,polarity_a,polarity_b):
  (tmp_path/'zf_common_headfile.h').write_text(r'''#ifndef HOST_HW
 #define HOST_HW
+#define STATION_WIFI_ENABLED 0
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>

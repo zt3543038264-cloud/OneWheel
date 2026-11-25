@@ -177,13 +177,7 @@ uint32 wireless_uart_send_string (const char *str)
 // 使用示例     wireless_uart_send_image(&mt9v03x_image[0][0], MT9V03X_IMAGE_SIZE);
 // 备注信息     
 //-------------------------------------------------------------------------------------------------------------------
-void wireless_uart_send_image (const uint8 *image_addr, uint32 image_size)
-{
-    zf_assert(NULL != image_addr);
-    extern uint8 camera_send_image_frame_header[4];
-    wireless_uart_send_buffer(camera_send_image_frame_header, 4);
-    wireless_uart_send_buffer((uint8 *)image_addr, image_size);
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     无线转串口模块 读取缓冲

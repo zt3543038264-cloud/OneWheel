@@ -33,3 +33,4 @@
 **/*.egg-info/
 **/artifacts/
 **/sessions/
+/code/Protocols/station_wifi_private.h

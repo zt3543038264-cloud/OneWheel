@@ -20,6 +20,7 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 int gpio_get_level(int pin);
+void system_delay_ms(uint32 ms);
 void gpio_low(int pin);
 void gpio_high(int pin);
 void spi_transfer_8bit(int index, const uint8 *tx, uint8 *rx, uint32 length);
@@ -42,10 +43,15 @@ uint8 wifi_spi_socket_connect(char *transport, char *ip, char *port, char *local
     source=r'''#include <assert.h>
 #include "Protocols/station_wifi.c"
 #if STATION_WIFI_ENABLED
-static int ready=1, phase, packets, transfers, writes, selected, oversized;
-uint8 wifi_spi_init(char *ssid,char *password) {(void)password;assert(*ssid);return 0;}
+static int ready=1, phase, packets, transfers, writes, selected, oversized, bad_ack;
+static int init_attempts, socket_attempts;
+static uint32 delay_ms;
+void system_delay_ms(uint32 ms) {delay_ms+=ms;}
+uint8 wifi_spi_init(char *ssid,char *password) {
+    (void)password;assert(*ssid);return ++init_attempts==1;
+}
 uint8 wifi_spi_socket_connect(char *type,char *ip,char *port,char *local) {
-    (void)ip;(void)port;(void)local;assert(!strcmp(type,"UDP"));return 0;
+    (void)ip;(void)port;(void)local;assert(!strcmp(type,"UDP"));return ++socket_attempts==1;
 }
 int gpio_get_level(int pin) {(void)pin;return ready;}
 void gpio_low(int pin) {(void)pin;assert(!selected);selected=1;packets++;transfers=0;writes=0;}
@@ -56,7 +62,7 @@ void spi_transfer_8bit(int index,const uint8 *tx,uint8 *rx,uint32 length) {
         wifi_spi_head_struct sent,reply={0};memcpy(&sent,tx,4);assert(length==4 && sent.reserve==0);
         assert(sent.command==(phase==1 ? WIFI_SPI_UDP_SEND:WIFI_SPI_DATA));
         assert(sent.length==(phase==0 ? 70:0));
-        reply.command=phase==2 ? WIFI_SPI_REPLY_OK:WIFI_SPI_REPLY_DATA_END;
+        reply.command=phase==2 && !bad_ack ? WIFI_SPI_REPLY_OK:WIFI_SPI_REPLY_DATA_END;
         reply.length=oversized ? 33:(phase==0 ? 3:2);memcpy(rx,&reply,4);
     } else {
         assert(phase!=2 && transfers==2 && length==32);
@@ -73,6 +79,7 @@ int main(void) {
 #if STATION_WIFI_ENABLED
     station_wifi_diag_t diag;
     assert(station_wifi_init()==1);
+    assert(init_attempts==3 && socket_attempts==2 && delay_ms==1300);
     ready=0;assert(station_wifi_step(tx,0,rx,&received,0)==0 && packets==0);
     assert(station_wifi_step(tx,70,rx,&received,1)==0 && received==0 && packets==0);
     ready=1;assert(station_wifi_step(tx,70,rx,&received,5)==70);
@@ -88,11 +95,22 @@ int main(void) {
     assert(diag.wait_count[1]==1 && diag.wait_max_ms[1]==7);
     assert(diag.wait_count[2]==1 && diag.wait_max_ms[2]==11);
     assert(diag.poll_gap_max_ms==7 && diag.submitted==1 && diag.acknowledged==1);
-    assert(diag.ready==1 && diag.phase==0 && diag.errors==0);
-    oversized=1;assert(station_wifi_step(tx,70,rx,&received,26)==-1 && received==0);
-    assert(station_wifi_step(tx,70,rx,&received,27)==0 && packets==4);
+    assert(diag.ready==1 && diag.phase==0 && diag.errors==2);
+    oversized=1;assert(station_wifi_step(tx,70,rx,&received,26)==70 && received==0);
+    oversized=0;
+    assert(station_wifi_step(tx,70,rx,&received,27)==0 && packets==5);
+    bad_ack=1;
+    assert(station_wifi_step(tx,70,rx,&received,28)==0 && packets==6);
+    bad_ack=0;
+    assert(station_wifi_step(tx,70,rx,&received,29)==70 && received==3);
+    ready=0;
+    assert(station_wifi_step(tx,0,rx,&received,30)==0);
+    assert(station_wifi_step(tx,0,rx,&received,1030)==0 && packets==7);
     station_wifi_get_diag(&diag);
-    assert(diag.ready==0 && diag.errors==1);
+    assert(diag.ready==1 && diag.phase==0 && diag.errors==5);
+    assert(diag.wait_max_ms[1]==1000);
+    ready=1;phase=0;
+    assert(station_wifi_step(tx,70,rx,&received,1031)==70 && received==3);
 #else
     assert(station_wifi_init()==0);
     assert(station_wifi_step(tx,70,rx,&received,0)==0 && received==0);

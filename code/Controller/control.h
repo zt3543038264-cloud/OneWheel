@@ -1,6 +1,5 @@
 #ifndef CONTROL_H_
 #define CONTROL_H_
-#include "Estimation/Beacon/beacon_core.h"
 
 #include "zf_common_headfile.h"
 #include "Common/pid.h"
@@ -27,31 +26,8 @@ extern float g_yaw_momentum_scale;                   // 共模动量剩余权限
 
 extern float  g_dbg_error;                  // 中线偏差，右偏为正
 extern volatile uint8 g_imu_ok;             // IMU660RB 初始化结果，主循环/中断共享
-extern uint8  g_cam_ok;                     // CPU1 摄像头就绪标志
-extern uint8  g_vision_ipm_ok;               // CPU1 侧逆透视是否可用
-extern uint8  g_track_valid;                // 最新一帧循迹是否有效
-extern uint16 g_track_lost_frames;          // 连续无效帧计数
-extern volatile uint16 g_vision_age_ms;     // 距上一帧视觉结果的时间(ms)
 extern volatile uint32 g_control_uptime_ms; // 1ms 中断累计运行时间(ms)
-extern volatile uint32 g_vision_frame_seq;  // 最新视觉帧序号
-extern volatile uint32 g_vision_heartbeat;  // CPU1 主循环心跳
-extern uint16 g_vision_threshold;           // 最新大津阈值
-extern uint16 g_vision_search_stop;         // 最新有效前瞻行数
-extern uint16 g_vision_left_lost;           // 最新左边线丢线行数
-extern uint16 g_vision_right_lost;          // 最新右边线丢线行数
-extern uint16 g_vision_both_lost;           // 最新双边丢线行数
-extern uint8  g_vision_active_elem;          // 最新元素编号
-extern uint8  g_vision_island_state;         // 最新环岛状态号，0=空闲
-extern float  g_vision_lateral_error;        // 车道半宽归一化横向误差
-extern float  g_vision_heading_error;        // 赛道航向误差(°)
-extern float  g_vision_curvature;            // 有符号归一化曲率
-extern float  g_vision_direction_camera;     // 报告同款加权方向偏差
-extern uint8  g_vision_track_mode;           // 中线、单边或航向保持模式
-extern float  g_vision_quality;              // 循迹质量(0..1)
-extern float  g_vision_speed_limit_mps;      // 视觉/元素绝对限速(m/s)
-extern uint8  g_vision_stop_request;         // 斑马线终点请求
 extern float  g_run_speed_target_mps;        // 正式 Run 当前规划速度(m/s)
-extern float  g_vision_fps;                  // CPU1 出帧率(帧/s)，1ms 中断写，菜单与图像页读
 
 typedef enum
 {
@@ -84,6 +60,7 @@ typedef struct
     int16  flywheel_a_rpm;
     int16  flywheel_b_rpm;
     uint8  flywheel_link_ok;
+    uint8  beacon_search_enabled;  // CPU0 已接纳当前帧的信标搜索请求
     float  direction_offset;
     float  lateral_error;
     float  heading_error;
@@ -192,41 +169,31 @@ uint8 control_balance_start(void);
 // 函数简介     请求 CPU1 用当前这一帧直道图标定逆透视
 // 参数说明     void
 // 返回参数     uint8           1=命令已发出
-// 使用示例     control_ipm_calib_request();
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_calib_request(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     主循环里把新标定出的逆透视矩阵写进 Flash
 // 参数说明     void
 // 返回参数     uint8           1=有待存矩阵且 Flash 写入成功，0=无待存矩阵或保存失败
-// 使用示例     if (control_ipm_flush()) menu_status("IPM SAVED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_flush(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     查询是否还有标定好的逆透视矩阵在等着写 Flash
 // 参数说明     void
 // 返回参数     uint8           1=还没写进 Flash 0=已经落盘或本来就没有新矩阵
-// 使用示例     if (!control_ipm_pending()) menu_status("IPM SAVED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_pending(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     启动正式跑车，先按三轴平衡的全部安全条件完成发车
 // 参数说明     void
 // 返回参数     uint8           1=已启动 0=被安全条件阻止
-// 使用示例     if (!control_run_start()) menu_status("RUN BLOCKED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_run_start(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     停止正式跑车，目标速度归零并保持平衡制动
 // 参数说明     void
 // 返回参数     void
-// 使用示例     control_run_stop();
 //-------------------------------------------------------------------------------------------------------------------
-void control_run_stop(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     查询正式跑车是否在跑
@@ -234,15 +201,12 @@ void control_run_stop(void);
 // 返回参数     uint8           1=跑车中
 // 使用示例     if (control_run_running()) { ... }
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_run_running(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     读取最近一次跑车的停车原因
 // 参数说明     void
 // 返回参数     run_stop_t      停车原因
-// 使用示例     menu_status(run_stop_text(control_run_stop_reason()));
 //-------------------------------------------------------------------------------------------------------------------
-run_stop_t control_run_stop_reason(void);
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     复制正式 Run 的定长诊断状态；只做字段赋值，可由 1ms 中断调用
@@ -392,12 +356,7 @@ motor_jog_t control_jog_running(void);
 // 函数简介     查询 CPU1 摄像头状态，失败时请求重新初始化
 // 参数说明     void
 // 返回参数     uint8           1=摄像头就绪 0=未就绪
-// 使用示例     control_camera_debug_start();
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_camera_debug_start(void);
-uint8 control_camera_profile_request(uint8 diagnostic);
 
-extern beacon_result_t g_beacon_result;
-extern uint8 g_vision_source_mode;
 
 #endif

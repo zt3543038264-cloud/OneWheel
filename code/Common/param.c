@@ -7,31 +7,9 @@
 const param_desc_t g_param_table[] =
 {
     // 正式跑车与循迹
-    { "run_speed_straight",     &g_param.run_speed_straight,     1, 0.0f,    RUN_SPEED_MAX_MPS },
-    { "run_speed_curve",        &g_param.run_speed_curve,        1, 0.0f,    RUN_SPEED_MAX_MPS },
-    { "run_speed_cross",        &g_param.run_speed_cross,        1, 0.0f,    RUN_SPEED_MAX_MPS },
-    { "run_speed_ring",         &g_param.run_speed_ring,         1, 0.0f,    RUN_SPEED_MAX_MPS },
-    { "run_speed_ramp",         &g_param.run_speed_ramp,         1, 0.0f,    RUN_SPEED_MAX_MPS },
-    { "run_speed_lost",         &g_param.run_speed_lost,         1, 0.0f,    RUN_SPEED_MAX_MPS },
     { "run_accel_mps2",         &g_param.run_accel_mps2,         1, 0.05f,   10.0f   },
     { "run_decel_mps2",         &g_param.run_decel_mps2,         1, 0.05f,   10.0f   },
-    { "direction_pixel_kp",     &g_param.direction_pixel_kp,     1, 0.0f,    10.0f   },
-    { "direction_heading_kp",   &g_param.direction_heading_kp,   1, 0.0f,    10.0f   },
-    { "direction_curve_kff",    &g_param.direction_curve_kff,    1, 0.0f,    100.0f  },
-    { "direction_rate_kd",      &g_param.direction_balance_kd,   1, 0.0f,    1.0f    },
-    { "zebra_stop_offset_m",    &g_param.zebra_stop_offset_m,    1, 0.0f,    2.0f    },
-    { "err_front_row",    &g_param.err_front_row,    0, 10.0f,   115.0f  },
     // 逆透视矩阵九个系数。不在任何菜单页里，由 Calib IPM 动作行写入并存 Flash
-    { "ipm_h0",           &g_param.ipm_h[0],         1, -1e8f,   1e8f    },
-    { "ipm_h1",           &g_param.ipm_h[1],         1, -1e8f,   1e8f    },
-    { "ipm_h2",           &g_param.ipm_h[2],         1, -1e8f,   1e8f    },
-    { "ipm_h3",           &g_param.ipm_h[3],         1, -1e8f,   1e8f    },
-    { "ipm_h4",           &g_param.ipm_h[4],         1, -1e8f,   1e8f    },
-    { "ipm_h5",           &g_param.ipm_h[5],         1, -1e8f,   1e8f    },
-    { "ipm_h6",           &g_param.ipm_h[6],         1, -1e8f,   1e8f    },
-    { "ipm_h7",           &g_param.ipm_h[7],         1, -1e8f,   1e8f    },
-    { "ipm_h8",           &g_param.ipm_h[8],         1, -1e8f,   1e8f    },
-    { "cam_exposure",     &g_param.cam_exposure,     0,  4.0f,   1600.0f },
     { "odom_counts_per_m",&g_param.odom_counts_per_m,1, 100.0f,  50000.0f },
     { "odom_test_speed",  &g_param.odom_test_speed,  1, 0.05f,   0.50f    },
     // Roll 串级
@@ -72,13 +50,6 @@ const param_desc_t g_param_table[] =
     { "lean_slew_dps",     &g_param.lean_slew_dps,     1, LEAN_SLEW_DPS_MIN, LEAN_SLEW_DPS_MAX },
     { "lean_max_angle",    &g_param.lean_max_angle,    1, 0.0f, DIRECTION_LEAN_LIMIT },
     // 元素现场参数
-    { "elem_en_zebra",    &g_param.elem_en_zebra,    0, 0.0f,     1.0f   },
-    { "elem_en_cross",    &g_param.elem_en_cross,    0, 0.0f,     1.0f   },
-    { "elem_en_ring",     &g_param.elem_en_ring,     0, 0.0f,     1.0f   },
-    { "elem_en_ramp",     &g_param.elem_en_ramp,     0, 0.0f,     1.0f   },
-    { "ring_angle",       &g_param.ring_angle,       0, 0.0f,     720.0f },
-    { "ring_s2_cnt_l",    &g_param.ring_s2_cnt_l,    0, 0.0f,     5000.0f},
-    { "ring_s2_cnt_r",    &g_param.ring_s2_cnt_r,    0, 0.0f,     5000.0f},
     // 零点、标定与保护
     { "imu_forward_dir",  &g_param.imu_forward_dir,  0, -1.0f,    1.0f   },
     { "roll_zero_init",   &g_param.roll_zero_init,   1, -45.0f,   45.0f  },
@@ -101,28 +72,6 @@ const param_desc_t g_param_table[] =
     { "fly_speed_limit",  &g_param.fly_speed_limit,  0,  0.0f,    20000.0f },
     { "fly_slew",         &g_param.fly_slew,         0,  0.0f,    10000.0f },
     // Restored Qcar beacon pipeline (CPU1), stopped-state settings.
-    { "beacon_mode", &g_param.beacon.mode, 0, 0.000000f, 3.000000f },
-    { "beacon_threshold", &g_param.beacon.threshold, 0, 1.000000f, 254.000000f },
-    { "beacon_radius", &g_param.beacon.radius, 0, 1.000000f, 4.000000f },
-    { "beacon_min_gray", &g_param.beacon.min_gray, 0, 0.000000f, 255.000000f },
-    { "beacon_max_miss", &g_param.beacon.max_miss, 0, 0.000000f, 40.000000f },
-    { "beacon_min_std", &g_param.beacon.min_std, 1, 0.000000f, 128.000000f },
-    { "beacon_min_ratio", &g_param.beacon.min_ratio, 1, 0.000000f, 10.000000f },
-    { "beacon_near_area", &g_param.beacon.near_area, 1, 0.000000f, 2000.000000f },
-    { "beacon_match_px", &g_param.beacon.match_px, 1, 0.000000f, 50.000000f },
-    { "beacon_speed_mps", &g_param.beacon.speed_mps, 1, 0.000000f, RUN_SPEED_MAX_MPS },
-    { "beacon_yaw_limit_dps", &g_param.beacon.yaw_limit_dps, 1, 0.000000f, 60.000000f },
-    { "beacon_mid_x", &g_param.beacon.mid_x, 1, 0.000000f, 187.000000f },
-    { "beacon_weight_dist", &g_param.beacon.weight_dist, 1, 0.000000f, 10.000000f },
-    { "beacon_weight_angle", &g_param.beacon.weight_angle, 1, 0.000000f, 10.000000f },
-    { "beacon_weight_continuity", &g_param.beacon.weight_continuity, 1, 0.000000f, 10.000000f },
-    { "beacon_track_row", &g_param.beacon.track_row, 0, 25.0f, 118.0f },
-    { "beacon_turn_row", &g_param.beacon.turn_row, 0, 26.0f, 119.0f },
-    { "beacon_line_kp", &g_param.beacon.line_kp, 1, 0.0f, 2.0f },
-    { "beacon_line_offset", &g_param.beacon.line_offset, 1, 0.0f, 187.0f },
-    { "beacon_search_error", &g_param.beacon.search_error_px, 1, 0.0f, 94.0f },
-    { "beacon_search_frames", &g_param.beacon.search_frames, 0, 1.0f, 100.0f },
-    { "beacon_search_ms", &g_param.beacon.search_ms, 0, BEACON_SEARCH_TIMEOUT_MIN_MS, BEACON_SEARCH_TIMEOUT_MAX_MS },
 
 };
 
@@ -216,10 +165,6 @@ uint8 param_set_by_name(const char *name, float value)
     if (value > d->vmax) value = d->vmax;
 
     /* Both are pixel rows, not physical distance. Keep approach before turn. */
-    if (d->ptr == &g_param.beacon.track_row &&
-        (int)(value+0.5f) >= g_param.beacon.turn_row) return 0;
-    if (d->ptr == &g_param.beacon.turn_row &&
-        (int)(value+0.5f) <= g_param.beacon.track_row) return 0;
 
     if (d->is_float) *(float *)d->ptr = value;
     else             *(int *)d->ptr   = (int)(value + (value >= 0.0f ? 0.5f : -0.5f));
@@ -437,30 +382,8 @@ static void param_normalize_dirs(void)
 //-------------------------------------------------------------------------------------------------------------------
 void param_load_defaults(void)
 {
-    g_param.run_speed_straight     = RUN_SPEED_STRAIGHT_DEFAULT;
-    g_param.run_speed_curve        = RUN_SPEED_CURVE_DEFAULT;
-    g_param.run_speed_cross        = RUN_SPEED_CROSS_DEFAULT;
-    g_param.run_speed_ring         = RUN_SPEED_RING_DEFAULT;
-    g_param.run_speed_ramp         = RUN_SPEED_RAMP_DEFAULT;
-    g_param.run_speed_lost         = RUN_SPEED_LOST_DEFAULT;
     g_param.run_accel_mps2         = RUN_ACCEL_MPS2_DEFAULT;
     g_param.run_decel_mps2         = RUN_DECEL_MPS2_DEFAULT;
-    g_param.direction_pixel_kp     = DIRECTION_PIXEL_KP_DEFAULT;
-    g_param.direction_heading_kp   = DIRECTION_HEADING_KP_DEFAULT;
-    g_param.direction_curve_kff    = DIRECTION_CURVE_KFF_DEFAULT;
-    g_param.direction_balance_kd   = DIRECTION_BALANCE_KD_DEFAULT;
-    g_param.zebra_stop_offset_m    = ZEBRA_STOP_OFFSET_M_DEFAULT;
-    g_param.err_front_row    = ERR_FRONT_ROW_DEFAULT;
-    g_param.ipm_h[0] = IPM_H0_DEFAULT;
-    g_param.ipm_h[1] = IPM_H1_DEFAULT;
-    g_param.ipm_h[2] = IPM_H2_DEFAULT;
-    g_param.ipm_h[3] = IPM_H3_DEFAULT;
-    g_param.ipm_h[4] = IPM_H4_DEFAULT;
-    g_param.ipm_h[5] = IPM_H5_DEFAULT;
-    g_param.ipm_h[6] = IPM_H6_DEFAULT;
-    g_param.ipm_h[7] = IPM_H7_DEFAULT;
-    g_param.ipm_h[8] = IPM_H8_DEFAULT;
-    g_param.cam_exposure     = CAM_EXPOSURE_DEFAULT;
     g_param.odom_counts_per_m = ODOM_COUNTS_PER_M_DEFAULT;
     g_param.odom_test_speed   = ODOM_TEST_SPEED_DEFAULT;
 
@@ -498,13 +421,6 @@ void param_load_defaults(void)
     g_param.lean_speed_kp    = LEAN_SPEED_KP_DEFAULT;
     g_param.lean_slew_dps    = LEAN_SLEW_DPS_DEFAULT;
     g_param.lean_max_angle    = LEAN_MAX_ANGLE_DEFAULT;
-    g_param.elem_en_zebra    = ELEM_EN_ZEBRA_DEFAULT;
-    g_param.elem_en_cross    = ELEM_EN_CROSS_DEFAULT;
-    g_param.elem_en_ring     = ELEM_EN_RING_DEFAULT;
-    g_param.elem_en_ramp     = ELEM_EN_RAMP_DEFAULT;
-    g_param.ring_angle       = RING_ANGLE_DEFAULT;
-    g_param.ring_s2_cnt_l    = RING_S2_CNT_L_DEFAULT;
-    g_param.ring_s2_cnt_r    = RING_S2_CNT_R_DEFAULT;
 
     g_param.imu_forward_dir     = IMU_FORWARD_DIR_DEFAULT;
     g_param.roll_zero_init      = ROLL_ZERO_INIT_DEFAULT;
@@ -529,7 +445,6 @@ void param_load_defaults(void)
     g_param.jog_duty_drive = JOG_DUTY_DRIVE_DEFAULT;
     g_param.fly_speed_limit = FLY_SPEED_LIMIT_DEFAULT;
     g_param.fly_slew        = FLY_SLEW_DEFAULT;
-    beacon_defaults(&g_param.beacon);
     g_param_revision++;
 }
 

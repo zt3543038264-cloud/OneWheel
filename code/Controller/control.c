@@ -8,7 +8,6 @@
 #include "Protocols/vofa.h"
 #include "Common/param.h"
 #include "Common/pid.h"
-#include "Estimation/Vision/vision_core.h"
 #include <math.h>
 
 // ====================== 对外全局量 ======================
@@ -18,8 +17,6 @@ start_state_t start_flag = START_STOP;          // 发车状态机，上电全�
 float g_roll_zero, g_pitch_zero;                // 机械零点(°)
 static float s_lean_speed_mps;                 // 压弯使用的带符号低通实际速度
 float g_lean_offset = 0;                        // 压弯动态零点偏移(°)
-beacon_result_t g_beacon_result;
-uint8 g_vision_source_mode;
 float g_pwm_roll, g_pwm_pitch, g_pwm_yaw;       // 三轴串级输出，混控前
 int16 g_motor_a, g_motor_b, g_motor_c;          // 混控后的三电机控制量
 int   g_target_distance = 0;                    // Pitch 速度环目标(counts/20ms)
@@ -29,31 +26,8 @@ float g_yaw_momentum_scale = 1.0f;              // 共模动量剩余权限
 
 float g_dbg_error   = 0.0f;                     // 归一化横向偏差，正值要求正向 Yaw
 volatile uint8 g_imu_ok = 0;                    // IMU660RB 初始化结果
-uint8 g_cam_ok      = 0;                        // CPU1 摄像头就绪标志
-uint8 g_vision_ipm_ok = 0;                      // CPU1 侧逆透视是否可用，Camera 页显示 IPM0/1
-uint8 g_track_valid = 0;                        // 最新一帧循迹是否有效
-uint16 g_track_lost_frames = 0;                 // 连续无效帧计数
-volatile uint16 g_vision_age_ms = 0;            // 距上一帧视觉结果的时间(ms)
 volatile uint32 g_control_uptime_ms = 0;        // 1ms 中断累计运行时间(ms)
-volatile uint32 g_vision_frame_seq = 0;         // 最新视觉帧序号
-volatile uint32 g_vision_heartbeat = 0;         // CPU1 主循环心跳
-uint16 g_vision_threshold = 0;                  // 最新大津阈值
-uint16 g_vision_search_stop = 0;                // 最新有效前瞻行数
-uint16 g_vision_left_lost = 0;                  // 最新左边线丢线行数
-uint16 g_vision_right_lost = 0;                 // 最新右边线丢线行数
-uint16 g_vision_both_lost = 0;                  // 最新双边丢线行数
-uint8  g_vision_active_elem = 0;                // 最新元素编号
-uint8  g_vision_island_state = 0;               // 最新环岛状态号，0=空闲
-float  g_vision_lateral_error = 0.0f;           // 车道半宽归一化横向误差
-float  g_vision_heading_error = 0.0f;           // 赛道航向误差(°)
-float  g_vision_curvature = 0.0f;               // 有符号归一化曲率
-float  g_vision_direction_camera = 0.0f;        // 报告同款加权方向偏差
-uint8  g_vision_track_mode = TRACK_MODE_MIDDLE; // 当前元素选择的跟踪对象
-float  g_vision_quality = 0.0f;                 // 循迹质量(0..1)
-float  g_vision_speed_limit_mps = RUN_SPEED_MAX_MPS; // 视觉/元素绝对限速(m/s)
-uint8  g_vision_stop_request = 0;               // 斑马线终点请求
 float  g_run_speed_target_mps = 0.0f;           // 正式 Run 当前规划速度(m/s)
-float  g_vision_fps = 0.0f;                     // CPU1 出帧率(帧/s)，1ms 中断每 VISION_FPS_WIN_MS 结算一次
 
 // ====================== 内部状态 ======================
 
@@ -91,24 +65,14 @@ static volatile float  s_remote_yaw_target;      // 遥控示教使用的绝对�
 static float           s_remote_yaw_rate_cmd;    // 普通 Remote 的斜坡后目标角速度(°/s)
 
 // 正式跑车(Run)状态。目标更新在 1ms 中断，菜单只负责启停和显示
-static volatile uint8  s_run_active;             // 1=Run 已启动
-static volatile run_stop_t s_run_stop;           // 停车原因，菜单读走显示
-static volatile uint16 s_run_lost_ms;            // 搜索触发前的连续丢标或丢线时间(ms)
-static volatile uint16 s_run_search_ms;                   // 本次丢标首次开始搜索后的时间(ms)
 static float           s_direction_offset;       // 滤波后的平均像素偏差
 static float           s_direction_last_error;   // 方向PD上一拍滤波误差
 static float           s_direction_yaw_rate_target; // 视觉生成的目标横摆角速度
 static float           s_direction_yaw_rate_cmd; // 斜率限制后的目标横摆角速度
 static float           s_balance_yaw_ref;        // Balance 启动瞬间的航向，Yaw Hold 以它为基准
 static float           s_yaw_desat_offset;       // 共模动量回收时允许航向缓慢让出的角度(°)
-static uint8           s_direction_last_mode;    // 上一拍跟踪模式
 static float           s_roll_angle_target;      // Roll 回收与压弯合成后的实际角度目标
 static float           s_yaw_output_applied;     // Roll 优先混控后实际分配给 Yaw 的输出
-static uint8           s_zebra_stop_latched;      // 斑马线终点请求锁存
-static int32           s_zebra_stop_start_count;  // 锁存请求时的 C 轮累计里程
-static uint8           s_run_vision_armed;         // 已收到应用本次 Run 快照的视觉帧
-static volatile uint8  s_ipm_calib_seq_last;     // 上次已取走的 CPU1 标定序号
-static volatile uint8  s_ipm_new;                // 1=有新矩阵等着写 Flash
 
 // 1m 里程验证状态。目标更新在 1ms 中断，菜单只负责启停和显示。
 static volatile odom_test_state_t s_odom_test_state;
@@ -248,7 +212,6 @@ static void cascade_reset(void)
     s_direction_last_error = 0.0f;
     s_direction_yaw_rate_target = 0.0f;
     s_direction_yaw_rate_cmd = 0.0f;
-    s_direction_last_mode = TRACK_MODE_MIDDLE;
     s_roll_angle_target = g_roll_zero;
     s_yaw_output_applied = 0.0f;
     roll_notch_reset_state();
@@ -278,13 +241,7 @@ static void remote_state_reset(void)
     s_odom_test_state = ODOM_TEST_IDLE;
     s_odom_test_start_count = 0;
     s_odom_test_yaw_zero = 0.0f;
-    s_run_active = 0;
-    s_run_vision_armed = 0;
-    s_run_lost_ms = 0;
-    s_run_search_ms = 0;
     g_run_speed_target_mps = 0.0f;
-    s_zebra_stop_latched = 0;
-    s_zebra_stop_start_count = 0;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -308,11 +265,7 @@ static int speed_target_from_mps(float speed_mps)
 // 返回参数     float           受限速度(m/s)
 // 使用示例     speed = run_speed_limit(RUN_SPEED_CURVE);
 //-------------------------------------------------------------------------------------------------------------------
-static float run_speed_limit(float speed_mps)
-{
-    float straight = constrain_float(RUN_SPEED_STRAIGHT, 0.0f, RUN_SPEED_MAX_MPS);
-    return constrain_float(speed_mps, 0.0f, straight);
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     查询 CPU1 是否已经停帧
@@ -320,10 +273,7 @@ static float run_speed_limit(float speed_mps)
 // 返回参数     uint8           1=超过 VISION_LINK_TIMEOUT_MS 没收到新帧
 // 使用示例     if (vision_link_lost()) { ... }
 //-------------------------------------------------------------------------------------------------------------------
-static uint8 vision_link_lost(void)
-{
-    return (uint8)(g_vision_age_ms >= VISION_LINK_TIMEOUT_MS);
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     结束正式跑车并保持原地平衡
@@ -331,30 +281,6 @@ static uint8 vision_link_lost(void)
 // 返回参数     void
 // 使用示例     run_hold_balance(RUN_STOP_VISION);
 //-------------------------------------------------------------------------------------------------------------------
-static void run_hold_balance(run_stop_t reason)
-{
-    s_run_stop = reason;
-    s_run_active = 0;
-    s_run_vision_armed = 0;
-    s_run_lost_ms = 0;
-    s_run_search_ms = 0;
-    g_run_speed_target_mps = 0.0f;
-    g_target_distance = 0;
-    s_speed_ramp = 0.0f;
-    s_direction_yaw_rate_target = 0.0f;
-    s_direction_yaw_rate_cmd = 0.0f;
-    s_direction_offset = 0.0f;
-    s_direction_last_error = 0.0f;
-    s_direction_last_mode = TRACK_MODE_HOLD;
-    pid_reset(&p_vel_pid);
-    pid_reset(&y_rate_pid);
-    g_lean_offset = 0.0f;
-    s_lean_speed_mps = 0.0f;
-    g_yaw_target = imu_get_angle_yaw();
-    /* Returning to ordinary Balance starts from the current heading. */
-    s_balance_yaw_ref = g_yaw_target - YAW_HOLD_DEG;
-    s_yaw_desat_offset = 0.0f;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     根据最新视觉结果生成正式 Run 的分段速度目标
@@ -362,61 +288,7 @@ static void run_hold_balance(run_stop_t reason)
 // 返回参数     void
 // 使用示例     run_vision_target_update();
 //-------------------------------------------------------------------------------------------------------------------
-static void run_vision_target_update(void)
-{
-    float curve_ratio;
-    float quality_ratio;
-    float quality_limit;
-    float speed;
-    float speed_limit;
 
-    if (!s_run_active || !s_run_vision_armed)
-    {
-        g_run_speed_target_mps = 0.0f;
-        return;
-    }
-
-    curve_ratio = fabsf(g_vision_curvature) /
-                  constrain_float(TRACK_CURVE_FULL_SCALE, 0.01f, 10.0f);
-    curve_ratio = constrain_float(curve_ratio, 0.0f, 1.0f);
-    speed = run_speed_limit(RUN_SPEED_STRAIGHT) +
-            (run_speed_limit(RUN_SPEED_CURVE) - run_speed_limit(RUN_SPEED_STRAIGHT)) * curve_ratio;
-
-    if (g_vision_active_elem == (uint8)ELEM_CROSS)
-        speed = run_speed_limit(RUN_SPEED_CROSS);
-    else if (g_vision_active_elem == (uint8)ELEM_RING_LEFT ||
-             g_vision_active_elem == (uint8)ELEM_RING_RIGHT)
-        speed = run_speed_limit(RUN_SPEED_RING);
-    else if (g_vision_active_elem == (uint8)ELEM_RAMP)
-        speed = run_speed_limit(RUN_SPEED_RAMP);
-    else if (g_vision_active_elem == (uint8)ELEM_ZEBRA)
-        speed = run_speed_limit(RUN_SPEED_CROSS);
-
-    if (!g_track_valid)
-    {
-        speed = run_speed_limit(RUN_SPEED_LOST);
-    }
-    else if (g_vision_active_elem == (uint8)ELEM_NONE)
-    {
-        float quality_min = constrain_float(TRACK_QUALITY_MIN, 0.0f, 1.0f);
-        float valid_speed_floor = run_speed_limit(RUN_VALID_SPEED_FLOOR_MPS);
-
-        if (quality_min >= 0.999f)
-            quality_ratio = (g_vision_quality >= quality_min) ? 1.0f : 0.0f;
-        else
-            quality_ratio = constrain_float((g_vision_quality - quality_min) /
-                                             (1.0f - quality_min), 0.0f, 1.0f);
-        quality_limit = run_speed_limit(RUN_SPEED_LOST) +
-                        (run_speed_limit(RUN_SPEED_STRAIGHT) - run_speed_limit(RUN_SPEED_LOST)) * quality_ratio;
-        if (quality_limit < valid_speed_floor) quality_limit = valid_speed_floor;
-        if (speed > quality_limit) speed = quality_limit;
-    }
-
-    speed_limit = run_speed_limit(g_vision_speed_limit_mps);
-    if (speed > speed_limit) speed = speed_limit;
-
-    g_run_speed_target_mps = run_speed_limit(speed * g_yaw_momentum_scale);
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     跑车模式下每 1ms 更新一次转向与速度目标
@@ -424,104 +296,10 @@ static void run_vision_target_update(void)
 // 返回参数     void
 // 使用示例     run_target_update();
 //-------------------------------------------------------------------------------------------------------------------
-/* Only fresh, mode-matched frames from this Run can start or maintain search. */
-static uint8 beacon_can_search(void)
-{
-    return (uint8)(s_run_active && s_run_vision_armed && !g_track_valid &&
-        g_param.beacon.mode >= 1 && g_param.beacon.mode <= 3 &&
-        g_vision_source_mode == g_param.beacon.mode && !vision_link_lost() &&
-        g_param.beacon.search_error_px > 0.0f && g_param.beacon.yaw_limit_dps > 0.0f);
-}
+/* 相机持续出帧时，允许本轮 Run 沿已选方向原地找灯。 */
 
-static uint8 beacon_search_active(void)
-{
-    return (uint8)(beacon_can_search() && g_beacon_result.searching &&
-                   g_beacon_result.steer_valid);
-}
 
-static void run_target_update(void)
-{
-    float speed_mps;
 
-    if (vision_link_lost())
-    {
-        run_hold_balance(RUN_STOP_VISION);
-        return;
-    }
-
-    if (g_vision_stop_request && !s_zebra_stop_latched)
-    {
-        s_zebra_stop_latched = 1;
-        s_zebra_stop_start_count = Y_Motor_GetTotalCount();
-        s_run_stop = RUN_STOP_ZEBRA;
-    }
-
-    if (s_zebra_stop_latched)
-    {
-        float distance = fabsf(Y_Motor_CountToMeter(Y_Motor_GetTotalCount() -
-                                                    s_zebra_stop_start_count));
-
-        if (distance < ZEBRA_STOP_OFFSET_M)
-        {
-            speed_mps = run_speed_limit(RUN_SPEED_CROSS);
-            if (g_run_speed_target_mps > 0.0f && g_run_speed_target_mps < speed_mps)
-                speed_mps = g_run_speed_target_mps;
-            g_target_distance = speed_target_from_mps(speed_mps);
-            return;
-        }
-
-        g_target_distance = 0;
-        if (fabsf(s_speed_ramp) < 1.0f &&
-            func_abs(Y_Motor_GetSpeed20ms()) <= RUN_STOP_SPEED_CNT)
-        {
-            run_hold_balance(RUN_STOP_ZEBRA);
-        }
-        return;
-    }
-
-    if (!g_track_valid)
-    {
-        uint8 searching = beacon_search_active();
-        if (searching || s_run_search_ms != 0u)
-        {
-            /* Count from the first search request until reacquisition or stop.
-             * An intervening HOLD must not restart the same search budget. */
-            if (++s_run_search_ms >= (uint16)g_param.beacon.search_ms)
-            {
-                run_hold_balance(RUN_STOP_LOST);
-                return;
-            }
-        }
-        else
-        {
-            uint16 wait_ms = RUN_LOST_STOP_MS;
-            /* A nonzero miss count confirms CPU1 has seen a beacon in this Run.
-             * Give the frame wait a bounded window at lower camera frame rates. */
-            if (beacon_can_search() && g_beacon_result.missed_frames != 0u)
-                wait_ms = BEACON_SEARCH_WAIT_MAX_MS;
-            if (++s_run_lost_ms >= wait_ms)
-            {
-                run_hold_balance(RUN_STOP_LOST);
-                return;
-            }
-        }
-        speed_mps = run_speed_limit(RUN_SPEED_LOST);
-        if (g_param.beacon.mode != 0)
-        {
-            if (!searching) speed_mps = 0.0f;
-            else speed_mps = fminf(speed_mps, fminf(run_speed_limit(g_param.beacon.speed_mps),
-                                                  BEACON_SEARCH_SPEED_MAX_MPS));
-        }
-    }
-    else
-    {
-        s_run_lost_ms = 0;
-        s_run_search_ms = 0;
-        speed_mps = g_run_speed_target_mps;
-    }
-
-    g_target_distance = speed_target_from_mps(speed_mps);
-}
 
 /* On this car the host's positive left input needs positive yaw rate
  * with the default steering setting. */
@@ -579,12 +357,6 @@ static void motion_target_update(void)
         return;
     }
 
-    // 正式跑车。速度规划与斑马线停车由 Run 状态更新。
-    if (s_run_active && start_flag == START_BALANCE)
-    {
-        run_target_update();
-        return;
-    }
 
     // 普通 Balance：保持启动航向，再叠加菜单 Yaw Hold 偏移和动量回收让角。
     // 走斜率是为了不让目标阶跃；Yaw Hold=0 时行为与改造前完全一致。
@@ -659,7 +431,7 @@ static void speed_ramp_update(void)
     if (delta == 0.0f) return;
 
     // 正式 Run 的斜坡参数使用 SI 单位；遥控与 1m 验证保持原 counts/20ms 步长。
-    if (s_run_active || s_path_active)
+    if (s_path_active)
     {
         float accel = (fabsf(target) > fabsf(s_speed_ramp)) ? RUN_ACCEL_MPS2 : RUN_DECEL_MPS2;
         if (s_path_active)
@@ -691,27 +463,7 @@ static void speed_ramp_update(void)
 // 返回参数     float           目标横摆角速度(°/s)
 // 使用示例     yaw_rate = direction_balance_Control(offset, 0.0f);
 //-------------------------------------------------------------------------------------------------------------------
-static float direction_balance_Control(float direction_now, float direction_zero)
-{
-    float error = direction_now - direction_zero;
-    float error_rate = (error - s_direction_last_error) / 0.020f;
-    float heading = -(float)STEER_DIR * g_vision_heading_error;
-    float curvature = -(float)STEER_DIR * g_vision_curvature;
-    float yaw_rate;
 
-    error_rate = constrain_float(error_rate,
-                                 -DIRECTION_D_RATE_LIMIT,
-                                  DIRECTION_D_RATE_LIMIT);
-    s_direction_last_error = error;
-    yaw_rate = DIRECTION_PIXEL_KP * error +
-               DIRECTION_HEADING_KP * heading +
-               DIRECTION_CURVE_KFF * fabsf(Y_Motor_GetSpeedMps()) * curvature +
-               DIRECTION_BALANCE_KD * error_rate;
-    if (!ctrl_is_finite(yaw_rate)) return 0.0f;
-    return constrain_float(yaw_rate,
-                           -DIRECTION_YAW_RATE_LIMIT * g_yaw_momentum_scale,
-                            DIRECTION_YAW_RATE_LIMIT * g_yaw_momentum_scale);
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     按跟踪模式更新方向偏差及转向、压弯共用的目标角速度
@@ -719,58 +471,7 @@ static float direction_balance_Control(float direction_now, float direction_zero
 // 返回参数     void
 // 使用示例     if (run20) direction_control_update();
 //-------------------------------------------------------------------------------------------------------------------
-static void direction_control_update(void)
-{
-    float raw_offset;
-    uint8 mode;
 
-    if (!s_run_active)
-    {
-        s_direction_offset = 0.0f;
-        s_direction_last_error = 0.0f;
-        s_direction_yaw_rate_target = 0.0f;
-        s_direction_yaw_rate_cmd = 0.0f;
-        s_direction_last_mode = TRACK_MODE_MIDDLE;
-        return;
-    }
-
-    mode = g_vision_track_mode;
-    if (mode > TRACK_MODE_HOLD) mode = TRACK_MODE_MIDDLE;
-
-    if (mode == TRACK_MODE_HOLD || !s_run_vision_armed ||
-        (!g_track_valid && !beacon_search_active()))
-    {
-        s_direction_offset = 0.0f;
-        s_direction_last_error = 0.0f;
-        s_direction_yaw_rate_target = 0.0f;
-        mode = TRACK_MODE_HOLD;
-    }
-    else
-    {
-        raw_offset = (float)STEER_DIR *
-                     constrain_float(g_vision_direction_camera,
-                                     -DIRECTION_CAMERA_LIMIT,
-                                      DIRECTION_CAMERA_LIMIT) /
-                     DIRECTION_CAMERA_WEIGHT_SUM;
-        if (mode != s_direction_last_mode)
-        {
-            s_direction_offset = raw_offset;
-            s_direction_last_error = raw_offset;
-        }
-        else
-        {
-            s_direction_offset += DIRECTION_ERROR_ALPHA *
-                                  (raw_offset - s_direction_offset);
-        }
-        s_direction_yaw_rate_target = constrain_float(
-            direction_balance_Control(s_direction_offset, 0.0f),
-            -YAW_RATE_CMD_LIMIT, YAW_RATE_CMD_LIMIT);
-    }
-    if (g_param.beacon.mode != 0)
-        s_direction_yaw_rate_target = constrain_float(s_direction_yaw_rate_target,
-            -g_param.beacon.yaw_limit_dps, g_param.beacon.yaw_limit_dps);
-    s_direction_last_mode = mode;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     每毫秒平滑视觉角速度指令，目标丢失时立即回到零角速度
@@ -778,25 +479,7 @@ static void direction_control_update(void)
 // 返回参数     void
 // 使用示例     direction_yaw_rate_update();
 //-------------------------------------------------------------------------------------------------------------------
-static void direction_yaw_rate_update(void)
-{
-    float delta;
-    float step;
 
-    if (!s_run_active) return;
-    if (!s_run_vision_armed || g_vision_track_mode == TRACK_MODE_HOLD ||
-        s_direction_last_mode == TRACK_MODE_HOLD || (!g_track_valid && !beacon_search_active()))
-    {
-        s_direction_last_mode = TRACK_MODE_HOLD;
-        s_direction_yaw_rate_target = 0.0f;
-        s_direction_yaw_rate_cmd = 0.0f;
-        return;
-    }
-
-    delta = s_direction_yaw_rate_target - s_direction_yaw_rate_cmd;
-    step = DIRECTION_YAW_SLEW * 0.001f;
-    s_direction_yaw_rate_cmd += constrain_float(delta, -step, step);
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     以持续转弯率生成双项压弯，不依赖航向跟踪误差或横向偏差门控
@@ -823,9 +506,7 @@ static float lean_offset_update(void)
     g_lean_offset = constrain_float(g_lean_offset, -DIRECTION_LEAN_LIMIT, DIRECTION_LEAN_LIMIT);
 
     if (path_turn) rate = s_path_yaw_rate_cmd;
-    if (((s_run_active && s_run_vision_armed && g_track_valid && g_vision_ipm_ok &&
-        g_vision_age_ms < VISION_LINK_TIMEOUT_MS &&
-        s_direction_last_mode != TRACK_MODE_HOLD) || path_turn) &&
+        if (path_turn &&
         ctrl_is_finite(speed) && ctrl_is_finite(rate) &&
         ctrl_is_finite(LEAN_TURN_KP) && ctrl_is_finite(LEAN_SPEED_KP))
     {
@@ -1024,12 +705,11 @@ static float yaw_cascade_ctrl(uint8 run_angle)
         }
         return pid_loc_calc_limited(&y_rate_pid, s_path_yaw_rate_cmd-imu.gyro_z, -headroom, headroom);
     }
-    if (s_run_active || (s_remote_active && !s_path_teach_remote))
+    if (s_remote_active && !s_path_teach_remote)
     {
         float limit = constrain_float(FLYWHEEL_OUT_LIMIT - fabsf(g_pwm_roll), 0.0f, YAW_PWM_LIMIT);
-        float rate_cmd = s_run_active ? s_direction_yaw_rate_cmd : s_remote_yaw_rate_cmd;
-        uint8 zero_turn = s_run_active ? (s_direction_last_mode == TRACK_MODE_HOLD) :
-                                       (s_remote_steer_angle == 0.0f);
+        float rate_cmd = s_remote_yaw_rate_cmd;
+        uint8 zero_turn = (s_remote_steer_angle == 0.0f);
         if (zero_turn || limit <= 0.0f)
             y_rate_pid.integrator = 0.0f;
         return pid_loc_calc_limited(&y_rate_pid, rate_cmd - imu.gyro_z, -limit, limit);
@@ -1100,7 +780,7 @@ static void yaw_desat_update(void)
     float rate_dps;
     uint8 settled, stalled;
 
-    if (start_flag != START_BALANCE || s_path_active || s_run_active ||
+    if (start_flag != START_BALANCE || s_path_active ||
         !ctrl_is_finite(common) || !ctrl_is_finite(err) || excess <= 0.0f)
         return;
 
@@ -1130,7 +810,6 @@ static void cascade_stop(control_test_status_t reason)
 {
     // start_flag 已经是 STOP 说明车本来就没跑，别用它去盖掉上一次 Test 的状态码
     if (start_flag != START_STOP) s_test_status = reason;
-    if (s_run_active && s_run_stop == RUN_STOP_NONE) s_run_stop = RUN_STOP_SAFETY;
 
     cascade_reset();
     remote_state_reset();
@@ -1203,8 +882,6 @@ static void cascade_run(void)
         g_yaw_target  = imu_get_angle_yaw();
     }
 
-    if (run20) direction_control_update();
-    direction_yaw_rate_update();
     if (run5) g_lean_offset = lean_offset_update();
     if (run20) speed_ramp_update();                      // 速度目标斜坡与速度环同拍
     g_pwm_roll  = roll_cascade_ctrl(g_roll_zero + LEAN_DIR * g_lean_offset, run_angle, run20);
@@ -1598,30 +1275,8 @@ static control_test_status_t control_block_to_test_status(control_block_t block)
 void control_init(void)
 {
     s_pitch_rate_cache_valid = 0;
-    g_cam_ok = 0;
-    g_track_valid = 0;
-    g_track_lost_frames = 0;
-    g_vision_age_ms = 0;
     g_control_uptime_ms = 0;
-    g_vision_frame_seq = 0;
-    g_vision_heartbeat = 0;
-    g_vision_threshold = 0;
-    g_vision_search_stop = 0;
-    g_vision_left_lost = 0;
-    g_vision_right_lost = 0;
-    g_vision_both_lost = 0;
-    g_vision_active_elem = 0;
-    g_vision_island_state = 0;
-    g_vision_lateral_error = 0.0f;
-    g_vision_heading_error = 0.0f;
-    g_vision_curvature = 0.0f;
-    g_vision_direction_camera = 0.0f;
-    g_vision_track_mode = TRACK_MODE_MIDDLE;
-    g_vision_quality = 0.0f;
-    g_vision_speed_limit_mps = RUN_SPEED_MAX_MPS;
-    g_vision_stop_request = 0;
     g_run_speed_target_mps = 0.0f;
-    g_vision_fps = 0.0f;
     s_control_test_active = 0;
     s_test_status = CTRL_TEST_STATUS_OK;
     s_jog_target = MOTOR_JOG_NONE;
@@ -1758,13 +1413,7 @@ uint8 control_balance_start(void)
 // 返回参数     uint8           1=命令已发出
 // 使用示例     control_ipm_calib_request();
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_calib_request(void)
-{
-    vision_camera_status_t status;
-    if (g_param.beacon.mode != 0) return 0; // lane IPM is not beacon calibration
-    if (vision_core_state() != VISION_CORE_READY || !vision_camera_status_read(&status) || status.diagnostic) return 0;
-    return vision_command_request(VISION_CMD_CALIB_IPM, 0);
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     查询是否还有标定好的逆透视矩阵在等着写 Flash
@@ -1772,10 +1421,7 @@ uint8 control_ipm_calib_request(void)
 // 返回参数     uint8           1=还没写进 Flash 0=已经落盘或本来就没有新矩阵
 // 使用示例     if (!control_ipm_pending()) menu_status("IPM SAVED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_pending(void)
-{
-    return (uint8)s_ipm_new;
-}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     在主循环将新标定的逆透视矩阵写入 Flash
@@ -1783,22 +1429,7 @@ uint8 control_ipm_pending(void)
 // 返回参数     uint8           1=有待存矩阵且 Flash 写入成功，0=无待存矩阵或保存失败
 // 使用示例     if (control_ipm_flush()) menu_status("IPM SAVED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_ipm_flush(void)
-{
-    static const char *const names[9] =
-    {
-        "ipm_h0", "ipm_h1", "ipm_h2",
-        "ipm_h3", "ipm_h4", "ipm_h5",
-        "ipm_h6", "ipm_h7", "ipm_h8",
-    };
 
-    if (control_imu_recovery_busy() || !s_ipm_new || start_flag != START_STOP || path_nav_busy() ||
-        control_test_running() || control_jog_running() != MOTOR_JOG_NONE)
-        return 0;
-    if (!param_save_names(names, 9u)) return 0;
-    s_ipm_new = 0;
-    return 1;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     启动正式跑车，先按三轴平衡的全部安全条件完成发车
@@ -1806,42 +1437,7 @@ uint8 control_ipm_flush(void)
 // 返回参数     uint8           1=已启动 0=被安全条件阻止
 // 使用示例     if (!control_run_start()) menu_status("RUN BLOCKED");
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_run_start(void)
-{
-    if (start_flag != START_STOP)
-    {
-        s_test_status = CTRL_TEST_STATUS_INVALID;
-        return 0;
-    }
-    // 视觉不可用就不许发车：跑车全靠它给转向
-    if (!vision_camera_run_allowed() || vision_core_state() != VISION_CORE_READY || vision_link_lost() ||
-        (g_param.beacon.mode==0 && !g_vision_ipm_ok) ||
-        g_vision_source_mode!=g_param.beacon.mode || !g_track_valid)
-    {
-        s_test_status = CTRL_TEST_STATUS_INVALID;
-        return 0;
-    }
-    if (!control_balance_start()) return 0;
 
-    s_run_active = 1;
-    s_run_stop = RUN_STOP_NONE;
-    s_run_lost_ms = 0;
-    s_run_search_ms = 0;
-    g_run_speed_target_mps = 0.0f;
-    s_direction_offset = 0.0f;
-    s_direction_last_error = 0.0f;
-    s_direction_yaw_rate_target = 0.0f;
-    s_direction_yaw_rate_cmd = 0.0f;
-    s_direction_last_mode = TRACK_MODE_MIDDLE;
-    s_zebra_stop_latched = 0;
-    s_zebra_stop_start_count = 0;
-    s_run_vision_armed = 0;
-    g_vision_stop_request = 0;
-    g_target_distance = 0;
-    g_yaw_target = imu_get_angle_yaw();
-    g_vofa_mode = VOFA_RUN;
-    return 1;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     停止正式跑车，目标速度归零并保持平衡制动
@@ -1849,18 +1445,6 @@ uint8 control_run_start(void)
 // 返回参数     void
 // 使用示例     control_run_stop();
 //-------------------------------------------------------------------------------------------------------------------
-void control_run_stop(void)
-{
-    uint32 irq = interrupt_global_disable();
-    if (s_run_active)
-    {
-        run_hold_balance(RUN_STOP_MANUAL);
-        interrupt_global_enable(irq);
-        return;
-    }
-    interrupt_global_enable(irq);
-    control_stop();
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     查询正式跑车是否在跑
@@ -1868,16 +1452,6 @@ void control_run_stop(void)
 // 返回参数     uint8           1=跑车中
 // 使用示例     if (control_run_running()) { ... }
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_run_running(void)
-{
-    // 安全闸可能已经把 start_flag 打回 STOP，这里发现并补上停车原因
-    if (s_run_active && start_flag != START_BALANCE)
-    {
-        s_run_active = 0;
-        if (s_run_stop == RUN_STOP_NONE) s_run_stop = RUN_STOP_SAFETY;
-    }
-    return (uint8)s_run_active;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     读取最近一次跑车的停车原因
@@ -1885,10 +1459,6 @@ uint8 control_run_running(void)
 // 返回参数     run_stop_t      停车原因
 // 使用示例     menu_status(run_stop_text(control_run_stop_reason()));
 //-------------------------------------------------------------------------------------------------------------------
-run_stop_t control_run_stop_reason(void)
-{
-    return s_run_stop;
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     复制正式 Run 的全链路诊断状态，保持 1ms 中断路径定长且不做字符串格式化
@@ -1901,16 +1471,9 @@ void control_run_diag_snapshot(volatile control_run_diag_t *out)
     uint16 flags = 0u;
 
     if (out == 0) return;
-    if (s_run_active)                    flags |= 0x0001u;
     if (start_flag == START_BALANCE)     flags |= 0x0002u;
-    if (g_track_valid)                   flags |= 0x0004u;
-    if (s_run_vision_armed)              flags |= 0x0008u;
-    if (g_vision_ipm_ok)                 flags |= 0x0010u;
-    if (s_direction_last_mode == TRACK_MODE_HOLD) flags |= 0x0020u;
-    if (s_zebra_stop_latched)            flags |= 0x0040u;
+
     if (s_path_active)                   flags |= 0x0080u;
-    flags |= (uint16)(((uint16)g_vision_active_elem & 0x000Fu) << 8);
-    flags |= (uint16)(((uint16)s_run_stop & 0x0007u) << 12);
 
     out->uptime_ms            = g_control_uptime_ms;
     out->roll                 = att.roll;
@@ -1921,6 +1484,7 @@ void control_run_diag_snapshot(volatile control_run_diag_t *out)
     out->flywheel_a_rpm       = W_Motor_GetSpeed1();
     out->flywheel_b_rpm       = W_Motor_GetSpeed2();
     out->flywheel_link_ok     = (uint8)!W_Motor_LinkLost();
+    out->beacon_search_enabled = 0;
     out->recovery_feedback    = (float)out->flywheel_a_rpm - (float)out->flywheel_b_rpm;
     out->recovery_output      = r_rcy_pid.out;
     out->roll_output          = g_pwm_roll;
@@ -1937,16 +1501,16 @@ void control_run_diag_snapshot(volatile control_run_diag_t *out)
     out->yaw_output_applied   = s_yaw_output_applied;
     out->flywheel_common_rpm  = 0.5f * ((float)out->flywheel_a_rpm + (float)out->flywheel_b_rpm);
     out->direction_offset     = s_direction_offset;
-    out->lateral_error        = g_vision_lateral_error;
-    out->heading_error        = g_vision_heading_error;
-    out->curvature            = g_vision_curvature;
+    out->lateral_error        = 0;
+    out->heading_error        = 0;
+    out->curvature            = 0;
     out->speed_plan_mps       = s_path_active ? s_path_command.speed_mps :
                                 (s_remote_active ? s_remote_speed_mps : g_run_speed_target_mps);
     out->speed_ramp_mps       = Y_Motor_Count20msToMps(s_speed_ramp);
     out->speed_actual_mps     = Y_Motor_GetSpeedMps();
     out->momentum_scale       = g_yaw_momentum_scale;
-    out->vision_quality       = g_vision_quality;
-    out->vision_age_ms        = g_vision_age_ms;
+    out->vision_quality       = 0;
+    out->vision_age_ms        = 0;
     out->state_flags          = flags;
 }
 
@@ -2328,130 +1892,7 @@ control_test_status_t control_test_last_status(void)
 // 返回参数     void
 // 使用示例     control_vision_exchange(run5);
 //-------------------------------------------------------------------------------------------------------------------
-static void control_vision_exchange(uint8 publish_feedback)
-{
-    static uint32 input_seq;            // 本核发布序号，用于给结果配对
-    static uint32 last_frame_seq;       // 上次已处理的视觉帧序号
-    static uint32 fps_win_start_ms;     // 帧率统计窗口起点(ms)
-    static uint16 fps_frames;           // 本窗口内收到的新帧数
-    uint32 fps_win_ms;                  // 本窗口实际长度(ms)
-    vision_feedback_t feedback;
-    vision_result_t result;
 
-    if (publish_feedback)
-    {
-        feedback.beacon = g_param.beacon;
-        feedback.input_seq = ++input_seq;
-        feedback.uptime_ms = g_control_uptime_ms;
-        feedback.param_revision = g_param_revision;
-        feedback.drive_count_total = Y_Motor_GetTotalCount();
-        feedback.element_yaw = imu_get_angle_element();
-        feedback.pitch = att.pitch - g_pitch_zero;
-        feedback.pitch_rate = att.pitch_rate;
-        feedback.drive_speed_mps = Y_Motor_GetSpeedMps();
-        feedback.drive_output = g_pwm_pitch;
-        feedback.speed_cross_mps = g_param.run_speed_cross;
-        feedback.speed_ring_mps = g_param.run_speed_ring;
-        feedback.speed_ramp_mps = g_param.run_speed_ramp;
-        feedback.elem_en_zebra = (uint8)g_param.elem_en_zebra;
-        feedback.elem_en_cross = (uint8)g_param.elem_en_cross;
-        feedback.elem_en_ring = (uint8)g_param.elem_en_ring;
-        feedback.elem_en_ramp = (uint8)g_param.elem_en_ramp;
-        feedback.run_active = (uint8)s_run_active;
-        feedback.err_front_row = g_param.err_front_row;
-        memcpy(feedback.ipm_h, g_param.ipm_h, sizeof(feedback.ipm_h));
-        feedback.ring_angle = g_param.ring_angle;
-        feedback.ring_s2_cnt_l = g_param.ring_s2_cnt_l;
-        feedback.ring_s2_cnt_r = g_param.ring_s2_cnt_r;
-        feedback.cam_exposure = (uint16)g_param.cam_exposure;
-        feedback.reserved = 0;
-        vision_feedback_publish(&feedback);
-    }
-
-    g_vision_heartbeat = vision_core_heartbeat();
-    g_cam_ok = (uint8)(vision_core_state() == VISION_CORE_READY);
-    if (vision_result_read(&result) &&
-        result.frame_seq != 0u &&
-        result.frame_seq != last_frame_seq)
-    {
-        last_frame_seq = result.frame_seq;
-        g_vision_frame_seq = result.frame_seq;
-        g_vision_age_ms = 0;
-        if (fps_frames < 0xFFFFu) fps_frames++;
-        // CPU1 完成一次逆透视标定，把矩阵取回来存进运行参数
-        if (result.ipm_calib_seq != s_ipm_calib_seq_last)
-        {
-            s_ipm_calib_seq_last = result.ipm_calib_seq;
-            // 只在 CPU1 那边确实可用时才收。ipm_store() 在 ipm_ready()==0 时发回的是全 0，
-            // 无条件收下就等于用一次失败的标定把 Flash 里已经存好的那份擦掉
-            if (result.ipm_ok)
-            {
-                memcpy(g_param.ipm_h, result.ipm_h, sizeof(g_param.ipm_h));
-                g_param_revision++;
-                s_ipm_new = 1;              // 主循环看到这个标志去写 Flash，中断里不碰 Flash
-            }
-        }
-        g_vision_ipm_ok = result.ipm_ok;
-        g_vision_threshold = result.threshold;
-        g_vision_search_stop = result.search_stop_line;
-        g_vision_left_lost = result.left_lost;
-        g_vision_right_lost = result.right_lost;
-        g_vision_both_lost = result.both_lost;
-        g_vision_active_elem = (uint8)result.active_elem;
-        g_vision_island_state = result.island_state;
-        g_vision_lateral_error = ctrl_is_finite(result.lateral_error)
-                               ? constrain_float(result.lateral_error, -2.0f, 2.0f) : 0.0f;
-        g_vision_heading_error = ctrl_is_finite(result.heading_error)
-                               ? constrain_float(result.heading_error, -90.0f, 90.0f) : 0.0f;
-        g_vision_curvature = ctrl_is_finite(result.curvature)
-                           ? constrain_float(result.curvature, -1.0f, 1.0f) : 0.0f;
-        g_vision_direction_camera = ctrl_is_finite(result.direction_camera)
-                                  ? constrain_float(result.direction_camera,
-                                                    -DIRECTION_CAMERA_LIMIT,
-                                                     DIRECTION_CAMERA_LIMIT) : 0.0f;
-        g_vision_track_mode = (result.track_mode <= TRACK_MODE_HOLD)
-                            ? (uint8)result.track_mode : (uint8)TRACK_MODE_MIDDLE;
-        g_vision_quality = ctrl_is_finite(result.quality)
-                         ? constrain_float(result.quality, 0.0f, 1.0f) : 0.0f;
-        g_vision_speed_limit_mps = ctrl_is_finite(result.speed_limit_mps)
-                                 ? constrain_float(result.speed_limit_mps, 0.0f, RUN_SPEED_MAX_MPS)
-                                 : 0.0f;
-        if (s_run_active && result.run_active)
-        {
-            s_run_vision_armed = 1;
-            g_vision_stop_request = result.stop_request;
-        }
-        else
-        {
-            g_vision_stop_request = 0;
-        }
-        g_beacon_result=result.beacon;g_vision_source_mode=result.source_mode;
-        g_track_valid = (uint8)(result.track_valid && result.source_mode==g_param.beacon.mode);
-
-        // 丢线不等于居中：转向误差清零，丢线计数继续累加。
-        if (result.track_valid)
-        {
-            g_track_lost_frames = 0;
-            g_dbg_error = g_vision_lateral_error;
-        }
-        else
-        {
-            if (g_track_lost_frames < 60000u) g_track_lost_frames++;
-            g_dbg_error = 0.0f;
-        }
-        run_vision_target_update();
-    }
-
-    // 帧率结算。本函数每 1ms 调一次，所以窗口长度就是 VISION_FPS_WIN_MS。
-    // 摄像头停帧时窗口内计数为 0，读数自然掉到 0，不需要另设超时。
-    fps_win_ms = g_control_uptime_ms - fps_win_start_ms;
-    if (fps_win_ms >= VISION_FPS_WIN_MS)
-    {
-        g_vision_fps = (float)fps_frames * 1000.0f / (float)fps_win_ms;
-        fps_frames = 0;
-        fps_win_start_ms = g_control_uptime_ms;
-    }
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     执行一拍 1ms 控制周期，由 CCU60_CH0 中断调用
@@ -2465,7 +1906,7 @@ uint8 control_path_storage_ready(void)
 {
     return (uint8)(!control_imu_recovery_busy() && start_flag == START_STOP && !s_test_running &&
         s_jog_target == MOTOR_JOG_NONE && !path_nav_busy() &&
-        s_path_stopped_ms >= 500u && !control_ipm_pending() && vofa_flash_idle());
+        s_path_stopped_ms >= 500u && vofa_flash_idle());
 }
 
 void control_path_status(path_status_t *out)
@@ -2601,7 +2042,6 @@ void control_loop(void)
     static uint8 angle_tick;            // 独立 1ms 姿态发布与角度环拍
 
     g_control_uptime_ms++;
-    if (g_vision_age_ms < 0xFFFFu) g_vision_age_ms++;
     W_Motor_Tick1ms();                  // 刷新驱动通信超时并按需补发转速请求
 
     key_tick++;
@@ -2634,7 +2074,6 @@ void control_loop(void)
 
     if (tick == 0) control_path_tick5ms();
     motion_target_update();
-    control_vision_exchange((uint8)(tick == 0));
 
     // 三个输出分支互斥，每拍必有一个给 W_Motor 下发帧，喂住驱动侧失控保护看门狗
     if (control_imu_recovery_busy())
@@ -2671,20 +2110,6 @@ void control_loop(void)
 // 返回参数     uint8           1=摄像头就绪 0=未就绪
 // 使用示例     control_camera_debug_start();
 //-------------------------------------------------------------------------------------------------------------------
-uint8 control_camera_debug_start(void)
-{
-    vision_core_state_t state = vision_core_state();
 
-    if (state == VISION_CORE_OFF || state == VISION_CORE_FAILED)
-        (void)vision_command_request(VISION_CMD_RESTART_CAMERA, 0);
-    g_cam_ok = (uint8)(state == VISION_CORE_READY);
-    return g_cam_ok;
-}
 
 /* Profiles reinitialize the camera; request only from the stopped foreground. */
-uint8 control_camera_profile_request(uint8 diagnostic)
-{
-    if (diagnostic > 1u || start_flag != START_STOP || control_test_running() ||
-        control_jog_running() != MOTOR_JOG_NONE || path_nav_busy()) return 0;
-    return vision_command_request(VISION_CMD_SET_PROFILE, diagnostic);
-}

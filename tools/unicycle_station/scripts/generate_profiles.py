@@ -9,8 +9,6 @@ root = Path(__file__).resolve().parents[3]
 station = Path(__file__).resolve().parents[1]
 table = (root / "code/Common/param.c").read_text(encoding="utf-8")
 board = (root / "code/config.h").read_text(encoding="utf-8")
-beacon_defaults = dict(re.findall(r'c->(\w+)\s*=\s*([^;]+);',
-    (root / "code/Estimation/Beacon/beacon_config.c").read_text(encoding="utf-8")))
 menu = (root / "code/Menu/menu.c").read_text(encoding="utf-8")
 macros = dict(re.findall(r"^#define\s+(\w+)\s+([^\n/]+)", board, re.M))
 def numeric(value, depth=0):
@@ -22,7 +20,7 @@ def numeric(value, depth=0):
     return float(value)
 
 pid = [f"{axis}_{ring}_k{k}" for axis, rings in [("r", ("rate", "angle", "rcy")), ("p", ("rate", "angle", "vel")), ("y", ("rate", "angle"))] for ring in rings for k in "pid"]
-groups = ["Roll", "Pitch", "Yaw", "Lean", "Run", "Camera", "Element", "Motor", "Zero", "Odometry", "IPM", "Beacon"]
+groups = ["Roll", "Pitch", "Yaw", "Lean", "Run", "Motor", "Zero", "Odometry"]
 def group(n):
     if n.startswith("beacon_"):
         return "Beacon"
@@ -45,7 +43,7 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
     g = group(name)
     lo, hi = numeric(low), numeric(high)
     try:
-        value = numeric(beacon_defaults[member.split(".")[1]]) if member.startswith("beacon.") else numeric(defaults[member])
+        value = numeric(defaults[member])
     except (ValueError, KeyError):
         value = max(lo, min(hi, 0))
     if floating == "0": value = int(value)
@@ -53,7 +51,7 @@ for name, member, floating, low, high in re.findall(pattern, table.split("#defin
     if name.startswith("elem_en_"):
         step = 1
     params.append(dict(name=name, type="float" if floating == "1" else "int", min=lo, max=hi, value=value,
-                       group=g, step=step, flags=4 | (1 if name in pid or name in live_parameters else 0) | (16 if name in live_parameters else 0) | (2 if g in ("Motor", "Zero", "IPM", "Beacon") else 0)))
+                       group=g, step=step, flags=4 | (1 if name in pid or name in live_parameters else 0) | (16 if name in live_parameters else 0) | (2 if g in ("Motor", "Zero") else 0)))
     label = "航向保持偏移" if name == "yaw_hold_deg" else labels.get(name, "")
     if name in pid:
         axis, ring, gain = name.split("_")
@@ -97,17 +95,6 @@ for axis in ("a", "b"):
     metadata[name].pop("enum_options", None)
 for suffix, label in (("hz", "Hz"), ("q", "Q"), ("db", "dB")):
     metadata["r_rate_notch_"+suffix].update(label="Roll Rate Notch "+label, description="Roll measured-rate notch, 1 kHz sampling. dB=0 bypasses; positive depth is not supported. Defaults transcribed from user vehicle photo, 2026-11-09.")
-for name, label, description in (
-    ("beacon_track_row", "动态中线起始行", "目标cy达到此原图行号后使用动态中线；必须小于Turn Row。"),
-    ("beacon_turn_row", "近处转弯行", "目标cy达到此原图行号后锁存转向；丢标时沿该方向搜索。"),
-    ("beacon_line_kp", "动态中线斜率", "近处中线偏移=Line Kp×cy−Line Offset，左右方向相反。"),
-    ("beacon_line_offset", "动态中线偏移", "与Line Kp一起确定近处追踪中线，单位为原图像素。"),
-    ("beacon_search_error", "搜索像素偏差", "搜索时送给当前方向控制器的偏差绝对值；仍受Yaw Max约束，0关闭搜索。"),
-    ("beacon_search_frames", "搜索等待帧数", "普通丢标达到此处理帧数后搜索；近处转向锁存后可立即搜索。等待有独立上限。"),
-    ("beacon_search_ms", "转向搜索时长", "从开始搜索到退出Run的最长时间，单位毫秒。重新识别目标后清零。"),
-):
-    metadata[name].update(label=label, description=description)
-metadata["beacon_search_ms"]["unit"] = "ms"
 
 names = ["uptime_ms", "roll", "roll_target", "roll_rate", "recovery_feedback", "recovery_output", "roll_output", "lean_offset", "yaw_rate_target", "yaw_rate_command", "yaw_rate_actual", "yaw_output_raw", "yaw_output_applied", "flywheel_common_rpm", "direction_offset", "lateral_error", "heading_error", "curvature", "speed_plan", "speed_ramp", "speed_actual", "momentum_scale", "vision_quality", "vision_age_ms", "state_flags"]
 cn = ["MCU 时间", "Roll 实际角", "Roll 目标角", "Roll 角速度", "回收反馈 A−B", "回收输出", "Roll 输出", "压弯零点", "Yaw 目标角速度", "Yaw 命令", "Yaw 实际角速度", "Yaw 混控前", "Yaw 实际分配", "A/B 共模转速", "方向像素误差", "BEV 横向误差", "航向误差", "曲率", "规划速度", "速度斜坡", "实测速度", "Yaw 动量权限", "视觉质量", "视觉帧年龄", "状态位"]
